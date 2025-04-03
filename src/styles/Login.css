@@ -1,6 +1,7 @@
 /* General Reset and Body Styling */
 body{
-    box-sizing: border-box;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
 }
 
 ::-webkit-scrollbar {
