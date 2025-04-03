@@ -14,6 +14,8 @@ function Login() {
     const [formData, setFormData] = useState({ username: '', password: '', agree: false });
     const navigate = useNavigate();
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const [progress, setProgress] = useState(0);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -25,21 +27,46 @@ function Login() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
+        setError(null); // Reset previous errors
+    
         // Check for required fields
         if (!formData.username || !formData.password || !formData.agree) {
             setError('Please fill in all required fields and agree to the Terms & Conditions.');
             return;
         }
-
+    
         try {
-            await axios.post('http://localhost:5000/register', formData);
-            navigate('/dashboard');
+            const response = await axios.post('https://nextalk-u0y1.onrender.com/login', formData, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+    
+            // Store user data in localStorage/sessionStorage (if needed)
+            localStorage.setItem("user", JSON.stringify(response.data));
+    
+            setSuccess("Login successful! 🎉");
+    
+            let progressValue = 0;
+            const interval = setInterval(() => {
+                progressValue += 10;
+                setProgress(progressValue);
+                if (progressValue >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => navigate('/Dashboard'), 500);
+                }
+            }, 300);
         } catch (error) {
-            console.error('Registration failed', error);
-            setError('Login failed. Please try again.');
+            if (error.response) {
+                if (error.response.status === 401) { 
+                    setError('Invalid Username or Password.');
+                } else {
+                    setError(error.response.data.error || 'Login failed. Please try again.');
+                }
+            } else {
+                setError('Network error. Please try again.');
+            }
         }
     };
+    
 
     const { theme, handleThemeClick } = useTheme();
     const videoSrc = {
@@ -73,6 +100,18 @@ function Login() {
                     {error && (
                         <div className="alert alert-danger" role="alert">
                             <strong>Alert!</strong> {error}
+                        </div>
+                    )}
+                    {success && (
+                        <div className="alert alert-success" role="alert">
+                            <strong>Success!</strong> {success}
+                            <div className="progress mt-2" style={{ height: "10px", borderRadius: "5px", overflow: "hidden" }}>
+                                <div
+                                    className="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                    role="progressbar"
+                                    style={{ width: `${progress}%`, transition: "width 0.3s ease-in-out" }}
+                                ></div>
+                            </div>
                         </div>
                     )}
                     <div className="card-body">
