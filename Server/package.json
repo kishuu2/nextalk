@@ -5,7 +5,7 @@
   "main": "backend.js",
   "scripts": {
     "start": "node backend.js",
-    "build": "echo 'No build step required'"
+    "build": "npm install"
   },
   "keywords": [],
   "author": "",
