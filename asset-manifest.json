@@ -1,20 +1,20 @@
 {
   "files": {
-    "main.css": "/nextalk/static/css/main.146051ee.css",
-    "main.js": "/nextalk/static/js/main.686f7432.js",
-    "static/js/453.01d2eb60.chunk.js": "/nextalk/static/js/453.01d2eb60.chunk.js",
-    "static/media/download3.png": "/nextalk/static/media/download3.41c9a6c5fd2d0deb457a.png",
-    "static/media/download2.png": "/nextalk/static/media/download2.f2c8744354d42f199e5b.png",
-    "static/media/download4.png": "/nextalk/static/media/download4.63ec0ec6f02e442bc5f2.png",
-    "static/media/download5.png": "/nextalk/static/media/download5.42db376307219b1f23db.png",
-    "static/media/download.png": "/nextalk/static/media/download.fe463201b4882b9ca8f2.png",
-    "index.html": "/nextalk/index.html",
-    "main.146051ee.css.map": "/nextalk/static/css/main.146051ee.css.map",
-    "main.686f7432.js.map": "/nextalk/static/js/main.686f7432.js.map",
-    "453.01d2eb60.chunk.js.map": "/nextalk/static/js/453.01d2eb60.chunk.js.map"
+    "main.css": "/static/css/main.146051ee.css",
+    "main.js": "/static/js/main.9a5b2115.js",
+    "static/js/453.01d2eb60.chunk.js": "/static/js/453.01d2eb60.chunk.js",
+    "static/media/download3.png": "/static/media/download3.41c9a6c5fd2d0deb457a.png",
+    "static/media/download2.png": "/static/media/download2.f2c8744354d42f199e5b.png",
+    "static/media/download4.png": "/static/media/download4.63ec0ec6f02e442bc5f2.png",
+    "static/media/download5.png": "/static/media/download5.42db376307219b1f23db.png",
+    "static/media/download.png": "/static/media/download.fe463201b4882b9ca8f2.png",
+    "index.html": "/index.html",
+    "main.146051ee.css.map": "/static/css/main.146051ee.css.map",
+    "main.9a5b2115.js.map": "/static/js/main.9a5b2115.js.map",
+    "453.01d2eb60.chunk.js.map": "/static/js/453.01d2eb60.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.146051ee.css",
-    "static/js/main.686f7432.js"
+    "static/js/main.9a5b2115.js"
   ]
 }
