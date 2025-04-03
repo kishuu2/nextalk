@@ -9,7 +9,8 @@ const fileUpload = require("express-fileupload");
 
 require('dotenv').config();
 
-const url = "mongodb+srv://kishuu_2:ocXG5K7MBsk56Q9l@cluster0.xltekmq.mongodb.net/nextalk?retryWrites=true&w=majority&appName=Cluster0";
+const url = process.env.MONGO_URI;
+
 
 mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
@@ -19,36 +20,21 @@ mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
     console.error('Error connecting to MongoDB Atlas:', err);
   });
 
-/*mongoose.connect('mongodb://localhost:27017/Quiz')
-  .then(() => {
-    console.log('MongoDB connected successfully');
-  })
-  .catch(err => {
-    console.error('Error connecting to MongoDB:', err);
-  });*/
-
-// For backend and express
 const app = express();
 app.use(express.json()); 
 app.use(cors());
 console.log("App listen at port 5000");
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://kishuu2.github.io"
+];
+
 app.use(cors({
-  origin: 'http://localhost:3000', // Frontend URL
+  origin: allowedOrigins,
   credentials: true,
 }));
 
-/*const SECRET_KEY = process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex');
-app.use(session({
-  secret: SECRET_KEY,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    secure: false,
-    maxAge: 1000 * 60,
-  }
-}));
-*/
+
 app.get("/", (req, resp) => {
   resp.send("App is Working");
 });
