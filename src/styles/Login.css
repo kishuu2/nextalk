@@ -1,10 +1,6 @@
 /* General Reset and Body Styling */
-body {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 0;
+body{
+    box-sizing: border-box;
 }
 
 ::-webkit-scrollbar {
@@ -204,7 +200,10 @@ a:hover {
 }
 
 @media (min-width: 767.98px) {
-
+    .login-container {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        margin-top: 80px;
+    }
     body {
         height: 100vh;
     }
