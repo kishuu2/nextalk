@@ -72,6 +72,28 @@ app.post('/signup', async (req, res) => {
   }
 });
 
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const user = await Users.findOne({ username }); // Fixed variable name
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid Username or password' });
+    }
+
+    // Simple password check (⚠️ Not secure, but works for basic use)
+    if (user.password !== password) {
+      return res.status(401).json({ error: 'Invalid Username or password' });
+    }
+
+    // Respond with user data (excluding password)
+    res.json({ name: user.name, username: user.username, _id: user._id });
+  } catch (err) {
+    console.error("Error logging in user:", err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 
 app.listen(5000, () => {
