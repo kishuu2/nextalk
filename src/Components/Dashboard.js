@@ -1,7 +1,7 @@
 import React from 'react'
 
 export default function Dashboard() {
-    const user = localStorage.getItem("user", JSON.stringify(response.data));
+    const user = JSON.parse(localStorage.getItem("user"));
 
   return (
     <>
