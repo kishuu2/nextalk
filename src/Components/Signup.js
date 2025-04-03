@@ -37,7 +37,7 @@ function Login() {
         }
 
         try {
-            await axios.post('http://localhost:5000/signup', formData, {
+            await axios.post('https://nextalk-u0y1.onrender.com/signup', formData, {
                 headers: { 'Content-Type': 'application/json' }
             });
             setSuccess("User registered successfully! 🎉");
