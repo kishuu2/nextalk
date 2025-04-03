@@ -1,6 +1,6 @@
 {
   "files": {
-    "main.css": "/nextalk/static/css/main.146051ee.css",
+    "main.css": "/nextalk/static/css/main.cf39caa2.css",
     "main.js": "/nextalk/static/js/main.734decb1.js",
     "static/js/453.01d2eb60.chunk.js": "/nextalk/static/js/453.01d2eb60.chunk.js",
     "static/media/download3.png": "/nextalk/static/media/download3.41c9a6c5fd2d0deb457a.png",
@@ -9,12 +9,12 @@
     "static/media/download5.png": "/nextalk/static/media/download5.42db376307219b1f23db.png",
     "static/media/download.png": "/nextalk/static/media/download.fe463201b4882b9ca8f2.png",
     "index.html": "/nextalk/index.html",
-    "main.146051ee.css.map": "/nextalk/static/css/main.146051ee.css.map",
+    "main.cf39caa2.css.map": "/nextalk/static/css/main.cf39caa2.css.map",
     "main.734decb1.js.map": "/nextalk/static/js/main.734decb1.js.map",
     "453.01d2eb60.chunk.js.map": "/nextalk/static/js/453.01d2eb60.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.146051ee.css",
+    "static/css/main.cf39caa2.css",
     "static/js/main.734decb1.js"
   ]
 }
