@@ -48,7 +48,7 @@ const Users = require("./Models/Users");
 
 app.post('/signup', async (req, res) => {
   try {
-    const { name, username, password } = req.body;
+    const { name, username, email, password } = req.body;
 
     // ✅ First, check if user already exists
     const existingUser = await Users.findOne({ username });
@@ -57,7 +57,7 @@ app.post('/signup', async (req, res) => {
     }
 
     // ✅ If username is unique, create a new user
-    const newUser = new Users({ name, username, password });
+    const newUser = new Users({ name, username, email, password });
     const savedUser = await newUser.save();
 
     // ✅ Remove password before sending the response
