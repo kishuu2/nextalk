@@ -30,8 +30,8 @@ function Login() {
         setError(null); // Reset previous errors
     
         // Check for required fields
-        if (!formData.username || !formData.password || !formData.agree) {
-            setError('Please fill in all required fields and agree to the Terms & Conditions.');
+        if (!formData.username || !formData.password) {
+            setError('Please fill in all required fields!');
             return;
         }
     
@@ -140,20 +140,7 @@ function Login() {
                                     value={formData.password}
                                     onChange={handleChange}
                                 />
-                            </div>
-                            <div className="mb-4 form-check">
-                                <input
-                                    type="checkbox"
-                                    className="form-check-input"
-                                    id="agree"
-                                    name="agree"
-                                    checked={formData.agree}
-                                    onChange={handleChange}
-                                />
-                                <label className="form-check-label" htmlFor="agree">
-                                    I agree to the <Link to="/" className="text-primary">Terms & Conditions</Link>
-                                </label>
-                            </div>
+                            </div><br/><br/>
                             <button type="submit" className="btn btn-primary btn-lg w-100 login-btn">
                                 Login
                             </button><br /><br />

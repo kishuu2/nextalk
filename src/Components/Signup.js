@@ -11,7 +11,7 @@ import Random5 from "../Images/download5.png";
 
 
 function Login() {
-    const [formData, setFormData] = useState({ name: '', username: '', password: '', agree: false });
+    const [formData, setFormData] = useState({ name: '', username: '',email: '', password: '', agree: false });
     const navigate = useNavigate();
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -31,8 +31,12 @@ function Login() {
         setSuccess('');
         setProgress(0);
         // Check for required fields
-        if (!formData.name || !formData.username || !formData.password || !formData.agree) {
-            setError('Please fill in all required fields and agree to the Terms & Conditions.');
+        if (!formData.name || !formData.username || !formData.email || !formData.password) {
+            setError('Please fill in all required fields.');
+            return;
+        }
+        if (!formData.agree) {
+            setError('Agree to the Terms & Conditions.');
             return;
         }
 
@@ -153,7 +157,8 @@ function Login() {
                     <div className="card-body">
                         <h2 className="text-center mb-4 text-primary">Join to NexTalk</h2>
                         <form onSubmit={handleSubmit}>
-                            <div className="mb-3">
+                            <div className='row'>
+                            <div className="mb-3 col-md">
                                 <label htmlFor="name" className="form-label fw-bold">Name</label>
                                 <input
                                     type="text"
@@ -165,7 +170,7 @@ function Login() {
                                     onChange={handleChange}
                                 />
                             </div>
-                            <div className="mb-3">
+                            <div className="mb-3 col-md">
                                 <label htmlFor="username" className="form-label fw-bold">Username</label>
                                 <input
                                     type="text"
@@ -174,6 +179,19 @@ function Login() {
                                     name="username"
                                     placeholder="Enter your username"
                                     value={formData.username}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            </div>
+                            <div className="mb-3">
+                                <label htmlFor="email" className="form-label fw-bold">E-mail</label>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-lg"
+                                    id="email"
+                                    name="email"
+                                    placeholder="Enter your e-mail"
+                                    value={formData.email}
                                     onChange={handleChange}
                                 />
                             </div>
