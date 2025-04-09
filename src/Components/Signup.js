@@ -22,6 +22,7 @@ function Login() {
 
     const [success, setSuccess] = useState('');
     const [progress, setProgress] = useState(0);
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -32,21 +33,29 @@ function Login() {
     };
 
     const validateEmail = (email) => {
-        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        // Reject if any uppercase letters exist
+        const hasUppercase = /[A-Z]/.test(email);
+        if (hasUppercase) return false;
+
+        // Proceed with regular email format validation
+        const regex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
         return regex.test(email);
     };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrors('');
-        setSuccess('');
-        setProgress(0);
+        setLoading(true);
+        setProgress(10);
 
         if (!formData.name || !formData.username || !formData.email || !formData.password) {
             setErrors('Please fill in all required fields.');
+            setLoading(false)
             return;
         }
         if (!formData.agree) {
             setErrors('Agree to the Terms & Conditions.');
+            setLoading(false)
             return;
         }
 
@@ -54,29 +63,37 @@ function Login() {
         if (!isEmailValid) {
             setErrors((prev) => ({
                 ...prev,
-                email: 'Invalid email format 😬',
+                email: 'Email must be lowercase and properly formatted',
             }));
+            setLoading(false);
             return;
         }
+
+        const interval = setInterval(() => {
+            setProgress((prev) => {
+                if (prev >= 80) {
+                    clearInterval(interval); // Stop early, wait for real response to complete it
+                    return prev;
+                }
+                return prev + 20;
+            });
+        }, 200);
         try {
+            setLoading(true)
+            setProgress(40);
             await axios.post('https://nextalk-u0y1.onrender.com/signup', formData, {
                 headers: { 'Content-Type': 'application/json' }
             });
+            setProgress(100); // Full
             setSuccess("User registered successfully! 🎉");
-            let progressValue = 0;
-            const interval = setInterval(() => {
-                progressValue += 10; // Increase smoothly every 300ms
-                setProgress(progressValue);
-                if (progressValue >= 100) {
-                    clearInterval(interval);
-                    setTimeout(() => navigate('/'), 500); // Redirect after slight delay
-                }
-            }, 300);
+            setTimeout(() => {
+                navigate('/');
+            }, 500);
         } catch (error) {
             if (error.response) {
                 if (error.response.status === 409) {
                     const errorMsg = error.response.data.error.toLowerCase();
-
+                    setLoading(false)
                     setErrors((prev) => ({
                         ...prev,
                         username: errorMsg.includes("username") ? "Username already exists. Choose another one." : "",
@@ -84,6 +101,7 @@ function Login() {
                     }));
                 } else {
                     // Other server-side error
+                    setLoading(false)
                     setErrors((prev) => ({
                         ...prev,
                         general: error.response.data.error || "Registration failed. Please try again.",
@@ -91,11 +109,14 @@ function Login() {
                 }
             } else {
                 // Network or unknown error
+                setLoading(false)
                 setErrors((prev) => ({
                     ...prev,
                     general: "Network error. Please try again.",
                 }));
             }
+        } finally {
+            setLoading(false);
         }
 
     };
@@ -172,9 +193,9 @@ function Login() {
                     {Object.values(errors).some((msg) => msg) && (
                         <div className="alert alert-danger" role="alert">
                             <strong>Alert! </strong>
-                                {Object.values(errors).map(
-                                    (msg, i) => msg && <span key={i}>{msg}</span>
-                                )}
+                            {Object.values(errors).map(
+                                (msg, i) => msg && <span key={i}>{msg}</span>
+                            )}
                         </div>
                     )}
                     {errors.general && (
@@ -183,9 +204,9 @@ function Login() {
                         </div>
                     )}
 
-                    {success && (
+                    {loading && (
                         <div className="alert alert-success" role="alert">
-                            <strong>Success!</strong> {success}
+                            <strong>Loading . . .</strong> {success}
                             <div className="progress mt-2" style={{ height: "10px", borderRadius: "5px", overflow: "hidden" }}>
                                 <div
                                     className="progress-bar progress-bar-striped progress-bar-animated bg-success"

@@ -16,6 +16,8 @@ function Login() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [progress, setProgress] = useState(0);
+    const [loading, setLoading] = useState(false);
+
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -28,45 +30,59 @@ function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null); // Reset previous errors
-    
+        setLoading(true);
+        setProgress(10);
+
         // Check for required fields
         if (!formData.username || !formData.password) {
             setError('Please fill in all required fields!');
+            setLoading(false)
             return;
         }
-    
+        const interval = setInterval(() => {
+            setProgress((prev) => {
+                if (prev >= 80) {
+                    clearInterval(interval); // Stop early, wait for real response to complete it
+                    return prev;
+                }
+                return prev + 20;
+            });
+        }, 200);
         try {
+            setLoading(true)
+            setProgress(30);
             const response = await axios.post('https://nextalk-u0y1.onrender.com/login', formData, {
                 headers: { 'Content-Type': 'application/json' }
             });
-    
+
+            setProgress(70);
             // Store user data in localStorage/sessionStorage (if needed)
             localStorage.setItem("user", JSON.stringify(response.data));
-    
+            setProgress(100); // Full
             setSuccess("Login successful! 🎉");
-    
-            let progressValue = 0;
-            const interval = setInterval(() => {
-                progressValue += 10;
-                setProgress(progressValue);
-                if (progressValue >= 100) {
-                    clearInterval(interval);
-                    setTimeout(() => navigate('/Dashboard'), 500);
-                }
-            }, 300);
+
+            setTimeout(() => {
+                navigate('/Dashboard');
+            }, 500);
         } catch (error) {
+            setProgress(0);
             if (error.response) {
-                if (error.response.status === 401) { 
+                if (error.response.status === 401) {
                     setError('Invalid Username or Password.');
+                    setLoading(false)
                 } else {
                     setError(error.response.data.error || 'Login failed. Please try again.');
+                    setLoading(false)
                 }
             } else {
                 setError('Network error. Please try again.');
+                setLoading(false)
             }
+        } finally {
+            setLoading(false);
         }
     };
-    
+
 
     const { theme, handleThemeClick } = useTheme();
     const videoSrc = {
@@ -102,9 +118,9 @@ function Login() {
                             <strong>Alert!</strong> {error}
                         </div>
                     )}
-                    {success && (
+                    {loading && (
                         <div className="alert alert-success" role="alert">
-                            <strong>Success!</strong> {success}
+                            <strong>Loading . . .</strong> {success}
                             <div className="progress mt-2" style={{ height: "10px", borderRadius: "5px", overflow: "hidden" }}>
                                 <div
                                     className="progress-bar progress-bar-striped progress-bar-animated bg-success"
@@ -114,6 +130,7 @@ function Login() {
                             </div>
                         </div>
                     )}
+
                     <div className="card-body">
                         <h2 className="text-center mb-4 text-primary">Welcome Back</h2>
                         <form onSubmit={handleSubmit}>
@@ -140,10 +157,11 @@ function Login() {
                                     value={formData.password}
                                     onChange={handleChange}
                                 />
-                            </div><br/><br/>
-                            <button type="submit" className="btn btn-primary btn-lg w-100 login-btn">
+                            </div><br /><br />
+                            <button type="submit" className="btn btn-primary w-100 login-btn">
                                 Login
-                            </button><br /><br />
+                            </button>
+                            <br /><br />
                             <Link to="" className="btn btn-lg btn-primary w-100 login-btn" style={{ textDecoration: "none" }}>
                                 Forgotten password
                             </Link>
