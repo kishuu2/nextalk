@@ -51,13 +51,17 @@ function Login() {
         try {
             setLoading(true)
             setProgress(30);
-            const response = await axios.post('https://nextalk-u0y1.onrender.com/login', formData, {
-                headers: { 'Content-Type': 'application/json' }
-            });
+            const response = await axios.post('https://nextalk-u0y1.onrender.com/login',formData,
+                {
+                  headers: { 'Content-Type': 'application/json' },
+                  withCredentials: true,
+                }
+              );
+              
 
             setProgress(70);
             // Store user data in localStorage/sessionStorage (if needed)
-            localStorage.setItem("user", JSON.stringify(response.data));
+            sessionStorage.setItem("user", JSON.stringify(response.data));
             setProgress(100); // Full
             setSuccess("Login successful! 🎉");
 
