@@ -3,8 +3,9 @@ const cors = require("cors");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const express = require('express');
-const twilio = require('twilio');
 const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const twilio = require('twilio');
 const fileUpload = require("express-fileupload");
 
 require('dotenv').config();
@@ -35,6 +36,17 @@ app.use(cors({
   credentials: true,
 }));
 
+app.use(cookieParser());
+app.use(session({
+  secret: 'superSecretSessionKey', // Change this in production
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: false, // true in production with HTTPS
+    maxAge: 1000 * 60 * 60 * 2 // 2 hours
+  }
+}));
 
 app.get("/", (req, resp) => {
   resp.send("App is Working");
@@ -93,7 +105,7 @@ app.post('/login', async (req, res) => {
     }
 
     // Respond with user data (excluding password)
-    res.json({ name: user.name, username: user.username, _id: user._id });
+    req.session.user = { id: user._id, name: user.name, email: user.email };
   } catch (err) {
     console.error("Error logging in user:", err);
     res.status(500).json({ error: 'Internal server error' });
@@ -216,6 +228,21 @@ app.post('/update-password', async (req, res) => {
     console.error("Password update error:", error);
     return res.status(500).json({ error: "Something went wrong. Try again." });
   }
+});
+
+app.get('/check-auth', (req, res) => {
+  if (req.session.user) {
+    res.json({ authenticated: true, user: req.session.user });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
+
+app.post('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie('connect.sid'); // clear session cookie
+    res.json({ message: 'Logged out successfully' });
+  });
 });
 
 app.listen(5000, () => {
