@@ -20,7 +20,6 @@ function Login() {
         general: '',
     });
 
-
     const [success, setSuccess] = useState('');
     const [progress, setProgress] = useState(0);
 
@@ -42,16 +41,6 @@ function Login() {
         setSuccess('');
         setProgress(0);
 
-        const isEmailValid = validateEmail(formData.email);
-        if (!isEmailValid) {
-            setErrors((prev) => ({
-                ...prev,
-                email: 'Invalid email format 😬',
-            }));
-            return;
-        }
-
-
         if (!formData.name || !formData.username || !formData.email || !formData.password) {
             setErrors('Please fill in all required fields.');
             return;
@@ -61,6 +50,14 @@ function Login() {
             return;
         }
 
+        const isEmailValid = validateEmail(formData.email);
+        if (!isEmailValid) {
+            setErrors((prev) => ({
+                ...prev,
+                email: 'Invalid email format 😬',
+            }));
+            return;
+        }
         try {
             await axios.post('https://nextalk-u0y1.onrender.com/signup', formData, {
                 headers: { 'Content-Type': 'application/json' }
@@ -75,32 +72,31 @@ function Login() {
                     setTimeout(() => navigate('/'), 500); // Redirect after slight delay
                 }
             }, 300);
-        }catch (error) {
-            console.log("🔥 Error from backend:", error.response?.data);
-          
+        } catch (error) {
             if (error.response) {
-              if (error.response.status === 409) {
-                const errorMsg = error.response.data.error.toLowerCase();
-          
-                setErrors((prev) => ({
-                  ...prev,
-                  email: errorMsg.includes("email") ? "Email already exists." : "",
-                  username: errorMsg.includes("username") ? "Username already exists." : "",
-                }));
-              } else {
-                setErrors((prev) => ({
-                  ...prev,
-                  general: error.response.data.error || "Registration failed.",
-                }));
-              }
+                if (error.response.status === 409) {
+                    const errorMsg = error.response.data.error.toLowerCase();
+
+                    setErrors((prev) => ({
+                        ...prev,
+                        username: errorMsg.includes("username") ? "Username already exists. Choose another one." : "",
+                        email: errorMsg.includes("email") ? "Email already exists. Use a different one." : "",
+                    }));
+                } else {
+                    // Other server-side error
+                    setErrors((prev) => ({
+                        ...prev,
+                        general: error.response.data.error || "Registration failed. Please try again.",
+                    }));
+                }
             } else {
-              setErrors((prev) => ({
-                ...prev,
-                general: "Network error. Please try again.",
-              }));
+                // Network or unknown error
+                setErrors((prev) => ({
+                    ...prev,
+                    general: "Network error. Please try again.",
+                }));
             }
-          }
-          
+        }
 
     };
 
@@ -175,9 +171,9 @@ function Login() {
                 <div className="col-md-6 login-section">
                     {Object.values(errors).some((msg) => msg) && (
                         <div className="alert alert-danger" role="alert">
-                            <strong>Alert!</strong> 
+                            <strong>Alert! </strong>
                                 {Object.values(errors).map(
-                                    (msg, i) => msg && <span key={i}> {msg}</span>
+                                    (msg, i) => msg && <span key={i}>{msg}</span>
                                 )}
                         </div>
                     )}
