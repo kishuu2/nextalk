@@ -21,7 +21,7 @@ mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
   });
 
 const app = express();
-app.use(express.json()); 
+app.use(express.json());
 app.use(cors());
 console.log("App listen at port 5000");
 const allowedOrigins = [
@@ -51,9 +51,18 @@ app.post('/signup', async (req, res) => {
     const { name, username, email, password } = req.body;
 
     // ✅ First, check if user already exists
-    const existingUser = await Users.findOne({ username });
+    const existingUser = await Users.findOne({ $or: [{ username }, { email }] });
+
     if (existingUser) {
-      return res.status(409).json({ error: "Username already exists." });
+      if (existingUser.username === username) {
+        return res.status(409).json({ error: "Username already exists." });
+      }
+      if (existingUser.email === email) {
+        return res.status(409).json({ error: "Email already exists." });
+      }
+    
+      // If for some reason neither match, catch it
+      return res.status(409).json({ error: "User already exists." });
     }
 
     // ✅ If username is unique, create a new user
