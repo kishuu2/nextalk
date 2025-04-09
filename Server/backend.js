@@ -138,10 +138,24 @@ app.post("/send-otp", async (req, res) => {
   user.otpExpiresAt = expiresAt;
   await user.save();
 
-  await sendOTPEmail(email, otp); // call nodemailer function
+  await sendOTPEmail(email, otp);
+
+  // Automatically delete OTP after 5 minutes (NOT the user)
+  setTimeout(async () => {
+    try {
+      await Users.updateOne(
+        { email: email.toLowerCase() },
+        { $unset: { otp: "", otpExpiresAt: "" } }
+      );
+      console.log("✅ OTP expired and fields removed.");
+    } catch (err) {
+      console.error("❌ Failed to remove OTP:", err);
+    }
+  }, 1 * 60 * 1000);
 
   res.json({ message: "OTP sent." });
 });
+
 
 
 app.post("/check-email", async (req, res) => {
