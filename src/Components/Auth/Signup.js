@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { useTheme } from './ThemeContext';
-import '../styles/Login.css';
-import Random1 from "../Images/download.png";
-import Random2 from "../Images/download2.png";
-import Random3 from "../Images/download3.png";
-import Random4 from "../Images/download4.png";
-import Random5 from "../Images/download5.png";
+import { useTheme } from '../ThemeContext';
+import '../../styles/Login.css';
+import Random1 from "../../Images/download.png";
+import Random2 from "../../Images/download2.png";
+import Random3 from "../../Images/download3.png";
+import Random4 from "../../Images/download4.png";
+import Random5 from "../../Images/download5.png";
 
 
 function Login() {
