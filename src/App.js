@@ -4,6 +4,7 @@ import { ThemeProvider } from './Components/ThemeContext';
 import Login from "./Components/Login";
 import Signup from "./Components/Signup";
 import Dashboard from './Components/Dashboard';
+import Forgot from './Components/Forgot';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Routes>
             <Route index element={<Login />} />
             <Route path="/Signup" element={<Signup />} />
+            <Route path="/Forgot" element={<Forgot />} />
             <Route path="/Dashboard" element={<Dashboard />} />
           </Routes>
         </HashRouter>

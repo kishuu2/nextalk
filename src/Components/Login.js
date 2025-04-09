@@ -162,7 +162,7 @@ function Login() {
                                 Login
                             </button>
                             <br /><br />
-                            <Link to="" className="btn btn-lg btn-primary w-100 login-btn" style={{ textDecoration: "none" }}>
+                            <Link to="/Forgot" className="btn btn-lg btn-primary w-100 login-btn" style={{ textDecoration: "none" }}>
                                 Forgotten password
                             </Link>
                         </form>
