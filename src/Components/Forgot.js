@@ -135,8 +135,28 @@ function Login() {
     }, [formData.email]);
 
     const handlePasswordUpdate = async () => {
-        alert("password update")
+        setError('');
+        setSuccess('');
+        if (formData.newPassword !== formData.confirmPassword) {
+            setError("Passwords do not match.");
+            return;
+        }
+
+        try {
+            const response = await axios.post('https://nextalk-u0y1.onrender.com/update-password', {
+                email: formData.email,
+                newPassword: formData.newPassword,
+            });
+
+            setSuccess("Password updated successfully. You can now log in!");
+            setTimeout(() => {
+                navigate("/"); // or your login route
+            }, 2500);
+        } catch (err) {
+            setError(err.response?.data?.error || "Failed to update password.");
+        }
     }
+
     const { theme, handleThemeClick } = useTheme();
     const videoSrc = {
         homeback: Random1,
@@ -210,6 +230,9 @@ function Login() {
                     ) : success && (
                         <div className="alert alert-success" role="alert">
                             <strong>Success!</strong> {success}
+                            <div className="mt-2 progress-line-wrapper">
+                                <div className="progress-line"></div>
+                            </div>
                         </div>
                     )}
 
@@ -279,11 +302,11 @@ function Login() {
                                             onChange={handleChange}
                                             placeholder="Confirm new password"
                                         />
-                                    </div>
+                                    </div><br /><br />
 
                                     <button
                                         type="button"
-                                        className="btn btn-success w-100"
+                                        className="btn btn-success w-100 login-btn"
                                         onClick={handlePasswordUpdate}
                                     >
                                         Update Password
