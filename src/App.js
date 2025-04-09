@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from './Components/ThemeContext';
 import Login from "./Components/Auth/Login";
 import Signup from "./Components/Auth/Signup";
@@ -9,7 +9,7 @@ import Home from "./Components/Dashboard/Home";
 function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route index element={<Login />} />
           <Route path="/signup" element={<Signup />} />
@@ -19,7 +19,7 @@ function App() {
             <Route index element={<Home />} />
           </Route>
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </ThemeProvider>
   );
 }
