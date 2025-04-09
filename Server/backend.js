@@ -41,7 +41,6 @@ app.get("/", (req, resp) => {
 });
 
 
-
 //Student Data
 const Users = require("./Models/Users");
 //const UserTeacher = require("./Models/Teachers");
@@ -98,6 +97,40 @@ app.post('/login', async (req, res) => {
   } catch (err) {
     console.error("Error logging in user:", err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/forgot', async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    const user = await Users.findOne({ username }); // Fixed variable name
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid Username or password' });
+    }
+
+    // Simple password check (⚠️ Not secure, but works for basic use)
+    if (user.password !== password) {
+      return res.status(401).json({ error: 'Invalid Username or password' });
+    }
+
+    // Respond with user data (excluding password)
+    res.json({ name: user.name, username: user.username, _id: user._id });
+  } catch (err) {
+    console.error("Error logging in user:", err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post("/check-email", async (req, res) => {
+  const { email } = req.body;
+  const user = await Users.findOne({ email });
+
+  if (user) {
+    return res.json({ exists: true });
+  } else {
+    return res.json({ exists: false });
   }
 });
 
