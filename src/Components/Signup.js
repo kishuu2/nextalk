@@ -11,9 +11,16 @@ import Random5 from "../Images/download5.png";
 
 
 function Login() {
-    const [formData, setFormData] = useState({ name: '', username: '',email: '', password: '', agree: false });
+    const [formData, setFormData] = useState({ name: '', username: '', email: '', password: '', agree: false });
     const navigate = useNavigate();
-    const [error, setError] = useState('');
+    const [errors, setErrors] = useState({
+        username: '',
+        email: '',
+        password: '',
+        general: '',
+    });
+
+
     const [success, setSuccess] = useState('');
     const [progress, setProgress] = useState(0);
 
@@ -25,18 +32,32 @@ function Login() {
         });
     };
 
+    const validateEmail = (email) => {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email);
+    };
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setErrors('');
         setSuccess('');
         setProgress(0);
-        // Check for required fields
+
+        const isEmailValid = validateEmail(formData.email);
+        if (!isEmailValid) {
+            setErrors((prev) => ({
+                ...prev,
+                email: 'Invalid email format 😬',
+            }));
+            return;
+        }
+
+
         if (!formData.name || !formData.username || !formData.email || !formData.password) {
-            setError('Please fill in all required fields.');
+            setErrors('Please fill in all required fields.');
             return;
         }
         if (!formData.agree) {
-            setError('Agree to the Terms & Conditions.');
+            setErrors('Agree to the Terms & Conditions.');
             return;
         }
 
@@ -54,18 +75,33 @@ function Login() {
                     setTimeout(() => navigate('/'), 500); // Redirect after slight delay
                 }
             }, 300);
-        } catch (error) {
+        }catch (error) {
+            console.log("🔥 Error from backend:", error.response?.data);
+          
             if (error.response) {
-                if (error.response.status === 409) {
-                    setError('Username already exists. Choose another one.');
-                }
-                else {
-                    setError(error.response.data.error || 'Registration failed. Please try again.');
-                }
+              if (error.response.status === 409) {
+                const errorMsg = error.response.data.error.toLowerCase();
+          
+                setErrors((prev) => ({
+                  ...prev,
+                  email: errorMsg.includes("email") ? "Email already exists." : "",
+                  username: errorMsg.includes("username") ? "Username already exists." : "",
+                }));
+              } else {
+                setErrors((prev) => ({
+                  ...prev,
+                  general: error.response.data.error || "Registration failed.",
+                }));
+              }
             } else {
-                setError('Network error. Please try again.');
+              setErrors((prev) => ({
+                ...prev,
+                general: "Network error. Please try again.",
+              }));
             }
-        }
+          }
+          
+
     };
 
     const { theme, handleThemeClick } = useTheme();
@@ -137,51 +173,60 @@ function Login() {
                 </div>
                 {/* Login Section */}
                 <div className="col-md-6 login-section">
-                    {error && (
+                    {Object.values(errors).some((msg) => msg) && (
                         <div className="alert alert-danger" role="alert">
-                            <strong>Alert!</strong> {error}
+                            <strong>Alert!</strong> 
+                                {Object.values(errors).map(
+                                    (msg, i) => msg && <span key={i}> {msg}</span>
+                                )}
                         </div>
                     )}
+                    {errors.general && (
+                        <div className="alert alert-danger" role="alert">
+                            <strong>Alert!</strong> {errors.general}
+                        </div>
+                    )}
+
                     {success && (
                         <div className="alert alert-success" role="alert">
-                        <strong>Success!</strong> {success}
-                        <div className="progress mt-2" style={{ height: "10px", borderRadius: "5px", overflow: "hidden" }}>
-                            <div 
-                                className="progress-bar progress-bar-striped progress-bar-animated bg-success" 
-                                role="progressbar" 
-                                style={{ width: `${progress}%`, transition: "width 0.3s ease-in-out" }}
-                            ></div>
+                            <strong>Success!</strong> {success}
+                            <div className="progress mt-2" style={{ height: "10px", borderRadius: "5px", overflow: "hidden" }}>
+                                <div
+                                    className="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                    role="progressbar"
+                                    style={{ width: `${progress}%`, transition: "width 0.3s ease-in-out" }}
+                                ></div>
+                            </div>
                         </div>
-                    </div>
                     )}
                     <div className="card-body">
                         <h2 className="text-center mb-4 text-primary">Join to NexTalk</h2>
                         <form onSubmit={handleSubmit}>
                             <div className='row'>
-                            <div className="mb-3 col-md">
-                                <label htmlFor="name" className="form-label fw-bold">Name</label>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-lg"
-                                    id="name"
-                                    name="name"
-                                    placeholder="Enter your name"
-                                    value={formData.name}
-                                    onChange={handleChange}
-                                />
-                            </div>
-                            <div className="mb-3 col-md">
-                                <label htmlFor="username" className="form-label fw-bold">Username</label>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-lg"
-                                    id="username"
-                                    name="username"
-                                    placeholder="Enter your username"
-                                    value={formData.username}
-                                    onChange={handleChange}
-                                />
-                            </div>
+                                <div className="mb-3 col-md">
+                                    <label htmlFor="name" className="form-label fw-bold">Name</label>
+                                    <input
+                                        type="text"
+                                        className="form-control form-control-lg"
+                                        id="name"
+                                        name="name"
+                                        placeholder="Enter your name"
+                                        value={formData.name}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                <div className="mb-3 col-md">
+                                    <label htmlFor="username" className="form-label fw-bold">Username</label>
+                                    <input
+                                        type="text"
+                                        className="form-control form-control-lg"
+                                        id="username"
+                                        name="username"
+                                        placeholder="Enter your username"
+                                        value={formData.username}
+                                        onChange={handleChange}
+                                    />
+                                </div>
                             </div>
                             <div className="mb-3">
                                 <label htmlFor="email" className="form-label fw-bold">E-mail</label>
