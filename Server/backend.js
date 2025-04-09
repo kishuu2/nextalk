@@ -123,16 +123,38 @@ app.post('/forgot', async (req, res) => {
   }
 });
 
+const sendOTPEmail = require('./utils/sendOTPEmail');
+
+app.post("/send-otp", async (req, res) => {
+  const { email } = req.body;
+  const user = await Users.findOne({ email: email.toLowerCase() });
+
+  if (!user) return res.status(404).json({ error: "Email not found." });
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  user.otp = otp;
+  user.otpExpiresAt = expiresAt;
+  await user.save();
+
+  await sendOTPEmail(email, otp); // call nodemailer function
+
+  res.json({ message: "OTP sent." });
+});
+
+
 app.post("/check-email", async (req, res) => {
   const { email } = req.body;
-  const user = await Users.findOne({ email });
-
-  if (user) {
-    return res.json({ exists: true });
-  } else {
-    return res.json({ exists: false });
+  try {
+    const user = await Users.findOne({ email: email.toLowerCase() }); // case-insensitive
+    res.json({ exists: !!user }); // true or false
+  } catch (error) {
+    console.error("Error checking email:", error);
+    res.status(500).json({ error: "Server error" });
   }
 });
+
 
 
 app.listen(5000, () => {
