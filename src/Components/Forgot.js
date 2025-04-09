@@ -11,7 +11,7 @@ import Random5 from "../Images/download5.png";
 
 
 function Login() {
-    const [formData, setFormData] = useState({ email: '', otp: '', agree: false });
+    const [formData, setFormData] = useState({ email: '', otp: '', newPassword: '', confirmPassword: '' });
     const navigate = useNavigate();
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -20,6 +20,7 @@ function Login() {
     const [emailExists, setEmailExists] = useState(null);
     const [checkingEmail, setCheckingEmail] = useState(false);
     const [otpSent, setOtpSent] = useState(false);
+    const [otpVerified, setOtpVerified] = useState(false);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -89,6 +90,7 @@ function Login() {
                     otp: formData.otp
                 });
                 setSuccess("Authentication success");
+                setOtpVerified(true);
             } catch (err) {
                 setError(err.response?.data?.error || "OTP verification failed.");
             } finally {
@@ -132,6 +134,9 @@ function Login() {
         return () => clearTimeout(delayDebounce);
     }, [formData.email]);
 
+    const handlePasswordUpdate = async () => {
+        alert("password update")
+    }
     const { theme, handleThemeClick } = useTheme();
     const videoSrc = {
         homeback: Random1,
@@ -213,39 +218,78 @@ function Login() {
                     <div className="card-body">
                         <h2 className="text-center mb-4 text-primary">Forgot password!</h2>
                         <form onSubmit={handleSubmit}>
-                            <div className="mb-3">
-                                <label htmlFor="email" className="form-label fw-bold">E-mail</label>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-lg"
-                                    id="email"
-                                    name="email"
-                                    placeholder="Enter your e-mail"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                />
-                            </div>
-                            <div className="mb-3">
-                                <label htmlFor="otp" className="form-label fw-bold">One Time Password</label>
-                                <input
-                                    type="number"
-                                    className="form-control form-control-lg"
-                                    id="otp"
-                                    name="otp"
-                                    placeholder="Enter your OTP"
-                                    value={formData.otp}
-                                    onChange={handleChange}
-                                    disabled={!otpSent}
-                                />
-                            </div><br /><br />
-                            <button
-                                type="submit"
-                                className="btn btn-primary w-100 login-btn"
-                                disabled={!formData.email || checkingEmail || (!otpSent && emailExists !== true)}
-                            >
-                                {otpSent ? "Continue" : "Send OTP"}
-                            </button>
-                            <br /><br />
+                            {!otpVerified ? (
+                                <>
+                                    <div className="mb-3">
+                                        <label htmlFor="email" className="form-label fw-bold">E-mail</label>
+                                        <input
+                                            type="text"
+                                            className="form-control form-control-lg"
+                                            id="email"
+                                            name="email"
+                                            placeholder="Enter your e-mail"
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                        />
+                                    </div>
+                                    <div className="mb-3">
+                                        <label htmlFor="otp" className="form-label fw-bold">One Time Password</label>
+                                        <input
+                                            type="number"
+                                            className="form-control form-control-lg"
+                                            id="otp"
+                                            name="otp"
+                                            placeholder="Enter your OTP"
+                                            value={formData.otp}
+                                            onChange={handleChange}
+                                            disabled={!otpSent}
+                                        />
+                                    </div><br /><br />
+                                    <button
+                                        type="submit"
+                                        className="btn btn-primary w-100 login-btn"
+                                        disabled={!formData.email || checkingEmail || (!otpSent && emailExists !== true)}
+                                    >
+                                        {otpSent ? "Continue" : "Send OTP"}
+                                    </button>
+                                    <br /><br />
+                                </>) : (
+                                <>
+                                    <div className="mb-3">
+                                        <label htmlFor="newPassword" className="form-label fw-bold">New Password</label>
+                                        <input
+                                            type="password"
+                                            className="form-control form-control-lg"
+                                            id="newPassword"
+                                            name="newPassword"
+                                            value={formData.newPassword}
+                                            onChange={handleChange}
+                                            placeholder="Enter new password"
+                                        />
+                                    </div>
+
+                                    <div className="mb-3">
+                                        <label htmlFor="confirmPassword" className="form-label fw-bold">Confirm Password</label>
+                                        <input
+                                            type="password"
+                                            className="form-control form-control-lg"
+                                            id="confirmPassword"
+                                            name="confirmPassword"
+                                            value={formData.confirmPassword}
+                                            onChange={handleChange}
+                                            placeholder="Confirm new password"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        className="btn btn-success w-100"
+                                        onClick={handlePasswordUpdate}
+                                    >
+                                        Update Password
+                                    </button>
+                                </>
+                            )}
                         </form>
                     </div>
                 </div>
