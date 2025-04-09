@@ -196,7 +196,27 @@ app.post("/check-email", async (req, res) => {
   }
 });
 
+app.post('/update-password', async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
 
+    const user = await Users.findOne({ email: email.toLowerCase() });
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    // Clean up OTP-related fields
+    user.otp = undefined;
+    user.otpExpiresAt = undefined;
+
+    // Store the password directly (plain text)
+    user.password = newPassword;
+    await user.save();
+
+    return res.json({ message: "Password updated successfully!" });
+  } catch (error) {
+    console.error("Password update error:", error);
+    return res.status(500).json({ error: "Something went wrong. Try again." });
+  }
+});
 
 app.listen(5000, () => {
   console.log("Server is Running now")
