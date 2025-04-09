@@ -7,8 +7,9 @@ const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const twilio = require('twilio');
 const fileUpload = require("express-fileupload");
+import dotenv from 'dotenv';
 
-require('dotenv').config();
+dotenv.config();
 
 const url = process.env.MONGO_URI;
 
@@ -23,7 +24,6 @@ mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
 
 const app = express();
 app.use(express.json());
-app.use(cors());
 console.log("App listen at port 5000");
 const allowedOrigins = [
   "http://localhost:3000",
@@ -38,13 +38,13 @@ app.use(cors({
 
 app.use(cookieParser());
 app.use(session({
-  secret: 'superSecretSessionKey', // Change this in production
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: false, // true in production with HTTPS
-    maxAge: 1000 * 60 * 60 * 2 // 2 hours
+    secure: false,
+    sameSite: 'lax'
   }
 }));
 
@@ -110,6 +110,12 @@ app.post('/login', async (req, res) => {
     console.error("Error logging in user:", err);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+app.get('/me', (req, res) => {
+  const user = req.cookies.user;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  res.json(JSON.parse(user));
 });
 
 app.post('/forgot', async (req, res) => {
