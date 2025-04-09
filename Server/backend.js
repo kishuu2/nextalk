@@ -151,12 +151,39 @@ app.post("/send-otp", async (req, res) => {
     } catch (err) {
       console.error("❌ Failed to remove OTP:", err);
     }
-  }, 1 * 60 * 1000);
+  }, 5 * 60 * 1000);
 
   res.json({ message: "OTP sent." });
 });
 
+app.post("/verify-otp", async (req, res) => {
+  const { email, otp } = req.body;
 
+  const user = await Users.findOne({ email: email.toLowerCase() });
+
+  if (!user || !user.otp || !user.otpExpiresAt) {
+    return res.status(400).json({ error: "OTP not found. Please request again." });
+  }
+
+  const isExpired = new Date() > new Date(user.otpExpiresAt);
+  if (isExpired) {
+    user.otp = undefined;
+    user.otpExpiresAt = undefined;
+    await user.save();
+    return res.status(410).json({ error: "OTP expired. Please request a new one." });
+  }
+
+  if (user.otp !== otp) {
+    return res.status(401).json({ error: "Invalid OTP. Please try again." });
+  }
+
+  // OTP is valid
+  user.otp = undefined;
+  user.otpExpiresAt = undefined;
+  await user.save();
+
+  res.json({ message: "OTP verified. You may now reset your password." });
+});
 
 app.post("/check-email", async (req, res) => {
   const { email } = req.body;
