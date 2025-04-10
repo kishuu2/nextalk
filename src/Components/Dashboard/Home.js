@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTheme } from '../ThemeContext';
 import axios from '../../axiosConfig';
 import "../../styles/Home.css";
+import predefine from "../../Images/predefine.webp";
 
 export default function Home() {
     const { theme } = useTheme();
@@ -13,14 +14,13 @@ export default function Home() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Load notifications from localStorage on mount
     useEffect(() => {
         const storedNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
         setNotifications(storedNotifications);
 
         const fetchUsers = async () => {
             try {
-                const response = await axios.post('https://nextalk-u0y1.onrender.com/displayusersData', {}, {
+                const response = await axios.post('https://nextalk-u0y1.onrender.com/displayusersProfile', {}, {
                     headers: { 'Content-Type': 'application/json' },
                     withCredentials: true,
                 });
@@ -39,7 +39,6 @@ export default function Home() {
         fetchUsers();
     }, []);
 
-    // Save notifications to localStorage whenever they change
     useEffect(() => {
         localStorage.setItem('notifications', JSON.stringify(notifications));
     }, [notifications]);
@@ -69,14 +68,14 @@ export default function Home() {
 
     const addNotification = (type, userName, userAvatar) => {
         const newNotification = {
-            id: Date.now(), // Unique ID based on timestamp
+            id: Date.now(),
             type,
             message: getNotificationMessage(type, userName),
-            avatar: userAvatar || 'https://via.placeholder.com/40',
+            avatar: predefine,
             createdAt: new Date().toISOString(),
             read: false,
         };
-        setNotifications(prev => [newNotification, ...prev].slice(0, 50)); // Limit to 50 notifications
+        setNotifications(prev => [newNotification, ...prev].slice(0, 50));
     };
 
     const getNotificationMessage = (type, userName) => {
@@ -97,7 +96,7 @@ export default function Home() {
                 newFollowing.delete(userId);
             } else {
                 newFollowing.add(userId);
-                addNotification('followed', user.name, user.avatar); // Add notification when followed
+                addNotification('followed', user.name, user.avatar);
             }
             return newFollowing;
         });
@@ -113,7 +112,7 @@ export default function Home() {
         setUsers(prev => prev.map(u => 
             u._id === userId ? { ...u, isRequesting: false } : u
         ));
-        addNotification('request_accepted', user.name, user.avatar); // Add notification when accepted
+        addNotification('request_accepted', user.name, user.avatar);
     };
 
     const toggleFlip = (userId) => {
@@ -125,7 +124,6 @@ export default function Home() {
         });
     };
 
-    // Simulate a new message or user online (for demo purposes)
     const simulateEvent = (type) => {
         const randomUser = users[Math.floor(Math.random() * users.length)];
         if (randomUser) addNotification(type, randomUser.name, randomUser.avatar);
@@ -139,96 +137,105 @@ export default function Home() {
 
     return (
         <div className="home-container" style={{ background: styles.background, color: styles.color }}>
-            <h1 className="home-title">Discover the Community</h1>
+            <p className="home-title">Talk Freely. Anytime. Anywhere.</p>
 
-            {/* Notifications Feed */}
-            <section className="notification-section">
-                <h2 className="section-title">Notifications</h2>
-                <div className="notification-list">
-                    {notifications.map((notif) => (
-                        <div 
-                            key={notif.id} 
-                            className="notification-card" 
-                            style={{ background: styles.notificationBg }}
-                        >
-                            <img 
-                                src={notif.avatar} 
-                                alt="User" 
-                                className="notif-avatar" 
-                            />
-                            <div className="notif-content">
-                                <span className="notif-message">{notif.message}</span>
-                                <span className="notif-time">
-                                    {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-                                </span>
+            <div className="home-grid">
+                {/* Notifications Feed */}
+                <section className="notification-section">
+                    <h2 className="section-title">Notifications</h2>
+                    <div className="notification-list">
+                        {notifications.map((notif) => (
+                            <div 
+                                key={notif.id} 
+                                className="notification-card" 
+                                style={{ background: styles.notificationBg }}
+                            >
+                                <img 
+                                    src={notif.avatar} 
+                                    alt="User" 
+                                    className="notif-avatar" 
+                                />
+                                <div className="notif-content">
+                                    <span className="notif-message">{notif.message}</span>
+                                    <span className="notif-time">
+                                        {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
-                {/* Demo buttons to simulate events */}
-                <div className="simulate-buttons">
-                    <button onClick={() => simulateEvent('new_message')} className="simulate-btn">Simulate Message</button>
-                    <button onClick={() => simulateEvent('user_online')} className="simulate-btn">Simulate Online</button>
-                </div>
-            </section>
+                        ))}
+                    </div>
+                    <div className="simulate-buttons">
+                        <button onClick={() => simulateEvent('new_message')} className="simulate-btn">Simulate Message</button>
+                        <button onClick={() => simulateEvent('user_online')} className="simulate-btn">Simulate Online</button>
+                    </div>
+                </section>
 
-            {/* Follow Section */}
-            <section className="user-section">
-                <h2 className="section-title">People to Follow</h2>
-                <div className="user-list">
-                    {followUsers.map(user => (
-                        <div 
-                            key={user._id}
-                            className={`user-card ${flipped.has(user._id) ? 'flipped' : ''}`}
-                            onClick={() => toggleFlip(user._id)}
-                        >
-                            <div className="card-front" style={{ background: styles.cardBg }}>
-                                <img src={user.avatar} alt={user.name} className="user-avatar" />
-                                <span className="user-name">{user.name}</span>
-                                <button 
-                                    className="follow-btn" 
-                                    style={{ background: following.has(user._id) ? styles.buttonHover : styles.buttonGradient }}
-                                    onClick={(e) => { e.stopPropagation(); handleFollow(user._id); }}
-                                >
-                                    {following.has(user._id) ? "Following" : "Follow"}
-                                </button>
+                {/* Follow Section */}
+                <section className="user-section follow-section">
+                    <h2 className="section-title">People to Follow</h2>
+                    <div className="user-list">
+                        {followUsers.map(user => (
+                            <div 
+                                key={user._id}
+                                className={`user-card ${flipped.has(user._id) ? 'flipped' : ''}`}
+                                onClick={() => toggleFlip(user._id)}
+                            >
+                                <div className="card-front" style={{ background: styles.cardBg }}>
+                                    {user.avatar ? (
+                                        <img src={user.avatar} alt={user.name} className="user-avatar" />
+                                    ) : (
+                                        <img src={predefine} alt={user.name} className="user-avatar" />
+                                    )}
+                                    <span className="user-name">{user.name}</span>
+                                    <button 
+                                        className="follow-btn" 
+                                        style={{ background: following.has(user._id) ? styles.buttonHover : styles.buttonGradient }}
+                                        onClick={(e) => { e.stopPropagation(); handleFollow(user._id); }}
+                                    >
+                                        {following.has(user._id) ? "Following" : "Follow"}
+                                    </button>
+                                </div>
+                                <div className="card-back" style={{ background: styles.cardBg }}>
+                                    <span className="user-bio">{user.bio}</span>
+                                </div>
                             </div>
-                            <div className="card-back" style={{ background: styles.cardBg }}>
-                                <span className="user-bio">{user.bio}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </section>
+                        ))}
+                    </div>
+                </section>
 
-            {/* Accept Section */}
-            <section className="user-section">
-                <h2 className="section-title">Follow Requests</h2>
-                <div className="user-list">
-                    {requestUsers.map(user => (
-                        <div 
-                            key={user._id}
-                            className={`user-card ${flipped.has(user._id) ? 'flipped' : ''}`}
-                            onClick={() => toggleFlip(user._id)}
-                        >
-                            <div className="card-front" style={{ background: styles.cardBg }}>
-                                <img src={user.avatar} alt={user.name} className="user-avatar" />
-                                <span className="user-name">{user.name}</span>
-                                <button 
-                                    className="accept-btn" 
-                                    style={{ background: styles.buttonGradient }}
-                                    onClick={(e) => { e.stopPropagation(); handleAccept(user._id); }}
-                                >
-                                    Accept
-                                </button>
+                {/* Accept Section */}
+                <section className="user-section accept-section">
+                    <h2 className="section-title">Follow Requests</h2>
+                    <div className="user-list">
+                        {requestUsers.map(user => (
+                            <div 
+                                key={user._id}
+                                className={`user-card ${flipped.has(user._id) ? 'flipped' : ''}`}
+                                onClick={() => toggleFlip(user._id)}
+                            >
+                                <div className="card-front" style={{ background: styles.cardBg }}>
+                                    {user.avatar ? (
+                                        <img src={user.avatar} alt={user.name} className="user-avatar" />
+                                    ) : (
+                                        <img src={predefine} alt={user.name} className="user-avatar" />
+                                    )}
+                                    <span className="user-name">{user.name}</span>
+                                    <button 
+                                        className="accept-btn" 
+                                        style={{ background: styles.buttonGradient }}
+                                        onClick={(e) => { e.stopPropagation(); handleAccept(user._id); }}
+                                    >
+                                        Accept
+                                    </button>
+                                </div>
+                                <div className="card-back" style={{ background: styles.cardBg }}>
+                                    <span className="user-bio">{user.bio}</span>
+                                </div>
                             </div>
-                            <div className="card-back" style={{ background: styles.cardBg }}>
-                                <span className="user-bio">{user.bio}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </section>
+                        ))}
+                    </div>
+                </section>
+            </div>
         </div>
     );
 }
