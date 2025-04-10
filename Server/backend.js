@@ -259,10 +259,10 @@ app.post('/logout', (req, res) => {
   });
 });
 
-app.post('/displayusersData', async (req, res) => {
-  console.log('Received request to /displayusersData');
+app.post('/displayusersProfile', async (req, res) => {
+  console.log('Received request to /displayusersProfile'); // ✅ Correct now
   try {
-      const users = await User.find();
+      const users = await Users.find();
       console.log('Users fetched:', users);
       res.status(200).json(users);
   } catch (error) {
@@ -270,7 +270,6 @@ app.post('/displayusersData', async (req, res) => {
       res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
-
 
 
 app.listen(5000, () => {
