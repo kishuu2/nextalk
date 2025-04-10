@@ -1,13 +1,17 @@
 /* ../../styles/Chats.css */
 .chat-wrapper {
-    height: calc(100vh - 60px); /* Adjust based on navbar height if needed */
+    position: fixed; /* Fixes the entire chat component in place */
+    top: 10px; /* Margin from top */
+    left: 300px; /* Accounts for sidebar width on desktop */
+    right: 10px; /* Margin from right */
+    bottom: 10px; /* Margin from bottom */
     display: flex;
     flex-direction: column;
     transition: all 0.4s ease;
     border-radius: 15px;
-    overflow: hidden;
+    overflow: hidden; /* Prevents wrapper from scrolling */
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    margin: 10px;
+    z-index: 5; /* Ensures it stays above other content */
 }
 
 /* Chat Header */
@@ -15,7 +19,7 @@
     padding: 15px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(0, 0, 0, 0.05);
-    flex-shrink: 0; /* Prevents header from shrinking */
+    flex-shrink: 0; /* Fixed height, no shrinking */
 }
 
 /* Chat Title */
@@ -29,14 +33,15 @@
 
 /* Chat Messages */
 .chat-messages {
-    flex: 1; /* Takes remaining space */
+    flex: 1; /* Takes remaining space between header and input */
     padding: 20px;
+    overflow-y: auto; /* Messages scrollable */
     display: flex;
     flex-direction: column;
     gap: 15px;
-    overflow-y: auto; /* Scrollable on desktop */
 }
 
+/* Message Styling */
 .message {
     display: flex;
     align-items: flex-end;
@@ -85,7 +90,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-shrink: 0; /* Prevents input form from shrinking */
+    flex-shrink: 0; /* Fixed height, no shrinking */
 }
 
 /* Input Field */
@@ -136,7 +141,7 @@
     }
 }
 
-/* Scrollbar Styling (Desktop Only) */
+/* Scrollbar Styling */
 .chat-messages::-webkit-scrollbar {
     width: 8px;
 }
@@ -157,18 +162,7 @@
 /* Mobile Adjustments */
 @media (max-width: 991px) {
     .chat-wrapper {
-        height: calc(100vh - 110px); /* Ensure full height on mobile */
-        overflow: hidden; /* No scrolling for entire wrapper */
-    }
-
-    .chat-messages {
-        overflow-y: hidden; /* Disable scrolling on mobile */
-        flex: 1; /* Still takes remaining space */
-    }
-
-    .chat-input-form {
-        position: sticky;
-        bottom: 0;
-        z-index: 10;
+        left: 10px; /* No sidebar on mobile, full width */
+        top: 70px; /* Accounts for navbar height */
     }
 }

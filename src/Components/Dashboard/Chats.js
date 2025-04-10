@@ -1,5 +1,5 @@
 // Chats.jsx
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTheme } from '../ThemeContext';
 import "../../styles/Chats.css";
 
@@ -8,8 +8,11 @@ export default function Chats() {
     const [messages, setMessages] = useState([
         { id: 1, sender: "You", text: "Hey, how's it going?", timestamp: "10:30 AM" },
         { id: 2, sender: "Friend", text: "Pretty good, thanks! You?", timestamp: "10:32 AM" },
+        { id: 3, sender: "You", text: "Hey, how's it going?", timestamp: "10:42 AM" },
+        { id: 4, sender: "Friend", text: "Pretty good, thanks! You?", timestamp: "10:52 AM" },
     ]);
     const [newMessage, setNewMessage] = useState("");
+    const messagesEndRef = useRef(null);
 
     const getThemeStyles = () => {
         if (theme === 'dark') {
@@ -42,12 +45,25 @@ export default function Chats() {
                 id: messages.length + 1,
                 sender: "You",
                 text: newMessage,
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                timestamp: new Date().toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    hour12: true // Force 12-hour format with AM/PM
+                })
             };
             setMessages([...messages, newMsg]);
             setNewMessage("");
         }
     };
+
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollTo({
+                top: messagesEndRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [messages]);
 
     return (
         <div 
@@ -60,7 +76,7 @@ export default function Chats() {
             <div className="chat-header">
                 <h2 className="chat-title">Chats</h2>
             </div>
-            <div className="chat-messages">
+            <div className="chat-messages" ref={messagesEndRef}>
                 {messages.map((msg) => (
                     <div 
                         key={msg.id} 
