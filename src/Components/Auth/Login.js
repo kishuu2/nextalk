@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from '../../axiosConfig';
 import { useTheme } from '../ThemeContext';
@@ -9,7 +9,6 @@ import Random3 from "../../Images/download3.png";
 import Random4 from "../../Images/download4.png";
 import Random5 from "../../Images/download5.png";
 
-
 function Login() {
     const [formData, setFormData] = useState({ username: '', password: '', agree: false });
     const navigate = useNavigate();
@@ -18,6 +17,7 @@ function Login() {
     const [progress, setProgress] = useState(0);
     const [loading, setLoading] = useState(false);
 
+    const { theme, handleThemeClick } = useTheme();
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -29,40 +29,36 @@ function Login() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(null); // Reset previous errors
+        setError('');
         setLoading(true);
         setProgress(10);
 
-        // Check for required fields
         if (!formData.username || !formData.password) {
             setError('Please fill in all required fields!');
-            setLoading(false)
+            setLoading(false);
             return;
         }
+
         const interval = setInterval(() => {
             setProgress((prev) => {
                 if (prev >= 80) {
-                    clearInterval(interval); // Stop early, wait for real response to complete it
+                    clearInterval(interval);
                     return prev;
                 }
                 return prev + 20;
             });
         }, 200);
+
         try {
-            setLoading(true)
             setProgress(30);
-            const response = await axios.post('https://nextalk-u0y1.onrender.com/login',formData,
-                {
-                  headers: { 'Content-Type': 'application/json' },
-                  withCredentials: true,
-                }
-              );
-              
+            const response = await axios.post('https://nextalk-u0y1.onrender.com/login', formData, {
+                headers: { 'Content-Type': 'application/json' },
+                withCredentials: true,
+            });
 
             setProgress(70);
-            // Store user data in localStorage/sessionStorage (if needed)
             sessionStorage.setItem("user", JSON.stringify(response.data));
-            setProgress(100); // Full
+            setProgress(100);
             setSuccess("Login successful! 🎉");
 
             setTimeout(() => {
@@ -73,22 +69,17 @@ function Login() {
             if (error.response) {
                 if (error.response.status === 401) {
                     setError('Invalid Username or Password.');
-                    setLoading(false)
                 } else {
                     setError(error.response.data.error || 'Login failed. Please try again.');
-                    setLoading(false)
                 }
             } else {
                 setError('Network error. Please try again.');
-                setLoading(false)
             }
         } finally {
             setLoading(false);
         }
     };
 
-
-    const { theme, handleThemeClick } = useTheme();
     const videoSrc = {
         homeback: Random1,
         homesecond: Random2,
@@ -98,19 +89,27 @@ function Login() {
     };
     const gradients = {
         homeback: "linear-gradient(120deg, #4F1787, #003161)",
-        homesecond: "linear-gradient(120deg,#7A1CAC, #2E073F)",
-        homethird: "linear-gradient(120deg, #1F6E8C, #0E2954,#2E8A99)",
-        homefourth: "linear-gradient(120deg, #790252,#AF0171,violet)",
+        homesecond: "linear-gradient(120deg, #7A1CAC, #2E073F)",
+        homethird: "linear-gradient(120deg, #1F6E8C, #0E2954, #2E8A99)",
+        homefourth: "linear-gradient(120deg, #790252, #AF0171, violet)",
         homefive: "linear-gradient(160deg, #183D3D, green)",
     };
 
     const themeKeys = Object.keys(videoSrc);
+
+    // Fallback to 'homeback' if theme isn’t in videoSrc
+    const currentTheme = themeKeys.includes(theme) ? theme : 'homeback';
+
     const ChangeColor = () => {
         const randomIndex = Math.floor(Math.random() * themeKeys.length);
         const randomTheme = themeKeys[randomIndex];
-        handleThemeClick(randomTheme); // Update theme via context
+        handleThemeClick(randomTheme);
     };
 
+    // Optional: Persist theme in localStorage
+    useEffect(() => {
+        localStorage.setItem('theme', currentTheme);
+    }, [currentTheme]);
 
     return (
         <div className="login-container">
@@ -161,7 +160,8 @@ function Login() {
                                     value={formData.password}
                                     onChange={handleChange}
                                 />
-                            </div><br /><br />
+                            </div>
+                            <br /><br />
                             <button type="submit" className="btn btn-primary w-100 login-btn">
                                 Login
                             </button>
@@ -178,7 +178,7 @@ function Login() {
                     <div
                         className="Randomimages1"
                         style={{
-                            backgroundImage: `url(${videoSrc[theme]}), ${gradients[theme]}`,
+                            backgroundImage: `url(${videoSrc[currentTheme]}), ${gradients[currentTheme]}`,
                             backgroundSize: "cover",
                             backgroundRepeat: "no-repeat",
                             backgroundPosition: "center",
@@ -188,15 +188,16 @@ function Login() {
                             left: 0,
                             width: "100%",
                             height: "100%",
-                            zIndex: 0, // Background behind content
-                            transition: "background-image 0.5s ease", // Smooth transition
+                            zIndex: 0,
+                            transition: "background-image 0.5s ease",
                         }}
                     ></div>
 
                     <div className="rand" onClick={ChangeColor} style={{ zIndex: 3, position: "absolute", top: "20px", right: "20px" }}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" className="bi bi-dice-5-fill" viewBox="0 0 16 16">
                             <path d="M3 0a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V3a3 3 0 0 0-3-3zm2.5 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m8 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M12 13.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3M5.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M8 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3" />
-                        </svg></div>
+                        </svg>
+                    </div>
                     <div className='create-section1 text-center d-flex align-items-center justify-content-center'>
                         <div className="p-2">
                             <h3 className="text-white mb-3">New Here?</h3>
