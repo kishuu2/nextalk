@@ -259,9 +259,9 @@ app.post('/logout', (req, res) => {
   });
 });
 
-app.post('/displayusersData', async (req, res) => {
+app.get('/displayusersData', (req, res) => {
   try {
-      const users = await Users.find();
+      const users = Users.find();
       res.status(200).json(users);
   } catch (error) {
       console.error('Error fetching users:', error);
