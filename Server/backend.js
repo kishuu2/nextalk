@@ -261,13 +261,15 @@ app.post('/logout', (req, res) => {
 
 app.post('/displayusersData', async (req, res) => {
   try {
-      const users = await Users.find(); // Fetch all users from MongoDB
+      const users = await Users.find();
       res.status(200).json(users);
   } catch (error) {
       console.error('Error fetching users:', error);
       res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
+
+
 
 app.listen(5000, () => {
   console.log("Server is Running now")
