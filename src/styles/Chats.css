@@ -7,6 +7,7 @@
     border-radius: 15px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin: 10px;
 }
 
 /* Chat Header */
@@ -14,11 +15,10 @@
     padding: 15px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(0, 0, 0, 0.05);
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    flex-shrink: 0; /* Prevents header from shrinking */
 }
 
+/* Chat Title */
 .chat-title {
     margin: 0;
     font-size: 1.5rem;
@@ -29,12 +29,12 @@
 
 /* Chat Messages */
 .chat-messages {
-    flex: 1;
+    flex: 1; /* Takes remaining space */
     padding: 20px;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 15px;
+    overflow-y: auto; /* Scrollable on desktop */
 }
 
 .message {
@@ -79,14 +79,16 @@
 
 /* Chat Input */
 .chat-input-form {
-    display: flex;
     padding: 15px 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(0, 0, 0, 0.05);
+    display: flex;
     align-items: center;
     gap: 10px;
+    flex-shrink: 0; /* Prevents input form from shrinking */
 }
 
+/* Input Field */
 .chat-input {
     flex: 1;
     padding: 12px 20px;
@@ -102,6 +104,7 @@
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
+/* Send Button */
 .chat-send-btn {
     padding: 12px 20px;
     border-radius: 50%;
@@ -133,7 +136,7 @@
     }
 }
 
-/* Scrollbar Styling */
+/* Scrollbar Styling (Desktop Only) */
 .chat-messages::-webkit-scrollbar {
     width: 8px;
 }
@@ -149,4 +152,23 @@
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
     background: #3b82f6;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 991px) {
+    .chat-wrapper {
+        height: calc(100vh - 110px); /* Ensure full height on mobile */
+        overflow: hidden; /* No scrolling for entire wrapper */
+    }
+
+    .chat-messages {
+        overflow-y: hidden; /* Disable scrolling on mobile */
+        flex: 1; /* Still takes remaining space */
+    }
+
+    .chat-input-form {
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+    }
 }
