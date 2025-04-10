@@ -16,7 +16,7 @@ export default function Home() {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-              const response = await axios.get('https://nextalk-u0y1.onrender.com/displayusersData', {
+              const response = await axios.post('https://nextalk-u0y1.onrender.com/displayusersData', {
                 withCredentials: true,
             });
             
