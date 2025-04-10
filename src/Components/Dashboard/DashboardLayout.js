@@ -3,6 +3,7 @@ import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useTheme } from '../ThemeContext';
 import "../../styles/DashboardLayout.css";
+import predefine from "../../Images/predefine.webp";
 
 export default function DashboardLayout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -114,7 +115,7 @@ export default function DashboardLayout() {
                 <div className="sidebar-footer p-3 sleek-footer">
                     <div className="user-profile sleek-profile d-flex align-items-center gap-3">
                         <img 
-                            src="https://static.vecteezy.com/system/resources/thumbnails/050/609/573/small/a-white-person-icon-in-a-hexagon-png.png" 
+                            src={predefine} 
                             width="45" 
                             alt="User" 
                             className="rounded-circle sleek-avatar"
