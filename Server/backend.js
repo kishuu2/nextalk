@@ -259,7 +259,7 @@ app.post('/logout', (req, res) => {
   });
 });
 
-app.get('/displayusersData', (req, res) => {
+app.post('/displayusersData', (req, res) => {
   try {
       const users = Users.find();
       res.status(200).json(users);
