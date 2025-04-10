@@ -5,7 +5,7 @@ export default function Settings() {
         <>
             <div className="container">
                 <h2>Settings</h2>
-                {/* Add your settings form here */}
+                
             </div>
         </>
     )

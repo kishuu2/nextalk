@@ -26,16 +26,8 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="row">
-        <div className="col-md">
-          <div className='p-2'>
-            <div >
-            </div><br />
-            <div>
-            </div>
-          </div>
-        </div>
-        <div className="col-md">
+      <div className="row w-100">
+        <div className="col-md p-4">
           <h2>Hello, {user?.name || "Guest"}!</h2>
         </div>
       </div>
