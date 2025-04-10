@@ -1,0 +1,203 @@
+/* ../../styles/Home.css */
+.home-container {
+    padding: 20px;
+    min-height: calc(100vh - 60px); /* Adjust for navbar height */
+    overflow-y: auto;
+    perspective: 1000px; /* For 3D flip effect */
+}
+
+.home-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 40px;
+    color: #3b82f6;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    animation: pulse 2s infinite;
+}
+
+.user-section {
+    margin-bottom: 50px;
+    padding: 20px;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 25px;
+    color: inherit;
+    position: relative;
+    display: inline-block;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    border-radius: 2px;
+    animation: slideInLeft 1s ease;
+}
+
+.user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.user-card {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    height: 80px;
+    margin: 0 auto;
+    transform-style: preserve-3d;
+    transition: transform 0.6s ease;
+    cursor: pointer;
+}
+
+.user-card.flipped {
+    transform: rotateY(180deg);
+}
+
+.card-front, .card-back {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
+    transition: box-shadow 0.3s ease;
+}
+
+.card-front:hover, .card-back:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.card-front {
+    z-index: 2;
+}
+
+.card-back {
+    transform: rotateY(180deg);
+    justify-content: center;
+}
+
+.user-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin-right: 20px;
+    object-fit: cover;
+    border: 3px solid #3b82f6;
+    transition: transform 0.4s ease, border-color 0.3s ease;
+}
+
+.user-card:hover .user-avatar {
+    transform: scale(1.15) rotate(5deg);
+    border-color: #60a5fa;
+}
+
+.user-name {
+    flex: 1;
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.user-bio {
+    font-size: 1rem;
+    font-style: italic;
+    color: #60a5fa;
+    text-align: center;
+}
+
+.follow-btn, .accept-btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 25px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #ffffff;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.follow-btn:hover, .accept-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+
+.follow-btn:active, .accept-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.2);
+}
+
+/* Animations */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes slideInLeft {
+    from { width: 0; }
+    to { width: 100%; }
+}
+
+@keyframes bounceIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    60% { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .home-title {
+        font-size: 1.8rem;
+    }
+
+    .section-title {
+        font-size: 1.4rem;
+    }
+
+    .user-card {
+        height: 70px;
+    }
+
+    .user-avatar {
+        width: 45px;
+        height: 45px;
+        margin-right: 15px;
+    }
+
+    .user-name {
+        font-size: 1rem;
+    }
+
+    .user-bio {
+        font-size: 0.9rem;
+    }
+
+    .follow-btn, .accept-btn {
+        padding: 6px 16px;
+        font-size: 0.85rem;
+    }
+}
+
+.user-card {
+    animation: bounceIn 0.5s ease;
+}
