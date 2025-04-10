@@ -7,7 +7,7 @@ const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const twilio = require('twilio');
 const fileUpload = require("express-fileupload");
-import dotenv from 'dotenv';
+const dotenv = require('dotenv');
 
 dotenv.config();
 
@@ -32,8 +32,14 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
 }));
 
 app.use(cookieParser());
@@ -43,8 +49,8 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: false,
-    sameSite: 'lax'
+    secure: true,
+    sameSite: 'none'
   }
 }));
 
@@ -106,6 +112,8 @@ app.post('/login', async (req, res) => {
 
     // Respond with user data (excluding password)
     req.session.user = { id: user._id, name: user.name, email: user.email };
+    return res.json({ message: "Login successful", user: req.session.user });
+
   } catch (err) {
     console.error("Error logging in user:", err);
     res.status(500).json({ error: 'Internal server error' });
