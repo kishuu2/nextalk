@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTheme } from '../ThemeContext';
-import axios from '../../axiosConfig'; // Assuming axios is configured here
+import axios from '../../axiosConfig';
 import "../../styles/Home.css";
 
 export default function Home() {
@@ -12,19 +12,22 @@ export default function Home() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Fetch users from backend
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-              const response = await axios.post('https://nextalk-u0y1.onrender.com/displayusersData', {
-                withCredentials: true,
-            });
-            
+                const response = await axios.post('/displayusersData', {}, {
+                    headers: { 'Content-Type': 'application/json' },
+                    withCredentials: true,
+                });
                 setUsers(response.data);
                 setLoading(false);
             } catch (err) {
                 console.error('Error fetching users:', err);
-                setError('Failed to load users. Please try again.');
+                if (err.response && err.response.status === 404) {
+                    setError('Users endpoint not found on server. Contact support.');
+                } else {
+                    setError('Failed to load users. Please check your connection or try again later.');
+                }
                 setLoading(false);
             }
         };
@@ -55,14 +58,10 @@ export default function Home() {
     const handleFollow = (userId) => {
         setFollowing(prev => {
             const newFollowing = new Set(prev);
-            if (newFollowing.has(userId)) {
-                newFollowing.delete(userId);
-            } else {
-                newFollowing.add(userId);
-            }
+            if (newFollowing.has(userId)) newFollowing.delete(userId);
+            else newFollowing.add(userId);
             return newFollowing;
         });
-        // Optionally, send follow status to backend here
     };
 
     const handleAccept = (userId) => {
@@ -72,19 +71,15 @@ export default function Home() {
             return newRequests;
         });
         setUsers(prev => prev.map(user => 
-            user.id === userId ? { ...user, isRequesting: false } : user
+            user._id === userId ? { ...user, isRequesting: false } : user
         ));
-        // Optionally, send accept status to backend here
     };
 
     const toggleFlip = (userId) => {
         setFlipped(prev => {
             const newFlipped = new Set(prev);
-            if (newFlipped.has(userId)) {
-                newFlipped.delete(userId);
-            } else {
-                newFlipped.add(userId);
-            }
+            if (newFlipped.has(userId)) newFlipped.delete(userId);
+            else newFlipped.add(userId);
             return newFlipped;
         });
     };
@@ -92,25 +87,18 @@ export default function Home() {
     const followUsers = users.filter(user => !user.isRequesting);
     const requestUsers = users.filter(user => user.isRequesting);
 
-    if (loading) {
-        return <div className="loading">Loading users...</div>;
-    }
-
-    if (error) {
-        return <div className="error">{error}</div>;
-    }
+    if (loading) return <div className="loading">Loading users...</div>;
+    if (error) return <div className="error">{error}</div>;
 
     return (
         <div className="home-container" style={{ background: styles.background, color: styles.color }}>
             <h1 className="home-title">Discover the Community</h1>
-
-            {/* Follow Section */}
             <section className="user-section">
                 <h2 className="section-title">People to Follow</h2>
                 <div className="user-list">
                     {followUsers.map(user => (
                         <div 
-                            key={user._id} // Use _id from MongoDB
+                            key={user._id}
                             className={`user-card ${flipped.has(user._id) ? 'flipped' : ''}`}
                             onClick={() => toggleFlip(user._id)}
                         >
@@ -132,14 +120,12 @@ export default function Home() {
                     ))}
                 </div>
             </section>
-
-            {/* Accept Section */}
             <section className="user-section">
                 <h2 className="section-title">Follow Requests</h2>
                 <div className="user-list">
                     {requestUsers.map(user => (
                         <div 
-                            key={user._id} 
+                            key={user._id}
                             className={`user-card ${flipped.has(user._id) ? 'flipped' : ''}`}
                             onClick={() => toggleFlip(user._id)}
                         >
