@@ -1,0 +1,57 @@
+/* ../../styles/DashboardLayout.css */
+.dashboard-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.sidebar {
+  width: 300px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: -300px;
+  transition: left 0.3s ease, background-color  Dit color 0.3s ease, color 0.3s ease;
+  z-index: 1000;
+}
+
+.sidebar.show {
+  left: 0;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 0;
+  transition: background-color 0.3s ease;
+}
+
+.nav-link {
+  transition: all 0.3s ease;
+}
+
+@media (min-width: 992px) {
+  .sidebar {
+      left: 0;
+  }
+  .main-content {
+      margin-left: 250px;
+  }
+}
+
+/* Ensure navbar and sidebar text visibility */
+.navbar .link-text .bg-dark {
+  background-color: #212529 !important;
+}
+
+.navbar.bg-light {
+  background-color: #ffffff !important;
+}
+
+.sidebar.bg-dark {
+  background-color: #212529 !important;
+}
+
+.sidebar.bg-light {
+  background-color: #ffffff !important;
+}

@@ -30,7 +30,6 @@ export default function Dashboard() {
         <div className="col-md">
           <div className='p-2'>
             <div >
-              <h2 style={{ fontFamily: 'monospace' }}>N e x T a l k</h2>
             </div><br />
             <div>
             </div>
