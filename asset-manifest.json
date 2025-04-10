@@ -1,20 +1,21 @@
 {
   "files": {
-    "main.css": "/nextalk/static/css/main.f260bb17.css",
-    "main.js": "/nextalk/static/js/main.fe1b1e59.js",
+    "main.css": "/nextalk/static/css/main.b4601e77.css",
+    "main.js": "/nextalk/static/js/main.c76c1191.js",
     "static/js/453.01d2eb60.chunk.js": "/nextalk/static/js/453.01d2eb60.chunk.js",
     "static/media/download3.png": "/nextalk/static/media/download3.41c9a6c5fd2d0deb457a.png",
     "static/media/download2.png": "/nextalk/static/media/download2.f2c8744354d42f199e5b.png",
     "static/media/download4.png": "/nextalk/static/media/download4.63ec0ec6f02e442bc5f2.png",
     "static/media/download5.png": "/nextalk/static/media/download5.42db376307219b1f23db.png",
     "static/media/download.png": "/nextalk/static/media/download.fe463201b4882b9ca8f2.png",
+    "static/media/predefine.webp": "/nextalk/static/media/predefine.f0477eabf7dab3ef74d9.webp",
     "index.html": "/nextalk/index.html",
-    "main.f260bb17.css.map": "/nextalk/static/css/main.f260bb17.css.map",
-    "main.fe1b1e59.js.map": "/nextalk/static/js/main.fe1b1e59.js.map",
+    "main.b4601e77.css.map": "/nextalk/static/css/main.b4601e77.css.map",
+    "main.c76c1191.js.map": "/nextalk/static/js/main.c76c1191.js.map",
     "453.01d2eb60.chunk.js.map": "/nextalk/static/js/453.01d2eb60.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.f260bb17.css",
-    "static/js/main.fe1b1e59.js"
+    "static/css/main.b4601e77.css",
+    "static/js/main.c76c1191.js"
   ]
 }
