@@ -113,7 +113,7 @@ export default function DashboardLayout() {
                 </ul>
 
                 <div className="sidebar-footer p-3 sleek-footer">
-                    <div className="user-profile sleek-profile d-flex align-items-center gap-3">
+                    <Link style={{textDecoration:"none"}} to='/dashboard/profile' className="user-profile sleek-profile nav-link d-flex align-items-center gap-3">
                         <img 
                             src={predefine} 
                             width="45" 
@@ -124,7 +124,7 @@ export default function DashboardLayout() {
                             <span className="d-block fw-semibold sleek-username">{user?.name || "Guest"}</span>
                             <span className="sleek-status online">Online</span>
                         </div>
-                    </div>
+                    </Link>
                     <div className="mt-4 sleek-actions">
                         <button 
                             onClick={toggleTheme} 

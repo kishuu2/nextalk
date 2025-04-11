@@ -9,6 +9,7 @@ import Home from "./Components/Dashboard/Home";
 import Chats from "./Components/Dashboard/Chats";
 import Contacts from "./Components/Dashboard/Contacts"; // Add this
 import Settings from "./Components/Dashboard/Settings"; // Add this
+import Profile from "./Components/Dashboard/Profile";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Route path="chats" element={<Chats />} />
             <Route path="contacts" element={<Contacts />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
         </Routes>
       </HashRouter>
