@@ -271,6 +271,16 @@ app.post('/displayusersProfile', async (req, res) => {
   }
 });
 
+app.get('/profile', async (req, res) => {
+  try {
+      const user = await User.findById(req.user.id); // Replace with auth logic
+      if (!user) return res.status(404).json({ error: 'User not found' });
+      res.status(200).json(user);
+  } catch (error) {
+      console.error('Error fetching profile:', error);
+      res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
 
 app.listen(5000, () => {
   console.log("Server is Running now")
