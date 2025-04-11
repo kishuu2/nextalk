@@ -113,7 +113,7 @@ export default function DashboardLayout() {
                 </ul>
 
                 <div className="sidebar-footer p-3 sleek-footer">
-                    <Link style={{textDecoration:"none"}} to='/dashboard/profile' className="user-profile sleek-profile nav-link d-flex align-items-center gap-3">
+                    <Link style={{textDecoration:"none"}} to='/dashboard/profile' onClick={() => setIsSidebarOpen(false)} className="user-profile sleek-profile nav-link d-flex align-items-center gap-3">
                         <img 
                             src={predefine} 
                             width="45" 
