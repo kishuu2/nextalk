@@ -21,7 +21,8 @@ export default function Profile() {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const response = await axios.get('https://nextalk-u0y1.onrender.com/profile', {
+                const response = await axios.postForm('https://nextalk-u0y1.onrender.com/profile', {
+                    headers: { 'Content-Type': 'application/json' },
                     withCredentials: true,
                 });
                 setProfile(response.data);
