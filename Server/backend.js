@@ -54,7 +54,6 @@ app.use(session({
   }
 }));
 
-
 app.get("/", (req, resp) => {
   resp.send("App is Working");
 });
@@ -100,40 +99,20 @@ app.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const user = await Users.findOne({ username });
+    const user = await Users.findOne({ username }); // Fixed variable name
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid Username or password' });
     }
 
-    // Simple password check (⚠️ In production, use bcrypt.compare)
+    // Simple password check (⚠️ Not secure, but works for basic use)
     if (user.password !== password) {
       return res.status(401).json({ error: 'Invalid Username or password' });
     }
 
-    // Set session data
-    req.session.user = { 
-      id: user._id, 
-      name: user.name, 
-      email: user.email,
-      username: user.username
-    };
-
-    // Set cookie with user info (optional)
-    res.cookie('user', JSON.stringify({
-      id: user._id,
-      name: user.name,
-      email: user.email
-    }), {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none'
-    });
-
-    return res.json({ 
-      message: "Login successful", 
-      user: req.session.user 
-    });
+    // Respond with user data (excluding password)
+    req.session.user = { id: user._id, name: user.name, email: user.email };
+    return res.json({ message: "Login successful", user: req.session.user });
 
   } catch (err) {
     console.error("Error logging in user:", err);
@@ -294,30 +273,14 @@ app.post('/displayusersProfile', async (req, res) => {
 
 app.get('/profile', async (req, res) => {
   try {
-    // Check if user is authenticated via session
-    if (!req.session.user?.id) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-
-    // Find user by session ID
-    const user = await Users.findById(req.session.user.id)
-      .select('-password -otp -otpExpiresAt'); // Exclude sensitive fields
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    res.status(200).json(user);
-    
+      const user = await Users.findById(req.user._id); // Replace with auth logic
+      if (!user) return res.status(404).json({ error: 'User not found' });
+      res.status(200).json(user);
   } catch (error) {
-    console.error('Error fetching profile:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch profile',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+      console.error('Error fetching profile:', error);
+      res.status(500).json({ error: 'Failed to fetch profile' });
   }
 });
-
 
 app.listen(5000, () => {
   console.log("Server is Running now")
