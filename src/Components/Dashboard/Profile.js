@@ -7,9 +7,9 @@ import "../../styles/Profile.css";
 export default function Profile() {
     const { theme } = useTheme();
     const [profile, setProfile] = useState({
-        username: '',
-        name: '',
-        email: '',
+        username: 'user123',
+        name: 'John Doe',
+        email: 'john.doe@example.com',
         bio: 'No bio yet.',
         avatar: predefine,
     });
@@ -18,12 +18,11 @@ export default function Profile() {
     const [isEditing, setIsEditing] = useState(false);
     const [flipped, setFlipped] = useState(false);
 
-    // Fetch initial profile data (mocked or from backend)
     useEffect(() => {
         const fetchProfile = async () => {
             try {
                 const response = await axios.get('https://nextalk-u0y1.onrender.com/profile', {
-                  
+                    headers: { 'Content-Type': 'application/json' },
                     withCredentials: true,
                 });
                 setProfile(response.data);
@@ -31,7 +30,7 @@ export default function Profile() {
             } catch (err) {
                 console.error('Error fetching profile:', err);
                 setError('Failed to load profile. Using defaults.');
-                setLoading(false);
+                setLoading(false); // Use defaults instead of blocking UI
             }
         };
         fetchProfile();
@@ -99,7 +98,6 @@ export default function Profile() {
             <h1 className="profile-title">Your Profile</h1>
 
             <div className="profile-grid">
-                {/* Edit Section */}
                 <section className="edit-section">
                     <h2 className="section-title">Edit Profile</h2>
                     {isEditing ? (
@@ -176,7 +174,6 @@ export default function Profile() {
                     )}
                 </section>
 
-                {/* Preview Section */}
                 <section className="preview-section">
                     <h2 className="section-title">Profile Preview</h2>
                     <div className="preview-card-container">

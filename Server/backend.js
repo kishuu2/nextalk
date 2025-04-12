@@ -273,7 +273,7 @@ app.post('/displayusersProfile', async (req, res) => {
 
 app.get('/profile', async (req, res) => {
   try {
-      const user = await Users.findById(req.user._id); // Replace with auth logic
+      const user = await Users.findById(req.users._id); // Replace with auth logic
       if (!user) return res.status(404).json({ error: 'User not found' });
       res.status(200).json(user);
   } catch (error) {
