@@ -21,10 +21,15 @@ export default function Profile() {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const response = await axios.post('https://nextalk-u0y1.onrender.com/profile', {
-                    headers: { 'Content-Type': 'application/json' },
-                    withCredentials: true,
-                });
+                const response = await axios.post(
+                    'https://nextalk-u0y1.onrender.com/profile',
+                    {}, // No body
+                    {
+                        headers: { 'Content-Type': 'application/json' },
+                        withCredentials: true,
+                    }
+                );
+                
                 setProfile(response.data);
                 setLoading(false);
             } catch (err) {
@@ -73,21 +78,6 @@ export default function Profile() {
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const response = await axios.put('https://nextalk-u0y1.onrender.com/updateProfile', profile, {
-                headers: { 'Content-Type': 'application/json' },
-                withCredentials: true,
-            });
-            setProfile(response.data);
-            setIsEditing(false);
-        } catch (err) {
-            console.error('Error updating profile:', err);
-            setError('Failed to save profile changes.');
-        }
-    };
-
     const toggleFlip = () => setFlipped(prev => !prev);
 
     if (loading) return <div className="loading">Loading profile...</div>;
@@ -101,7 +91,7 @@ export default function Profile() {
                 <section className="edit-section">
                     <h2 className="section-title">Edit Profile</h2>
                     {isEditing ? (
-                        <form onSubmit={handleSubmit} className="edit-form">
+                        <form className="edit-form">
                             <div className="form-group">
                                 <label>Username</label>
                                 <input
