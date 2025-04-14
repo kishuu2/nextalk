@@ -273,14 +273,27 @@ app.post('/displayusersProfile', async (req, res) => {
 
 app.post('/profile', async (req, res) => {
   try {
-      const user = await Users.findById(req.user._id); // Replace with auth logic
-      if (!user) return res.status(404).json({ error: 'User not found' });
-      res.status(200).json(user);
+    // Grab user ID directly from session
+    const userId = req.session?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized – No user session found' });
+    }
+
+    const user = await Users.findById(userId).select('-password'); // sanitize sensitive info
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json(user);
+
   } catch (error) {
-      console.error('Error fetching profile:', error);
-      res.status(500).json({ error: 'Failed to fetch profile' });
+    console.error('Error fetching profile:', error);
+    res.status(500).json({ error: 'Failed to fetch profile' });
   }
 });
+
 
 app.listen(5000, () => {
   console.log("Server is Running now")
