@@ -1,17 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import axios from '../../axiosConfig';
-import { useTheme } from '../ThemeContext';
-import '../../styles/Login.css';
-import Random1 from "../../Images/download.png";
-import Random2 from "../../Images/download2.png";
-import Random3 from "../../Images/download3.png";
-import Random4 from "../../Images/download4.png";
-import Random5 from "../../Images/download5.png";
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import axios from '../axiosConfig';
+import { useTheme } from '../Components/ThemeContext';
+import '../styles/Login.css';
 
 function Login() {
     const [formData, setFormData] = useState({ username: '', password: '', agree: false });
-    const navigate = useNavigate();
+    const router = useRouter();
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [progress, setProgress] = useState(0);
@@ -62,7 +58,7 @@ function Login() {
             setSuccess("Login successful! 🎉");
 
             setTimeout(() => {
-                navigate('/dashboard');
+                router.push('/Dashboard');
             }, 500);
         } catch (error) {
             setProgress(0);
@@ -81,11 +77,11 @@ function Login() {
     };
 
     const videoSrc = {
-        homeback: Random1,
-        homesecond: Random2,
-        homethird: Random3,
-        homefourth: Random4,
-        homefive: Random5,
+        homeback: "/Images/download.png",
+        homesecond: "/Images/download2.png",
+        homethird: "/Images/download3.png",
+        homefourth: "/Images/download4.png",
+        homefive: "/Images/download5.png",
     };
     const gradients = {
         homeback: "linear-gradient(120deg, #4F1787, #003161)",
@@ -99,6 +95,7 @@ function Login() {
 
     // Fallback to 'homeback' if theme isn’t in videoSrc
     const currentTheme = themeKeys.includes(theme) ? theme : 'homeback';
+
 
     const ChangeColor = () => {
         const randomIndex = Math.floor(Math.random() * themeKeys.length);
@@ -149,6 +146,7 @@ function Login() {
                                     onChange={handleChange}
                                 />
                             </div>
+
                             <div className="mb-3">
                                 <label htmlFor="password" className="form-label fw-bold">Password</label>
                                 <input
@@ -166,7 +164,7 @@ function Login() {
                                 Login
                             </button>
                             <br /><br />
-                            <Link to="/Forgot" className="btn btn-lg btn-primary w-100 login-btn" style={{ textDecoration: "none" }}>
+                            <Link href="/Auth/Forgot" className="btn btn-lg btn-primary w-100 login-btn" style={{ textDecoration: "none" }}>
                                 Forgotten password
                             </Link>
                         </form>
@@ -193,7 +191,7 @@ function Login() {
                         }}
                     ></div>
 
-                    <div className="rand" onClick={ChangeColor} style={{ zIndex: 3, position: "absolute", top: "20px", right: "20px" }}>
+                    <div className="rand" onClick={() => console.log('Theme before change:', theme) || ChangeColor()} style={{ zIndex: 3, position: "absolute", top: "20px", right: "20px" }}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" className="bi bi-dice-5-fill" viewBox="0 0 16 16">
                             <path d="M3 0a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V3a3 3 0 0 0-3-3zm2.5 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m8 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M12 13.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3M5.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M8 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3" />
                         </svg>
@@ -204,12 +202,12 @@ function Login() {
                             <p className="text-white mb-4">
                                 Don’t have an account yet? Create one now and join the conversation!
                             </p>
-                            <button
+                            <Link
                                 className="btn btn-outline-light btn-lg create-btn"
-                                onClick={() => navigate('/Signup')}
+                                href='/Auth/Signup' style={{textDecoration: "none"}}
                             >
                                 Create New Account
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </div>

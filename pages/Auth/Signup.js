@@ -1,18 +1,13 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import axios from 'axios';
-import { useTheme } from '../ThemeContext';
-import '../../styles/Login.css';
-import Random1 from "../../Images/download.png";
-import Random2 from "../../Images/download2.png";
-import Random3 from "../../Images/download3.png";
-import Random4 from "../../Images/download4.png";
-import Random5 from "../../Images/download5.png";
-
+import { useTheme } from '../Components/ThemeContext';
+import '../styles/Login.css';
 
 function Login() {
     const [formData, setFormData] = useState({ name: '', username: '', email: '', password: '', agree: false });
-    const navigate = useNavigate();
+    const navigate = useRouter();
     const [errors, setErrors] = useState({
         username: '',
         email: '',
@@ -123,11 +118,11 @@ function Login() {
 
     const { theme, handleThemeClick } = useTheme();
     const videoSrc = {
-        homeback: Random1,
-        homesecond: Random2,
-        homethird: Random3,
-        homefourth: Random4,
-        homefive: Random5,
+        homeback: "/Images/download.png",
+        homesecond: "/Images/download2.png",
+        homethird: "/Images/download3.png",
+        homefourth: "/Images/download4.png",
+        homefive: "/Images/download5.png",
     };
     const gradients = {
         homeback: "linear-gradient(120deg, #4F1787, #003161)",
@@ -179,12 +174,12 @@ function Login() {
                             <p className="text-white mb-4">
                                 you have account already? Then let's get started now clicked the belowed button!
                             </p>
-                            <button
+                            <Link
                                 className="btn btn-outline-light btn-lg create-btn"
-                                onClick={() => navigate('/')}
+                                href='/Auth/Login' style={{textDecoration: "none"}}
                             >
                                 Already have account!
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -279,7 +274,7 @@ function Login() {
                                     onChange={handleChange}
                                 />
                                 <label className="form-check-label" htmlFor="agree">
-                                    I agree to the <Link to="/" className="text-primary">Terms & Conditions</Link>
+                                    I agree to the <Link href="/" className="text-primary">Terms & Conditions</Link>
                                 </label>
                             </div>
                             <button type="submit" className="btn btn-primary btn-lg w-100 login-btn">

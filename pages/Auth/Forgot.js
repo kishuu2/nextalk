@@ -1,18 +1,13 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { useTheme } from '../ThemeContext';
-import '../../styles/Login.css';
-import Random1 from "../../Images/download.png";
-import Random2 from "../../Images/download2.png";
-import Random3 from "../../Images/download3.png";
-import Random4 from "../../Images/download4.png";
-import Random5 from "../../Images/download5.png";
-
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import axios from '../axiosConfig';
+import { useTheme } from '../Components/ThemeContext';
+import '../styles/Login.css';
 
 function Login() {
     const [formData, setFormData] = useState({ email: '', otp: '', newPassword: '', confirmPassword: '' });
-    const navigate = useNavigate();
+    const navigate = useRouter();
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [progress, setProgress] = useState(0);
@@ -159,11 +154,11 @@ function Login() {
 
     const { theme, handleThemeClick } = useTheme();
     const videoSrc = {
-        homeback: Random1,
-        homesecond: Random2,
-        homethird: Random3,
-        homefourth: Random4,
-        homefive: Random5,
+        homeback: "/Images/download.png",
+        homesecond: "/Images/download2.png",
+        homethird: "/Images/download3.png",
+        homefourth: "/Images/download4.png",
+        homefive: "/Images/download5.png",
     };
     const gradients = {
         homeback: "linear-gradient(120deg, #4F1787, #003161)",
@@ -348,12 +343,12 @@ function Login() {
                                 Thought you forgot it? Happens to the best of us 😅.
                                 If your memory just clicked back into place, no stress.
                             </p>
-                            <button
+                            <Link
                                 className="btn btn-outline-light btn-lg create-btn"
-                                onClick={() => navigate('/')}
+                                href='/Auth/Login' style={{textDecoration: "none"}}
                             >
                                 Login now
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </div>

@@ -1,7 +1,8 @@
 // Chats.jsx
 import { useState, useRef, useEffect } from "react";
-import { useTheme } from '../ThemeContext';
-import "../../styles/Chats.css";
+import { useTheme } from '../Components/ThemeContext';
+import "../styles/Chats.css";
+import DashboardLayout from '../Components/DashboardLayout';
 
 export default function Chats() {
     const { theme } = useTheme();
@@ -66,6 +67,7 @@ export default function Chats() {
     }, [messages]);
 
     return (
+        <DashboardLayout>
         <div 
             className="chat-wrapper" 
             style={{ 
@@ -114,5 +116,6 @@ export default function Chats() {
                 </button>
             </form>
         </div>
+        </DashboardLayout>
     );
 }

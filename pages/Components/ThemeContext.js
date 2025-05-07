@@ -3,7 +3,7 @@ import React, { createContext, useState, useContext } from 'react';
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-    const [theme, setTheme] = useState('homeback'); // Default theme
+    const [theme, setTheme] = useState('homeback');
 
     const handleThemeClick = (newTheme) => {
         setTheme(newTheme);

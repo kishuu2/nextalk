@@ -1,18 +1,24 @@
 // DashboardLayout.jsx
-import { Outlet, Link, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { useTheme } from '../ThemeContext';
-import "../../styles/DashboardLayout.css";
-import predefine from "../../Images/predefine.webp";
+'use client'; // if you're using App Router (recommended)
 
-export default function DashboardLayout() {
+import Link from 'next/link';
+import { useRouter } from 'next/navigation'; 
+import { useState, useEffect } from "react";
+import Image from 'next/image'; 
+import "../styles/DashboardLayout.css";
+import predefine from "../../public/Images/predefine.webp";
+import { useTheme } from './ThemeContext';
+import axios from '../axiosConfig';
+import "../styles/Home.css";
+
+export default function DashboardLayout({ children }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const { theme, handleThemeClick } = useTheme();
-    const navigate = useNavigate();
+    const router = useRouter(); // corrected here
 
     const handleLogout = () => {
         sessionStorage.removeItem("user");
-        navigate("/");
+        router.push("/");
     };
 
     const toggleTheme = () => {
@@ -22,45 +28,35 @@ export default function DashboardLayout() {
 
     const getThemeStyles = () => {
         if (theme === 'dark') {
-            return { 
-                background: '#0f172a', 
-                color: '#e2e8f0', 
-                chatBackground: '#1e293b' 
-            };
+            return { background: '#0f172a', color: '#e2e8f0', chatBackground: '#1e293b' };
         }
-        // Default to light styles for 'homeback' or any other theme
-        return { 
-            background: '#f1f5f9', 
-            color: '#1e293b', 
-            chatBackground: '#ffffff' 
-        };
+        return { background: '#f1f5f9', color: '#1e293b', chatBackground: '#ffffff' };
     };
 
     const currentThemeStyles = getThemeStyles();
-
     const [user, setUser] = useState(null);
 
     useEffect(() => {
         const storedUser = sessionStorage.getItem("user");
         if (!storedUser) {
-            navigate("/");
+            router.push("/");
         } else {
             try {
                 const parsed = JSON.parse(storedUser);
                 setUser(parsed.user);
             } catch (err) {
                 console.error("Error parsing sessionStorage user:", err);
-                navigate("/");
+                router.push("/");
             }
         }
-    }, [navigate]);
+    }, [router]);
 
     return (
         <div className="dashboard-wrapper" style={{ background: currentThemeStyles.background, color: currentThemeStyles.color }}>
             {/* Mobile Navbar */}
             <nav className={`navbar sleek-navbar ${theme === 'dark' ? 'bg-dark' : 'bg-light'} d-lg-none`}>
                 <div className="container-fluid">
-                    <Link className="navbar-brand fw-bold sleek-brand" to="/dashboard" style={{textDecoration:"none"}}>Nextalk</Link>
+                    <Link className="navbar-brand fw-bold sleek-brand" href="/dashboard">Nextalk</Link>
                     <button
                         className={`navbar-toggler sleek-toggler ${theme === 'dark' ? 'dark-toggler' : 'light-toggler'}`}
                         type="button"
@@ -84,39 +80,28 @@ export default function DashboardLayout() {
 
                 <ul className="nav flex-column p-3 sleek-nav">
                     <li className="nav-item">
-                        <Link 
-                            className="nav-link sleek-nav-link" style={{textDecoration:"none"}}
-                            to="/dashboard" 
-                            onClick={() => setIsSidebarOpen(false)}
-                        >
+                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{textDecoration:"none"}} href="/Dashboard">
                             <i className="bi bi-house-fill me-2"></i>Home
                         </Link>
                     </li>
                     <li className="nav-item">
-                        <Link 
-                            className="nav-link sleek-nav-link" style={{textDecoration:"none"}}
-                            to="/dashboard/chats" 
-                            onClick={() => setIsSidebarOpen(false)}
-                        >
+                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{textDecoration:"none"}} href="/Dashboard/Chats">
                             <i className="bi bi-chat-fill me-2"></i>Chats
                         </Link>
                     </li>
                     <li className="nav-item">
-                        <Link 
-                            className="nav-link sleek-nav-link" style={{textDecoration:"none"}}
-                            to="/dashboard/settings" 
-                            onClick={() => setIsSidebarOpen(false)}
-                        >
+                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{textDecoration:"none"}} href="/Dashboard/Settings">
                             <i className="bi bi-gear-wide-connected me-2"></i>Settings
                         </Link>
                     </li>
                 </ul>
 
                 <div className="sidebar-footer p-3 sleek-footer">
-                    <Link style={{textDecoration:"none"}} to='/dashboard/profile' onClick={() => setIsSidebarOpen(false)} className="user-profile sleek-profile nav-link d-flex align-items-center gap-3">
-                        <img 
+                    <Link href='/Dashboard/Profile' onClick={() => setIsSidebarOpen(false)} style={{textDecoration:"none"}} className="user-profile sleek-profile nav-link d-flex align-items-center gap-3">
+                        <Image 
                             src={predefine} 
-                            width="45" 
+                            width={45} 
+                            height={45} 
                             alt="User" 
                             className="rounded-circle sleek-avatar"
                         />
@@ -145,7 +130,7 @@ export default function DashboardLayout() {
             {/* Main Content */}
             <main className="main-content sleek-main" style={{ background: currentThemeStyles.chatBackground }}>
                 <div className="container-fluid p-1 sleek-container">
-                    <Outlet />
+                    {children} {/* NOT Outlet! */}
                 </div>
             </main>
         </div>
