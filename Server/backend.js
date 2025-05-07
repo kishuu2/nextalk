@@ -262,37 +262,56 @@ app.post('/logout', (req, res) => {
 app.post('/displayusersProfile', async (req, res) => {
   console.log('Received request to /displayusersProfile'); // ✅ Correct now
   try {
-      const users = await Users.find();
-      console.log('Users fetched:', users);
-      res.status(200).json(users);
+    const users = await Users.find();
+    console.log('Users fetched:', users);
+    res.status(200).json(users);
   } catch (error) {
-      console.error('Error fetching users:', error);
-      res.status(500).json({ error: 'Failed to fetch users' });
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
 
-app.post('/profile', async (req, res) => {
+// Middleware to extract the user ID from the Authorization header
+const extractUserIdFromHeader = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized: No token provided' });
+  }
   try {
-    // Grab user ID directly from session
-    const userId = req.session?.userId;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized – No user session found' });
+    // Validate ObjectId format (assuming MongoDB ObjectId)
+    if (!mongoose.Types.ObjectId.isValid(token)) {
+      return res.status(400).json({ message: 'Invalid user ID format' });
     }
-
-    const user = await Users.findById(userId).select('-password'); // sanitize sensitive info
-    
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    res.status(200).json(user);
-
+    req.userId = token;
+    next();
   } catch (error) {
-    console.error('Error fetching profile:', error);
-    res.status(500).json({ error: 'Failed to fetch profile' });
+    console.error('Error in extractUserIdFromHeader:', error);
+    return res.status(400).json({ message: 'Invalid token' });
+  }
+};
+
+app.get('/profile', extractUserIdFromHeader, async (req, res) => {
+  try {
+    // Assuming Users is a Mongoose model
+    const user = await Users.findById(req.userId); // Use findById for single document
+    if (user) {
+      // Match frontend's expected profile structure
+      return res.status(200).json({
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        bio: user.bio || 'No bio yet.', // Provide default if missing
+        avatar: user.avatar || '' // Provide default or stored avatar URL
+      });
+    } else {
+      return res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
 
 
 app.listen(5000, () => {

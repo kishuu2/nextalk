@@ -6,10 +6,9 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     otp: String,
-    otpExpiresAt: {
-        type: Date,
-        index: { expires: 0 },
-    }
-}, { timestamps: true });
+    otpExpiresAt: { type: Date, index: { expires: 0 } },
+    bio: { type: String, default: 'No bio yet.' },
+    avatar: { type: String, default: '' }
+  }, { timestamps: true });
 
 module.exports = mongoose.model('Users', userSchema);
