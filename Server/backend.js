@@ -28,6 +28,7 @@ console.log("App listen at port 5000");
 const allowedOrigins = [
   "http://localhost:3000",
   "https://kishuu2.github.io",
+  "http://192.168.1.3:3000",
   "https://nextalk-u0y1.onrender.com"
 ];
 

@@ -172,7 +172,7 @@ function Login() {
                         <div className="p-2">
                             <h3 className="text-white mb-3">Already have ?</h3>
                             <p className="text-white mb-4">
-                                you have account already? Then let's get started now clicked the belowed button!
+                                you have account already? Then let&apos;s get started now clicked the belowed button!
                             </p>
                             <Link
                                 className="btn btn-outline-light btn-lg create-btn"

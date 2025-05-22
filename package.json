@@ -17,16 +17,15 @@
     "nth-check": "^2.0.1",
     "svgo": "^3.0.0"
   },
- "scripts": {
-  "dev": "next dev --turbopack",
-  "build": "next build",
-  "start": "next start",
-  "lint": "next lint"
-},
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
   "eslintConfig": {
     "extends": [
-      "react-app",
-      "react-app/jest"
+      "next"
     ]
   },
   "browserslist": {
