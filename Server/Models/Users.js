@@ -1,3 +1,4 @@
+// models/User.js
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -8,7 +9,7 @@ const userSchema = new mongoose.Schema({
     otp: String,
     otpExpiresAt: { type: Date, index: { expires: 0 } },
     bio: { type: String, default: 'No bio yet.' },
-    avatar: { type: String, default: '' }
-  }, { timestamps: true });
+    image: { type: String, default: '' } // Renamed from avatar to image
+}, { timestamps: true });
 
 module.exports = mongoose.model('Users', userSchema);
