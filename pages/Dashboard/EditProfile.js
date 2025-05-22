@@ -1,11 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTheme } from '../Components/ThemeContext';
 import axios from '../axiosConfig';
 import predefine from "../../public/Images/predefine.webp";
 import "../styles/Profile.css";
 import DashboardLayout from '../Components/DashboardLayout';
 
 export default function EditProfile() {
+    const { theme, setTheme } = useTheme();
+    const getThemeStyles = () => {
+        if (theme === 'dark') {
+            return {
+                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                color: '#e2e8f0',
+                cardBg: 'rgba(255, 255, 255, 0.1)',
+                cardBgs: '#16213e',
+                buttonGradient: 'linear-gradient(45deg, #3b82f6, #60a5fa)',
+                buttonHover: 'linear-gradient(45deg, #2563eb, #3b82f6)',
+            };
+        }
+        return {
+            background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
+            color: '#1e293b',
+            cardBg: 'rgba(255, 255, 255, 0.9)',
+            buttonGradient: 'linear-gradient(45deg, #3b82f6, #60a5fa)',
+            buttonHover: 'linear-gradient(45deg, #2563eb, #3b82f6)',
+        };
+    };
+
+    const styles = getThemeStyles();
+
     const router = useRouter();
     const [profile, setProfile] = useState({
         username: 'user123',
@@ -96,9 +120,66 @@ export default function EditProfile() {
         console.log("Navigating to visibility settings...");
     };
 
-    if (loading) return <div className="loading">Just Wait Few Minutes...</div>;
     if (error) return <div className="error">{error}</div>;
+    const fileInputRef = useRef(null);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [showConfirm, setShowConfirm] = useState(false);
 
+    const handleButtonClick = () => {
+        fileInputRef.current.click(); // Trigger hidden input
+    };
+
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState(null);
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedFile(file);
+            setShowConfirm(true); // Show confirmation modal
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result; // Base64 string (e.g., "data:image/jpeg;base64,...")
+                setSelectedFile(base64String); // Store Base64 string for upload
+                setTempProfile(prev => ({ ...prev, avatar: base64String })); // Preview the image
+                setShowConfirm(true); // Show confirmation modal
+            };
+
+            reader.readAsDataURL(file); // Convert image to Base64
+        }
+
+    };
+
+    const handleConfirmUpload = async () => {
+        if (selectedFile) {
+            setUploading(true);
+            setUploadError(null);
+            try {
+                const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
+            console.log(userData.user.id)
+                const response = await fetch("https://nextalk-u0y1.onrender.com/update-image", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${userData.user.id}`,
+                    },
+                    body: JSON.stringify({ image: selectedFile }), // Send Base64 string
+                });
+
+                if (!response.ok) throw new Error("Failed to upload image");
+
+                const data = await response.json();
+                setProfile(prev => ({ ...prev, avatar: data.imageUrl })); // Update profile with new image URL
+                setTempProfile(prev => ({ ...prev, avatar: data.imageUrl }));
+                setShowConfirm(false);
+                setSelectedFile(null);
+            } catch (err) {
+                setUploadError(err.message || "Failed to upload image. Please try again.");
+            } finally {
+                setUploading(false);
+            }
+        }
+    };
     return (
         <DashboardLayout>
             <div className="edit-profile-layout">
@@ -114,14 +195,14 @@ export default function EditProfile() {
                         </p>
                     </div>
                     <div className="sidebar-buttons">
-                        <button className="sidebar-button active" disabled style={{alignItems:"center",display:"flex", gap:"8px"}}>
-                            <i class="bi bi-person-circle" style={{fontSize: "24px"}}></i> Edit Profile
+                        <button className="sidebar-button active" disabled style={{ alignItems: "center", display: "flex", gap: "8px" }}>
+                            <i class="bi bi-person-circle" style={{ fontSize: "24px" }}></i> Edit Profile
                         </button>
-                        <button className="sidebar-button" style={{alignItems:"center",display:"flex", gap:"8px"}} onClick={handleNavigateToNotifications}>
-                            <i class="bi bi-qr-code" style={{fontSize: "24px"}}></i> QR Code
+                        <button className="sidebar-button" style={{ alignItems: "center", display: "flex", gap: "8px" }} onClick={handleNavigateToNotifications}>
+                            <i class="bi bi-qr-code" style={{ fontSize: "24px" }}></i> QR Code
                         </button>
-                        <button className="sidebar-button" style={{alignItems:"center",display:"flex", gap:"8px"}} onClick={handleNavigateToNotifications}>
-                            <i class="bi bi-bell" style={{fontSize: "24px"}}></i> Notifications
+                        <button className="sidebar-button" style={{ alignItems: "center", display: "flex", gap: "8px" }} onClick={handleNavigateToNotifications}>
+                            <i class="bi bi-bell" style={{ fontSize: "24px" }}></i> Notifications
                         </button>
                     </div><br />
 
@@ -129,25 +210,25 @@ export default function EditProfile() {
                         <div className="sidebar-section">
                             <h3 className="sidebar-section-title">Your app and media</h3>
                             <div className="sidebar-buttons">
-                                <button className="sidebar-button" style={{alignItems:"center",display:"flex", gap:"8px"}}>
-                                   <i class="bi bi-translate" style={{fontSize: "24px"}}></i> Language
+                                <button className="sidebar-button" style={{ alignItems: "center", display: "flex", gap: "8px" }}>
+                                    <i class="bi bi-translate" style={{ fontSize: "24px" }}></i> Language
                                 </button>
-                                <button className="sidebar-button" style={{alignItems:"center",display:"flex", gap:"8px"}} onClick={handleNavigateToNotifications}>
-                                    <i class="bi bi-laptop" style={{fontSize: "24px"}}></i> Website permissions
+                                <button className="sidebar-button" style={{ alignItems: "center", display: "flex", gap: "8px" }} onClick={handleNavigateToNotifications}>
+                                    <i class="bi bi-laptop" style={{ fontSize: "24px" }}></i> Website permissions
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                     <div>
+                    <div>
                         <div className="sidebar-section">
                             <h3 className="sidebar-section-title">More info and support</h3>
                             <div className="sidebar-buttons">
-                                <button className="sidebar-button" style={{alignItems:"center",display:"flex", gap:"8px"}}>
-                                    <i class="bi bi-patch-question" style={{fontSize: "24px"}}></i> Help
+                                <button className="sidebar-button" style={{ alignItems: "center", display: "flex", gap: "8px" }}>
+                                    <i class="bi bi-patch-question" style={{ fontSize: "24px" }}></i> Help
                                 </button>
-                                <button className="sidebar-button" style={{alignItems:"center",display:"flex", gap:"8px"}} onClick={handleNavigateToNotifications}>
-                                    <i class="bi bi-shield-plus" style={{fontSize: "24px"}}></i> Privacy Center
+                                <button className="sidebar-button" style={{ alignItems: "center", display: "flex", gap: "8px" }} onClick={handleNavigateToNotifications}>
+                                    <i class="bi bi-shield-plus" style={{ fontSize: "24px" }}></i> Privacy Center
                                 </button>
                             </div>
                         </div>
@@ -159,23 +240,92 @@ export default function EditProfile() {
                     <div className="edit-profile-card">
                         <h1 className="edit-profile-title">Edit Profile</h1>
                         <form className="edit-form" onSubmit={handleSubmit}>
-                            <div className="form-group" style={{ background: "lightgray", borderRadius: "12px", padding: "12px", opacity: "0.9" }}>
-                                <div className='d-flex' style={{ justifyContent: "space-between", alignItems: "center" }}>
-                                    <div className='d-flex gap-3 justify-content-center' style={{ alignItems: "center" }}>
-                                        <div>
-                                            <img src={profile?.avatar || "/Images/predefine.webp"} alt={profile.name} className="profile-avatar" style={{ width: "80px", height: "80px" }} />
+                            {loading ? (
+                                <div className="form-group" style={{ background: "darkgray", borderRadius: "12px", padding: "12px", opacity: "0.9" }}>
+                                    <div className="d-flex justify-content-between align-items-center">
+                                        <div className="d-flex gap-3 align-items-center">
+                                            {/* Avatar Skeleton */}
+                                            <div
+                                                className="skeleton"
+                                                style={{
+                                                    width: "80px",
+                                                    height: "80px",
+                                                    borderRadius: "50%",
+                                                }}
+                                            ></div>
+
+                                            {/* Text Skeleton */}
+                                            <div>
+                                                <div
+                                                    className="skeleton"
+                                                    style={{
+                                                        width: "120px",
+                                                        height: "16px",
+                                                        borderRadius: "4px",
+                                                        marginBottom: "8px",
+                                                    }}
+                                                ></div>
+                                                <div
+                                                    className="skeleton"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "16px",
+                                                        borderRadius: "4px",
+                                                    }}
+                                                ></div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <span className='text-dark'>{profile.username}</span><br />
-                                            <span className='text-dark'>{profile.name}</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <button type="button" className='btn btn-primary btn-sm'>Change photo</button>
+
+                                        {/* Button Skeleton */}
+                                        <div
+                                            className="skeleton ot-butt"
+                                            style={{
+                                                width: "100px",
+                                                height: "32px",
+                                                borderRadius: "6px",
+                                            }}
+                                        ></div>
                                     </div>
                                 </div>
+                            ) : (
+                                <div className="form-group" style={{ background: "lightgray", borderRadius: "12px", padding: "12px", opacity: "0.9" }}>
+                                    <div className="d-flex justify-content-between align-items-center">
+                                        <div className="d-flex gap-3 align-items-center">
+                                            <div>
+                                                <img
+                                                    src={profile?.avatar || "/Images/predefine.webp"}
+                                                    alt={profile.name}
+                                                    className="profile-avatar"
+                                                    style={{ width: "80px", height: "80px" }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <span className="text-dark">{profile.username}</span>
+                                                <br />
+                                                <span className="text-dark">{profile.name}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <button
+                                                type="button"
+                                                className="btn btn-primary btn-sm ot-butt"
+                                                onClick={handleButtonClick}
+                                            >
+                                                Change photo
+                                            </button>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                ref={fileInputRef}
+                                                onChange={handleFileChange}
+                                                style={{ display: "none" }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
-                            </div>
+
                             <div className="form-group">
                                 <label>Username</label>
                                 <input
@@ -236,6 +386,26 @@ export default function EditProfile() {
                     </div>
                 </div>
             </div>
+
+            {showConfirm && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ background: styles.cardBgs }}>
+                        <h4 className="modal-title">Update Profile Photo?</h4>
+                        <p className="modal-text">
+                            Are you sure you want to change your profile picture? This action will overwrite your existing one.
+                        </p>
+                        <div className="modal-actions">
+                            <button className="modal-btn modal-btn-success" onClick={handleConfirmUpload}>
+                                ✅ Confirm !
+                            </button>
+                            <button className="modal-btn modal-btn-cancel" onClick={() => setShowConfirm(false)}>
+                                ❌ Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </DashboardLayout>
     );
 }

@@ -108,6 +108,11 @@ export default function DashboardLayout({ children }) {
                             <i className="bi bi-chat-fill me-2"></i>Messages
                         </Link>
                     </li>
+                    <li className="nav-item ot-but">
+                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{textDecoration:"none"}} href="/Dashboard/Notification">
+                            <i className="bi bi-gear-wide-connected me-2"></i>Settings
+                        </Link>
+                    </li>
                     <li className="nav-item">
                         <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{textDecoration:"none"}} href="/Dashboard/Notification">
                             <i className="bi bi-heart me-2"></i>Notification

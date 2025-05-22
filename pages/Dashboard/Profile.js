@@ -115,23 +115,27 @@ export default function Profile() {
             {loading ? (
                 // Skeleton Loading
                 <div className="profile-container">
-                    <div className="profile-card d-flex" style={{ background: styles.cardBg }}>
-                        <div className="profile-avatar-container">
-                            <div className="skeleton skeleton-avatar" />
-                        </div>
-                        <div className="flex-grow-1">
-                            <div className="d-flex gap-4 justify-content-center align-items-center">
-                                <div className="skeleton skeleton-username" />
-                                <div className="skeleton skeleton-button" />
-                                <div className="skeleton skeleton-icon" />
-                            </div><br />
-                            <div className="d-flex gap-3">
-                                <div><div className="skeleton skeleton-text" /><p className="stat-label">Posts</p></div>
-                                <div><div className="skeleton skeleton-text" /><p className="stat-label">Followers</p></div>
-                                <div><div className="skeleton skeleton-text" /><p className="stat-label">Following</p></div>
+                    <div>
+                        <div className="profile-card" style={{ background: styles.cardBg }}>
+                            <div className="d-flex p-car">
+                                <div className="profile-avatar-container">
+                                    <div className="skeleton skeleton-avatar" />
+                                </div>
+                                <div>
+                                <div className='d-flex p-card' style={{ alignItems: "center" }}>
+                                    <div className="skeleton skeleton-username ot-butt" />
+                                    <div className="skeleton skeleton-button ot-butt" />
+                                    <div className="skeleton skeleton-icon ot-butt" />
+                                </div><hr />
+                                <div className="d-flex p-card">
+                                    <div><div className="skeleton skeleton-text" /><p className="stat-label">Posts</p></div>
+                                    <div><div className="skeleton skeleton-text" /><p className="stat-label">Followers</p></div>
+                                    <div><div className="skeleton skeleton-text" /><p className="stat-label">Following</p></div>
+                                </div>
+                                <div className="skeleton skeleton-line" />
+                                <div className="skeleton skeleton-line short" />
+                                </div>
                             </div>
-                            <div className="skeleton skeleton-line" />
-                            <div className="skeleton skeleton-line short" />
                         </div>
                     </div>
                 </div>
@@ -146,15 +150,16 @@ export default function Profile() {
                                     <img src={profile?.avatar || "/Images/predefine.webp"} alt={profile.name} className="profile-avatar" />
                                 </div>
                                 <div>
-                                    <div className='d-flex gap-4' style={{ alignItems: "center" }}>
+                                    <div className='d-flex p-card' style={{ alignItems: "center" }}>
                                         <h3 className='ot-butt'>@{profile.username}</h3>
-                                        <p className='ot-but'>{profile.name}</p>
-                                        <button className="btn btn-primary btn-sm ot-butt" onClick={handleNavigate}>Edit Profile</button>
+                                        <button className="btn btn-primary w-100 ot-butt" onClick={handleNavigate}>Edit Profile</button>
                                         <Link className="nav-link ot-butt" style={{ textDecoration: "none" }} href="/Dashboard/Settings">
                                             <i className="bi bi-gear-wide-connected me-2 fs-3"></i>
                                         </Link>
-                                    </div><br />
-                                    <div className="d-flex gap-3">
+
+                                        <span className='ot-but'>{profile.name}</span>
+                                    </div><hr></hr>
+                                    <div className="d-flex p-card">
                                         <div><span className="stat-value">{profile.posts || "0"}</span><p className="stat-label">Posts</p></div>
                                         <div><span className="stat-value">{profile.followers || "0"}</span><p className="stat-label">Followers</p></div>
                                         <div><span className="stat-value">{profile.following || "0"}</span><p className="stat-label">Following</p></div>
