@@ -4,6 +4,7 @@ import axios from '../axiosConfig';
 import "../styles/Home.css";
 import predefine from "../../public/Images/predefine.webp";
 import DashboardLayout from '../Components/DashboardLayout';
+import Image from "next/image";
 
 export default function Home() {
     const { theme } = useTheme();
@@ -152,11 +153,11 @@ export default function Home() {
                                     className="notification-card"
                                     style={{ background: styles.notificationBg }}
                                 >
-                                    <img
-                                        src={notif.avatar}
-                                        alt="User"
-                                        className="notif-avatar"
-                                    />
+                                    {notif.avatar ? (
+                                        <img src={notif.avatar} alt={notif.name} className="user-avatar" />
+                                    ) : (
+                                        <Image src={predefine} alt={notif.name} className="user-avatar" />
+                                    )}
                                     <div className="notif-content">
                                         <span className="notif-message">{notif.message}</span>
                                         <span className="notif-time">
@@ -186,7 +187,7 @@ export default function Home() {
                                         {user.avatar ? (
                                             <img src={user.avatar} alt={user.name} className="user-avatar" />
                                         ) : (
-                                            <img src={predefine} alt={user.name} className="user-avatar" />
+                                            <Image src={predefine} alt={user.name} className="user-avatar" />
                                         )}
                                         <span className="user-name">{user.name}</span>
                                         <button

@@ -1,30 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../Components/ThemeContext';
+import { useRouter } from 'next/navigation';
 import axios from '../axiosConfig';
 import predefine from "../../public/Images/predefine.webp";
 import "../styles/Profile.css";
 import DashboardLayout from '../Components/DashboardLayout';
+import Link from 'next/link';
 
 export default function Profile() {
-    const { theme } = useTheme();
+    const { theme, setTheme } = useTheme(); // Assuming ThemeContext provides a setTheme function
     const [profile, setProfile] = useState({
         username: 'user123',
         name: 'John Doe',
         email: 'john.doe@example.com',
         bio: 'No bio yet.',
         avatar: predefine,
+        posts: 15,
+        followers: 250,
+        following: 180,
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [flipped, setFlipped] = useState(false);
+    const [tempProfile, setTempProfile] = useState(profile); // Temporary state for editing
+
+    const router = useRouter(); // corrected here
+
+    const handleNavigate = () => {
+        router.push("/Dashboard/EditProfile");
+    };
+
 
     useEffect(() => {
         const fetchProfile = async () => {
             setLoading(true);
             const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
-            
-            // Validate userData
+
             if (!userData?.user?.id) {
                 setError('No user data found. Please log in.');
                 setLoading(false);
@@ -32,17 +43,17 @@ export default function Profile() {
             }
 
             try {
-                const response = await axios.get('/profile', {
+                const response = await axios.get('https://nextalk-u0y1.onrender.com/profile', {
                     headers: {
                         Authorization: `Bearer ${userData.user.id}`,
                     },
                 });
-                console.log('Profile response:', response.data); // Debug response
-                setProfile(response.data.user || response.data); // Handle nested or direct data
+                const fetchedProfile = response.data.user || response.data;
+                setProfile(fetchedProfile);
+                setTempProfile(fetchedProfile);
                 setLoading(false);
             } catch (err) {
-                console.error('Error fetching profile:', err.message, err.response?.data);
-                const errorMessage = err.response?.data?.message || 'Failed to load profile. Please try again later.';
+                const errorMessage = err.response?.data?.message || 'Failed to load profile.';
                 setError(errorMessage);
                 setLoading(false);
             }
@@ -52,18 +63,18 @@ export default function Profile() {
 
     const getThemeStyles = () => {
         if (theme === 'dark') {
-            return { 
-                background: '#1e293b', 
-                color: '#e2e8f0', 
-                cardBg: '#334155', 
+            return {
+                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                color: '#e2e8f0',
+                cardBg: 'rgba(255, 255, 255, 0.1)',
                 buttonGradient: 'linear-gradient(45deg, #3b82f6, #60a5fa)',
                 buttonHover: 'linear-gradient(45deg, #2563eb, #3b82f6)',
             };
         }
-        return { 
-            background: '#f1f5f9', 
-            color: '#1e293b', 
-            cardBg: '#ffffff', 
+        return {
+            background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
+            color: '#1e293b',
+            cardBg: 'rgba(255, 255, 255, 0.9)',
             buttonGradient: 'linear-gradient(45deg, #3b82f6, #60a5fa)',
             buttonHover: 'linear-gradient(45deg, #2563eb, #3b82f6)',
         };
@@ -73,7 +84,7 @@ export default function Profile() {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setProfile(prev => ({ ...prev, [name]: value }));
+        setTempProfile(prev => ({ ...prev, [name]: value }));
     };
 
     const handleImageUpload = (e) => {
@@ -81,122 +92,88 @@ export default function Profile() {
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setProfile(prev => ({ ...prev, avatar: reader.result }));
+                setTempProfile(prev => ({ ...prev, avatar: reader.result }));
             };
             reader.readAsDataURL(file);
         }
     };
 
-    const toggleFlip = () => setFlipped(prev => !prev);
+    const handleSave = () => {
+        setProfile(tempProfile);
+        setIsEditing(false);
+        // In a real app, you'd also send the updated profile to the server here
+    };
 
-    if (loading) return <div className="loading">Loading profile...</div>;
+    const toggleTheme = () => {
+        setTheme(theme === 'dark' ? 'light' : 'dark');
+    };
+
     if (error) return <div className="error">{error}</div>;
 
     return (
         <DashboardLayout>
-            <div className="profile-container" style={{ background: styles.background, color: styles.color }}>
-                <h1 className="profile-title">Your Profile</h1>
+            {loading ? (
+                // Skeleton Loading
+                <div className="profile-container">
+                    <div className="profile-card d-flex" style={{ background: styles.cardBg }}>
+                        <div className="profile-avatar-container">
+                            <div className="skeleton skeleton-avatar" />
+                        </div>
+                        <div className="flex-grow-1">
+                            <div className="d-flex gap-4 justify-content-center align-items-center">
+                                <div className="skeleton skeleton-username" />
+                                <div className="skeleton skeleton-button" />
+                                <div className="skeleton skeleton-icon" />
+                            </div><br />
+                            <div className="d-flex gap-3">
+                                <div><div className="skeleton skeleton-text" /><p className="stat-label">Posts</p></div>
+                                <div><div className="skeleton skeleton-text" /><p className="stat-label">Followers</p></div>
+                                <div><div className="skeleton skeleton-text" /><p className="stat-label">Following</p></div>
+                            </div>
+                            <div className="skeleton skeleton-line" />
+                            <div className="skeleton skeleton-line short" />
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                // Actual Profile
 
-                <div className="profile-grid">
-                    <section className="edit-section">
-                        <h2 className="section-title">Edit Profile</h2>
-                        {isEditing ? (
-                            <form className="edit-form" onSubmit={(e) => e.preventDefault()}>
-                                <div className="form-group">
-                                    <label>Username</label>
-                                    <input
-                                        type="text"
-                                        name="username"
-                                        value={profile.username}
-                                        onChange={handleInputChange}
-                                        required
-                                    />
+                <div className="profile-container" style={{ color: styles.color }}>
+                    <div>
+                        <div className="profile-card " style={{ background: styles.cardBg }}>
+                            <div className='d-flex p-car'>
+                                <div className="profile-avatar-container">
+                                    <img src={profile?.avatar || "/Images/predefine.webp"} alt={profile.name} className="profile-avatar" />
                                 </div>
-                                <div className="form-group">
-                                    <label>Name</label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value={profile.name}
-                                        onChange={handleInputChange}
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Email</label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={profile.email}
-                                        onChange={handleInputChange}
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Bio</label>
-                                    <textarea
-                                        name="bio"
-                                        value={profile.bio}
-                                        onChange={handleInputChange}
-                                        rows="3"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Profile Image</label>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageUpload}
-                                    />
-                                </div>
-                                <div className="form-buttons">
-                                    <button type="submit" className="save-btn" style={{ background: styles.buttonGradient }}>
-                                        Save
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        className="cancel-btn" 
-                                        onClick={() => setIsEditing(false)}
-                                        style={{ background: styles.buttonHover }}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </form>
-                        ) : (
-                            <button 
-                                className="edit-btn" 
-                                onClick={() => setIsEditing(true)}
-                                style={{ background: styles.buttonGradient }}
-                            >
-                                Edit Profile
-                            </button>
-                        )}
-                    </section>
-
-                    <section className="preview-section">
-                        <h2 className="section-title">Profile Preview</h2>
-                        <div className="preview-card-container">
-                            <div 
-                                className={`preview-card ${flipped ? 'flipped' : ''}`}
-                                onClick={toggleFlip}
-                            >
-                                <div className="card-front" style={{ background: styles.cardBg }}>
-                                    <img 
-                                        src={profile.avatar} 
-                                        alt={profile.name} 
-                                        className="preview-avatar" 
-                                    />
-                                    <span className="preview-name">{profile.name}</span>
-                                </div>
-                                <div className="card-back" style={{ background: styles.cardBg }}>
-                                    <span className="preview-bio">{profile.bio}</span>
+                                <div>
+                                    <div className='d-flex gap-4' style={{ alignItems: "center" }}>
+                                        <h3 className='ot-butt'>@{profile.username}</h3>
+                                        <p className='ot-but'>{profile.name}</p>
+                                        <button className="btn btn-primary btn-sm ot-butt" onClick={handleNavigate}>Edit Profile</button>
+                                        <Link className="nav-link ot-butt" style={{ textDecoration: "none" }} href="/Dashboard/Settings">
+                                            <i className="bi bi-gear-wide-connected me-2 fs-3"></i>
+                                        </Link>
+                                    </div><br />
+                                    <div className="d-flex gap-3">
+                                        <div><span className="stat-value">{profile.posts || "0"}</span><p className="stat-label">Posts</p></div>
+                                        <div><span className="stat-value">{profile.followers || "0"}</span><p className="stat-label">Followers</p></div>
+                                        <div><span className="stat-value">{profile.following || "0"}</span><p className="stat-label">Following</p></div>
+                                    </div>
+                                    <p className='ot-butt'>{profile.name}</p>
+                                    <p className='ot-butt'>{profile.bio}</p>
                                 </div>
                             </div>
+                            <p className='ot-but'>{profile.bio}</p>
+                            <div className='d-flex gap-2 ot-but'>
+                                <button className="btn btn-primary ot-but rounded-2 w-100" onClick={handleNavigate}>Edit Profile</button>
+                                <button className="btn btn-primary ot-but rounded-2 w-100" onClick={handleNavigate}>Share Profile</button>
+                            </div>
                         </div>
-                    </section>
+                        {/**/}
+                    </div>
                 </div>
-            </div>
+            )}
+
         </DashboardLayout>
     );
 }

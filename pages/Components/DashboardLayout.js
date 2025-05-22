@@ -2,7 +2,7 @@
 'use client'; // if you're using App Router (recommended)
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; 
+import { useRouter, usePathname } from "next/navigation"; 
 import { useState, useEffect } from "react";
 import Image from 'next/image'; 
 import "../styles/DashboardLayout.css";
@@ -51,12 +51,21 @@ export default function DashboardLayout({ children }) {
         }
     }, [router]);
 
+    const pathname = usePathname();
+    const [brandText, setBrandText] = useState("Nextalk");
+    useEffect(() => {
+        if (pathname === "/Dashboard/Profile") {
+            setBrandText(user?.name || "User");
+        } else {
+            setBrandText("Nextalk");
+        }
+    }, [pathname, user]);
     return (
         <div className="dashboard-wrapper" style={{ background: currentThemeStyles.background, color: currentThemeStyles.color }}>
             {/* Mobile Navbar */}
             <nav className={`navbar sleek-navbar ${theme === 'dark' ? 'bg-dark' : 'bg-light'} d-lg-none`}>
                 <div className="container-fluid">
-                    <Link className="navbar-brand fw-bold sleek-brand" href="/dashboard">Nextalk</Link>
+                    <Link className="navbar-brand fw-bold sleek-brand" href="/dashboard">{brandText}</Link>
                     <button
                         className={`navbar-toggler sleek-toggler ${theme === 'dark' ? 'dark-toggler' : 'light-toggler'}`}
                         type="button"
@@ -70,7 +79,7 @@ export default function DashboardLayout({ children }) {
             {/* Sidebar */}
             <aside className={`sidebar sleek-sidebar ${theme === 'dark' ? 'bg-dark' : 'bg-light'} ${isSidebarOpen ? 'open' : ''}`}>
                 <div className="sidebar-header sleek-header">
-                    <h4 className="p-3 fw-bold text-uppercase d-none d-lg-block">Nextalk</h4>
+                    <h4 className="p-3 fw-bold text-uppercase d-none d-lg-block">{brandText}</h4>
                     <button
                         className="btn-close p-3 d-lg-none sleek-close"
                         type="button"
@@ -86,12 +95,22 @@ export default function DashboardLayout({ children }) {
                     </li>
                     <li className="nav-item">
                         <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{textDecoration:"none"}} href="/Dashboard/Chats">
-                            <i className="bi bi-chat-fill me-2"></i>Chats
+                            <i className="bi bi-search me-2"></i>Search
                         </Link>
                     </li>
                     <li className="nav-item">
-                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{textDecoration:"none"}} href="/Dashboard/Settings">
-                            <i className="bi bi-gear-wide-connected me-2"></i>Settings
+                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{textDecoration:"none"}} href="/Dashboard/Chats">
+                            <i className="bi bi-plus-square me-2"></i>Create
+                        </Link>
+                    </li>
+                    <li className="nav-item">
+                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{textDecoration:"none"}} href="/Dashboard/Chats">
+                            <i className="bi bi-chat-fill me-2"></i>Messages
+                        </Link>
+                    </li>
+                    <li className="nav-item">
+                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{textDecoration:"none"}} href="/Dashboard/Notification">
+                            <i className="bi bi-heart me-2"></i>Notification
                         </Link>
                     </li>
                 </ul>
