@@ -26,22 +26,28 @@ const app = express();
 app.use(express.json());
 console.log("App listen at port 5000");
 const allowedOrigins = [
-  "http://localhost:3000",
-  "https://kishuu2.github.io",
-  "http://192.168.1.3:3000",
-  "https://nextalk-u0y1.onrender.com"
+    "http://localhost:3000",
+    "https://kishuu2.github.io",
+    "http://192.168.1.3:3000",
+    "https://nextalk-u0y1.onrender.com"
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+app.use(
+    cors({
+        origin: function (origin, callback) {
+            console.log("Request origin:", origin); // Debug origin
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                console.error("CORS error: Origin not allowed:", origin);
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        allowedHeaders: ["Content-Type"],
+    })
+);
 
 app.use(cookieParser());
 app.use(session({
@@ -96,29 +102,40 @@ app.post('/signup', async (req, res) => {
   }
 });
 
-app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
+app.post("/login", async (req, res) => {
+    const { username, password } = req.body;
+    console.log("Login attempt:", { username });
 
-  try {
-    const user = await Users.findOne({ username }); // Fixed variable name
-
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid Username or password' });
+    if (!username || !password) {
+        return res.status(400).json({ error: "Username and password are required" });
     }
 
-    // Simple password check (⚠️ Not secure, but works for basic use)
-    if (user.password !== password) {
-      return res.status(401).json({ error: 'Invalid Username or password' });
+    try {
+        const user = await Users.findOne({ username });
+        if (!user) {
+            return res.status(401).json({ error: "Invalid username or password" });
+        }
+
+        // Plain text password check (insecure, consider bcrypt)
+        if (user.password !== password) {
+            return res.status(401).json({ error: "Invalid username or password" });
+        }
+
+        req.session.user = { id: user._id.toString(), name: user.name, email: user.email };
+        console.log("Session set:", req.session);
+
+        // Explicitly save the session
+        req.session.save((err) => {
+            if (err) {
+                console.error("Session save error:", err);
+                return res.status(500).json({ error: "Failed to save session" });
+            }
+            res.json({ message: "Login successful", user: req.session.user });
+        });
+    } catch (err) {
+        console.error("Login error:", err);
+        res.status(500).json({ error: "Internal server error" });
     }
-
-    // Respond with user data (excluding password)
-    req.session.user = { id: user._id, name: user.name, email: user.email };
-    return res.json({ message: "Login successful", user: req.session.user });
-
-  } catch (err) {
-    console.error("Error logging in user:", err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
 });
 
 app.get('/me', (req, res) => {
@@ -302,7 +319,7 @@ app.get('/profile', extractUserIdFromHeader, async (req, res) => {
         name: user.name,
         email: user.email,
         bio: user.bio || 'No bio yet.', // Provide default if missing
-        avatar: user.avatar || '' // Provide default or stored avatar URL
+        image: user.image || '' // Provide default or stored avatar URL
       });
     } else {
       return res.status(404).json({ message: 'User not found' });
@@ -320,53 +337,33 @@ const imageSchema = new mongoose.Schema({
 
 module.exports = mongoose.model('Image', imageSchema);
 
-app.post('/update-image', async (req, res) => {
-  const { image } = req.body; // Base64 string from frontend
-  if (!req.session.user) {
-    return res.status(401).json({ message: "Not authenticated" });
-  }
+app.post("/update-image", async (req, res) => {
+    const { id, image } = req.body;
 
-  const userId = req.session.user.id;
-  console.log(userId);
-  if (!image || typeof image !== 'string') {
-    return res.status(400).json({ message: 'Invalid image data' });
-  }
-
-  try {
-    // Find the user
-    const user = await Users.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    if (!id || !image) {
+        return res.status(400).json({ message: "User ID and image are required" });
     }
 
-    // Check if an Image document exists for the user
-    let imageDoc = await Image.findOne({ userId });
+    try {
+        // Find user by ID
+        const user = await Users.findById(id);
 
-    if (!imageDoc) {
-      // Create a new Image document if it doesn't exist
-      imageDoc = new Image({
-        userId,
-        image // Store the Base64 string
-      });
-    } else {
-      // Update the existing Image document
-      imageDoc.image = image;
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Update or add image field
+        user.image = image;
+
+        // Save updated user
+        await user.save();
+
+        console.log("User updated:", user);
+        return res.status(200).json({ message: "Image updated successfully", imageUrl: user.image });
+    } catch (error) {
+        console.error("Error updating image:", error);
+        return res.status(500).json({ message: "Internal server error" });
     }
-
-    // Save the Image document
-    await imageDoc.save();
-
-    // Update the user's image field (for simplicity, storing the Base64 string directly)
-    // In a production app, you might store the Image document's ID or a URL
-    user.image = image;
-    await user.save();
-
-    // Respond with the updated image URL (or Base64 string for now)
-    res.status(200).json({ imageUrl: image });
-  } catch (err) {
-    console.error('Error updating image:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
 });
 
 
