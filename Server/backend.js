@@ -50,7 +50,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: true,
+    secure: false, // true if using HTTPS
     sameSite: 'none'
   }
 }));
@@ -314,55 +314,59 @@ app.get('/profile', extractUserIdFromHeader, async (req, res) => {
 });
 
 const imageSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'Users', required: true },
-    image: { type: String, required: true } // Stores the Base64 string
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'Users', required: true },
+  image: { type: String, required: true } // Stores the Base64 string
 }, { timestamps: true });
 
 module.exports = mongoose.model('Image', imageSchema);
 
 app.post('/update-image', async (req, res) => {
-    const { image } = req.body; // Base64 string from frontend
-    const userId = req.user.id; // From JWT payload
+  const { image } = req.body; // Base64 string from frontend
+  if (!req.session.user) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
 
-    if (!image || typeof image !== 'string') {
-        return res.status(400).json({ message: 'Invalid image data' });
+  const userId = req.session.user.id;
+  console.log(userId);
+  if (!image || typeof image !== 'string') {
+    return res.status(400).json({ message: 'Invalid image data' });
+  }
+
+  try {
+    // Find the user
+    const user = await Users.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    try {
-        // Find the user
-        const user = await Users.findById(userId);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
+    // Check if an Image document exists for the user
+    let imageDoc = await Image.findOne({ userId });
 
-        // Check if an Image document exists for the user
-        let imageDoc = await Image.findOne({ userId });
-
-        if (!imageDoc) {
-            // Create a new Image document if it doesn't exist
-            imageDoc = new Image({
-                userId,
-                image // Store the Base64 string
-            });
-        } else {
-            // Update the existing Image document
-            imageDoc.image = image;
-        }
-
-        // Save the Image document
-        await imageDoc.save();
-
-        // Update the user's image field (for simplicity, storing the Base64 string directly)
-        // In a production app, you might store the Image document's ID or a URL
-        user.image = image;
-        await user.save();
-
-        // Respond with the updated image URL (or Base64 string for now)
-        res.status(200).json({ imageUrl: image });
-    } catch (err) {
-        console.error('Error updating image:', err);
-        res.status(500).json({ message: 'Server error' });
+    if (!imageDoc) {
+      // Create a new Image document if it doesn't exist
+      imageDoc = new Image({
+        userId,
+        image // Store the Base64 string
+      });
+    } else {
+      // Update the existing Image document
+      imageDoc.image = image;
     }
+
+    // Save the Image document
+    await imageDoc.save();
+
+    // Update the user's image field (for simplicity, storing the Base64 string directly)
+    // In a production app, you might store the Image document's ID or a URL
+    user.image = image;
+    await user.save();
+
+    // Respond with the updated image URL (or Base64 string for now)
+    res.status(200).json({ imageUrl: image });
+  } catch (err) {
+    console.error('Error updating image:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 
