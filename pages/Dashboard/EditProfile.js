@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../Components/ThemeContext';
 import axios from '../axiosConfig';
@@ -56,7 +56,7 @@ export default function EditProfile() {
             }
 
             try {
-                const response = await axios.get('http://localhost:5000/profile', {
+                const response = await axios.get('https://nextalk-u0y1.onrender.com/profile', {
                     headers: {
                         Authorization: `Bearer ${userData.user.id}`,
                     },
@@ -77,17 +77,6 @@ export default function EditProfile() {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setTempProfile(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleImageUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setTempProfile(prev => ({ ...prev, avatar: reader.result }));
-            };
-            reader.readAsDataURL(file);
-        }
     };
 
     const handleSubmit = async (e) => {
@@ -128,59 +117,58 @@ export default function EditProfile() {
         fileInputRef.current.click(); // Trigger hidden input
     };
 
+    const [formData, setFormData] = useState({
+        image: null, // Store Base64 string here
+    });
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState(null);
     const handleFileChange = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            setSelectedFile(file);
-            setShowConfirm(true); // Show confirmation modal
+        const reader = new FileReader();
 
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64String = reader.result; // Base64 string (e.g., "data:image/jpeg;base64,...")
-                setSelectedFile(base64String); // Store Base64 string for upload
-                setTempProfile(prev => ({ ...prev, avatar: base64String })); // Preview the image
-                setShowConfirm(true); // Show confirmation modal
-            };
+        reader.onloadend = () => {
+            setFormData({ ...formData, image: reader.result }); // Store Base64 string
+        };
 
-            reader.readAsDataURL(file); // Convert image to Base64
+        if (file && file.size < 5 * 1024 * 1024) { // Limit file size to 5MB
+            reader.readAsDataURL(file);
+            console.log(formData.image);
+            setShowConfirm(true);
+        } else {
+            alert("File size should be less than 5MB.");
         }
-
     };
 
-    const handleConfirmUpload = async () => {
-        if (!selectedFile) return;
+    const handleConfirmUpload = async (e) => {
+         e.preventDefault();
+         
+        const userData = JSON.parse(sessionStorage.getItem('user'));
 
-        setUploading(true);
-        setUploadError(null);
+         const payload = {
+            id: userData.user.id,
+            image: formData.image,
+        };
+        console.log("Data to be sent:", payload);
+         try {
+            const response = await fetch("https://nextalk-u0y1.onrender.com/update-image", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
 
-        try {
-            const response = await axios.post(
-                "https://nextalk-u0y1.onrender.com/update-image",
-                { image: selectedFile },
-                {
-                    withCredentials: true, // 🔥 SENDS the session cookie
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-
-            const data = response.data;
-
-            setProfile(prev => ({ ...prev, avatar: data.imageUrl }));
-            setTempProfile(prev => ({ ...prev, avatar: data.imageUrl }));
-            setShowConfirm(false);
-            setSelectedFile(null);
+            if (response.ok) {
+                const result = await response.json();
+                console.log("Response from backend:", result);
+                setShowConfirm(false);
+            } else {
+                console.error("Error submitting data:", response.statusText);
+                alert("Oops!, Try again . . .");
+            }
         } catch (err) {
-            console.error("Upload error:", err);
-            setUploadError(err.response?.data?.message || "Failed to upload image. Please try again.");
-        } finally {
-            setUploading(false);
+            console.error("Error:", err);
+            alert("Slides data has been submitted successfully!");
         }
     };
-
 
     return (
         <DashboardLayout>
@@ -295,7 +283,7 @@ export default function EditProfile() {
                                         <div className="d-flex gap-3 align-items-center">
                                             <div onClick={handleButtonClick} style={{ cursor: "pointer" }}>
                                                 <img
-                                                    src={profile?.avatar || "/Images/predefine.webp"}
+                                                    src={profile.image || "/Images/predefine.webp"}
                                                     alt={profile.name}
                                                     className="profile-avatar"
                                                     style={{ width: "80px", height: "80px" }}

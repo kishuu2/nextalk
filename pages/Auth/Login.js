@@ -47,7 +47,7 @@ function Login() {
 
         try {
             setProgress(30);
-            const response = await axios.post('https://nextalk-u0y1.onrender.com/login', formData, {
+            const response = await axios.post('http://localhost:5000/login', formData, {
                 headers: { 'Content-Type': 'application/json' },
                 withCredentials: true,
             });
