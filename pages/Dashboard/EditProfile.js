@@ -14,7 +14,6 @@ export default function EditProfile() {
                 background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
                 color: '#e2e8f0',
                 cardBg: 'rgba(255, 255, 255, 0.1)',
-                cardBgs: '#16213e',
                 buttonGradient: 'linear-gradient(45deg, #3b82f6, #60a5fa)',
                 buttonHover: 'linear-gradient(45deg, #2563eb, #3b82f6)',
             };
@@ -57,7 +56,7 @@ export default function EditProfile() {
             }
 
             try {
-                const response = await axios.get('https://nextalk-u0y1.onrender.com/profile', {
+                const response = await axios.get('http://localhost:5000/profile', {
                     headers: {
                         Authorization: `Bearer ${userData.user.id}`,
                     },
@@ -151,35 +150,38 @@ export default function EditProfile() {
     };
 
     const handleConfirmUpload = async () => {
-        if (selectedFile) {
-            setUploading(true);
-            setUploadError(null);
-            try {
-                const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
-            console.log(userData.user.id)
-                const response = await fetch("https://nextalk-u0y1.onrender.com/update-image", {
-                    method: "POST",
+        if (!selectedFile) return;
+
+        setUploading(true);
+        setUploadError(null);
+
+        try {
+            const response = await axios.post(
+                "https://nextalk-u0y1.onrender.com/update-image",
+                { image: selectedFile },
+                {
+                    withCredentials: true, // 🔥 SENDS the session cookie
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: `Bearer ${userData.user.id}`,
                     },
-                    body: JSON.stringify({ image: selectedFile }), // Send Base64 string
-                });
+                }
+            );
 
-                if (!response.ok) throw new Error("Failed to upload image");
+            const data = response.data;
 
-                const data = await response.json();
-                setProfile(prev => ({ ...prev, avatar: data.imageUrl })); // Update profile with new image URL
-                setTempProfile(prev => ({ ...prev, avatar: data.imageUrl }));
-                setShowConfirm(false);
-                setSelectedFile(null);
-            } catch (err) {
-                setUploadError(err.message || "Failed to upload image. Please try again.");
-            } finally {
-                setUploading(false);
-            }
+            setProfile(prev => ({ ...prev, avatar: data.imageUrl }));
+            setTempProfile(prev => ({ ...prev, avatar: data.imageUrl }));
+            setShowConfirm(false);
+            setSelectedFile(null);
+        } catch (err) {
+            console.error("Upload error:", err);
+            setUploadError(err.response?.data?.message || "Failed to upload image. Please try again.");
+        } finally {
+            setUploading(false);
         }
     };
+
+
     return (
         <DashboardLayout>
             <div className="edit-profile-layout">
@@ -196,13 +198,13 @@ export default function EditProfile() {
                     </div>
                     <div className="sidebar-buttons">
                         <button className="sidebar-button active" disabled style={{ alignItems: "center", display: "flex", gap: "8px" }}>
-                            <i class="bi bi-person-circle" style={{ fontSize: "24px" }}></i> Edit Profile
+                            <i className="bi bi-person-circle" style={{ fontSize: "24px" }}></i> Edit Profile
                         </button>
                         <button className="sidebar-button" style={{ alignItems: "center", display: "flex", gap: "8px" }} onClick={handleNavigateToNotifications}>
-                            <i class="bi bi-qr-code" style={{ fontSize: "24px" }}></i> QR Code
+                            <i className="bi bi-qr-code" style={{ fontSize: "24px" }}></i> QR Code
                         </button>
                         <button className="sidebar-button" style={{ alignItems: "center", display: "flex", gap: "8px" }} onClick={handleNavigateToNotifications}>
-                            <i class="bi bi-bell" style={{ fontSize: "24px" }}></i> Notifications
+                            <i className="bi bi-bell" style={{ fontSize: "24px" }}></i> Notifications
                         </button>
                     </div><br />
 
@@ -211,10 +213,10 @@ export default function EditProfile() {
                             <h3 className="sidebar-section-title">Your app and media</h3>
                             <div className="sidebar-buttons">
                                 <button className="sidebar-button" style={{ alignItems: "center", display: "flex", gap: "8px" }}>
-                                    <i class="bi bi-translate" style={{ fontSize: "24px" }}></i> Language
+                                    <i className="bi bi-translate" style={{ fontSize: "24px" }}></i> Language
                                 </button>
                                 <button className="sidebar-button" style={{ alignItems: "center", display: "flex", gap: "8px" }} onClick={handleNavigateToNotifications}>
-                                    <i class="bi bi-laptop" style={{ fontSize: "24px" }}></i> Website permissions
+                                    <i className="bi bi-laptop" style={{ fontSize: "24px" }}></i> Website permissions
                                 </button>
                             </div>
                         </div>
@@ -225,10 +227,10 @@ export default function EditProfile() {
                             <h3 className="sidebar-section-title">More info and support</h3>
                             <div className="sidebar-buttons">
                                 <button className="sidebar-button" style={{ alignItems: "center", display: "flex", gap: "8px" }}>
-                                    <i class="bi bi-patch-question" style={{ fontSize: "24px" }}></i> Help
+                                    <i className="bi bi-patch-question" style={{ fontSize: "24px" }}></i> Help
                                 </button>
                                 <button className="sidebar-button" style={{ alignItems: "center", display: "flex", gap: "8px" }} onClick={handleNavigateToNotifications}>
-                                    <i class="bi bi-shield-plus" style={{ fontSize: "24px" }}></i> Privacy Center
+                                    <i className="bi bi-shield-plus" style={{ fontSize: "24px" }}></i> Privacy Center
                                 </button>
                             </div>
                         </div>
@@ -291,7 +293,7 @@ export default function EditProfile() {
                                 <div className="form-group" style={{ background: "lightgray", borderRadius: "12px", padding: "12px", opacity: "0.9" }}>
                                     <div className="d-flex justify-content-between align-items-center">
                                         <div className="d-flex gap-3 align-items-center">
-                                            <div>
+                                            <div onClick={handleButtonClick} style={{ cursor: "pointer" }}>
                                                 <img
                                                     src={profile?.avatar || "/Images/predefine.webp"}
                                                     alt={profile.name}
@@ -389,7 +391,7 @@ export default function EditProfile() {
 
             {showConfirm && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ background: styles.cardBgs }}>
+                    <div className="modal-content">
                         <h4 className="modal-title">Update Profile Photo?</h4>
                         <p className="modal-text">
                             Are you sure you want to change your profile picture? This action will overwrite your existing one.

@@ -553,10 +553,12 @@
     border-radius: 15px;
     padding: 25px;
     width: 100%;
+    color: white;
     max-width: 400px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
     animation: fadeIn 0.3s ease-out forwards;
     text-align: center;
+    background:  rgb(22, 33, 62);
 }
 
 .modal-title {
