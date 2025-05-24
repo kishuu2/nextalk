@@ -161,7 +161,7 @@ export default function DashboardLayout({ children }) {
 
                 <div className="sidebar-footer p-3 sleek-footer">
                     {loading ? (
-                        <Link href='/Dashboard/Profile' onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} className="user-profile sleek-profile nav-link d-flex align-items-center gap-3">
+                        <Link href='/Dashboard/Profile' onClick={() => setIsSidebarOpen(false)} style={{background: "darkgray", textDecoration: "none" }} className="user-profile sleek-profile nav-link d-flex align-items-center gap-3">
                             <div
                                 className="skeleton"
                                 style={{
@@ -171,7 +171,15 @@ export default function DashboardLayout({ children }) {
                                 }}
                             ></div>
                             <div>
-                                <span className="d-block fw-semibold sleek-username">{user?.name || "Guest"}</span>
+                                <div
+                                    className="skeleton"
+                                    style={{
+                                        width: "120px",
+                                        height: "16px",
+                                        borderRadius: "4px",
+                                        marginBottom: "8px",
+                                    }}
+                                ></div>
                                 <span className="sleek-status online">Online</span>
                             </div>
                         </Link>
@@ -189,7 +197,7 @@ export default function DashboardLayout({ children }) {
                                     />
                                 )}
                                 <div>
-                                    <span className="d-block fw-semibold sleek-username">{user?.name || "Guest"}</span>
+                                    <span className="d-block fw-semibold sleek-username">{profile.name || "Guest"}</span>
                                     <span className="sleek-status online">Online</span>
                                 </div>
                             </Link>

@@ -647,7 +647,7 @@
   left: 0;
   height: 5px;
   background-color: #ffffff;
-  animation: countdownBar 8s linear forwards;
+  animation: countdownBar 4s linear forwards;
   border-radius: 0 0 8px 8px;
 }
 

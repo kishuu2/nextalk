@@ -78,6 +78,7 @@ export default function EditProfile() {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setTempProfile(prev => ({ ...prev, [name]: value }));
+        setFormDatas(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e) => {
@@ -178,7 +179,7 @@ export default function EditProfile() {
     useEffect(() => {
         const timer = setTimeout(() => {
             setVisible(false);
-        }, 8000); // 8 seconds
+        }, 4000); // 8 seconds
 
         return () => clearTimeout(timer);
     }, []);
@@ -224,6 +225,41 @@ export default function EditProfile() {
             alert("Server error occurred.");
         }
     };
+
+    const [usernameExists, setUsernameExists] = useState(null);
+    const [checkingUsername, setCheckingUsername] = useState(false);
+    const [formDatas, setFormDatas] = useState({ email: '' });
+   useEffect(() => {
+    const checkUsername = async () => {
+        if (!formDatas.username) {
+            setUsernameExists(null);
+            return;
+        }
+
+        setCheckingUsername(true);
+
+        try {
+            const response = await axios.post("https://nextalk-u0y1.onrender.com/check-username", {
+                username: formDatas.username,
+            });
+
+            setUsernameExists(response.data.exists); // true = exists, false = available
+        } catch (error) {
+            console.error("Username check failed:", error);
+            setUsernameExists(false); // assume it's free if error
+        } finally {
+            setCheckingUsername(false);
+        }
+    };
+
+    const delayDebounce = setTimeout(() => {
+        checkUsername();
+    }, 600); // debounce
+
+    return () => clearTimeout(delayDebounce);
+}, [formDatas.username]);
+
+
 
     return (
         <DashboardLayout>
@@ -371,6 +407,23 @@ export default function EditProfile() {
 
                                 </div>
                             )}
+                            {checkingUsername && formDatas.username && (
+                                <div className="alert alert-secondary" role="alert">
+                                    ⏳ <strong>Checking...</strong>
+                                </div>
+                            )}
+
+                            {!checkingUsername && formDatas.username && usernameExists !== null && (
+                                <div
+                                    className={`alert ${usernameExists ? 'alert-danger' : 'alert-success'}`}
+                                    role="alert"
+                                >
+                                    {usernameExists
+                                        ? '❌ This username is already taken.'
+                                        : '✅ Username is available!'}
+                                </div>
+                            )}
+
                             {visible ? (
                                 <div className="custom-alert-container">
                                     <div className="custom-alert">
@@ -384,7 +437,7 @@ export default function EditProfile() {
                                 <input
                                     type="text"
                                     name="username"
-                                    value={tempProfile.username}
+                                    value={formDatas.username}
                                     onChange={handleInputChange}
                                     required
                                 />
