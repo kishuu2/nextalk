@@ -144,12 +144,13 @@ export default function EditProfile() {
         e.preventDefault();
 
         const userData = JSON.parse(sessionStorage.getItem('user'));
-
         const payload = {
             id: userData.user.id,
             image: formData.image,
         };
         console.log("Data to be sent:", payload);
+        console.log("Base64 size:", formData.image.length);
+
         try {
             const response = await fetch("https://nextalk-u0y1.onrender.com/update-image", {
                 method: "POST",
