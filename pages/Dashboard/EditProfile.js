@@ -44,33 +44,34 @@ export default function EditProfile() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const fetchProfile = async () => {
+        setLoading(true);
+        const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
+
+        if (!userData?.user?.id) {
+            setError('No user data found. Please log in.');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const response = await axios.get('https://nextalk-u0y1.onrender.com/profile', {
+                headers: {
+                    Authorization: `Bearer ${userData.user.id}`,
+                },
+            });
+            const fetchedProfile = response.data.user || response.data;
+            setProfile(fetchedProfile);
+            setTempProfile(fetchedProfile);
+            setLoading(false);
+        } catch (err) {
+            const errorMessage = err.response?.data?.message || 'Failed to load profile.';
+            setError(errorMessage);
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchProfile = async () => {
-            setLoading(true);
-            const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
-
-            if (!userData?.user?.id) {
-                setError('No user data found. Please log in.');
-                setLoading(false);
-                return;
-            }
-
-            try {
-                const response = await axios.get('https://nextalk-u0y1.onrender.com/profile', {
-                    headers: {
-                        Authorization: `Bearer ${userData.user.id}`,
-                    },
-                });
-                const fetchedProfile = response.data.user || response.data;
-                setProfile(fetchedProfile);
-                setTempProfile(fetchedProfile);
-                setLoading(false);
-            } catch (err) {
-                const errorMessage = err.response?.data?.message || 'Failed to load profile.';
-                setError(errorMessage);
-                setLoading(false);
-            }
-        };
         fetchProfile();
     }, []);
 
@@ -140,16 +141,16 @@ export default function EditProfile() {
     };
 
     const handleConfirmUpload = async (e) => {
-         e.preventDefault();
-         
+        e.preventDefault();
+
         const userData = JSON.parse(sessionStorage.getItem('user'));
 
-         const payload = {
+        const payload = {
             id: userData.user.id,
             image: formData.image,
         };
         console.log("Data to be sent:", payload);
-         try {
+        try {
             const response = await fetch("https://nextalk-u0y1.onrender.com/update-image", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -160,13 +161,15 @@ export default function EditProfile() {
                 const result = await response.json();
                 console.log("Response from backend:", result);
                 setShowConfirm(false);
+                await fetchProfile();
+
             } else {
                 console.error("Error submitting data:", response.statusText);
                 alert("Oops!, Try again . . .");
             }
         } catch (err) {
             console.error("Error:", err);
-            alert("Slides data has been submitted successfully!");
+            alert("File Size is too large!");
         }
     };
 
@@ -283,6 +286,7 @@ export default function EditProfile() {
                                         <div className="d-flex gap-3 align-items-center">
                                             <div onClick={handleButtonClick} style={{ cursor: "pointer" }}>
                                                 <img
+                                                    key={profile.image}
                                                     src={profile.image || "/Images/predefine.webp"}
                                                     alt={profile.name}
                                                     className="profile-avatar"

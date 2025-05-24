@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../Components/ThemeContext';
 import { useRouter } from 'next/navigation';
 import axios from '../axiosConfig';
@@ -147,7 +147,7 @@ export default function Profile() {
                         <div className="profile-card " style={{ background: styles.cardBg }}>
                             <div className='d-flex p-car'>
                                 <div className="profile-avatar-container">
-                                    <img src={profile?.avatar || "/Images/predefine.webp"} alt={profile.name} className="profile-avatar" />
+                                    <img src={profile.image || "/Images/predefine.webp"} alt={profile.name} className="profile-avatar" />
                                 </div>
                                 <div>
                                     <div className='d-flex p-card' style={{ alignItems: "center" }}>
