@@ -241,6 +241,17 @@ app.post("/check-email", async (req, res) => {
   }
 });
 
+app.post("/check-username", async (req, res) => {
+  const { username } = req.body;
+  try {
+    const user = await Users.findOne({ username: username}); 
+    res.json({ exists: !!user }); // true or false
+  } catch (error) {
+    console.error("Error checking email:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 app.post('/update-password', async (req, res) => {
   try {
     const { email, newPassword } = req.body;
