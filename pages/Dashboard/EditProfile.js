@@ -169,7 +169,7 @@ export default function EditProfile() {
             }
         } catch (err) {
             console.error("Error:", err);
-            alert("File Size is too large!");
+            alert("Error showing please try again somtimes!");
         }
     };
 
