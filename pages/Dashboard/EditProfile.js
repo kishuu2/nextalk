@@ -227,39 +227,98 @@ export default function EditProfile() {
     };
 
     const [usernameExists, setUsernameExists] = useState(null);
+    const [emailExists, setEmailExists] = useState(null);
     const [checkingUsername, setCheckingUsername] = useState(false);
-    const [formDatas, setFormDatas] = useState({ email: '' });
-   useEffect(() => {
-    const checkUsername = async () => {
-        if (!formDatas.username) {
-            setUsernameExists(null);
-            return;
-        }
+    const [checkingEmail, setCheckingEmail] = useState(false);
+    const [formDatas, setFormDatas] = useState({ email: '', username: '' });
 
-        setCheckingUsername(true);
+    useEffect(() => {
 
-        try {
-            const response = await axios.post("https://nextalk-u0y1.onrender.com/check-username", {
-                username: formDatas.username,
-            });
+        const checkUsername = async () => {
 
-            setUsernameExists(response.data.exists); // true = exists, false = available
-        } catch (error) {
-            console.error("Username check failed:", error);
-            setUsernameExists(false); // assume it's free if error
-        } finally {
-            setCheckingUsername(false);
-        }
-    };
+            const userData = JSON.parse(sessionStorage.getItem("user")); // Always pull from session
+            const currentUsername = userData.user.username;
+            const inputUsername = formDatas.username?.trim();
 
-    const delayDebounce = setTimeout(() => {
-        checkUsername();
-    }, 600); // debounce
+            // 👉 If no input, reset check
+            if (!inputUsername) {
+                setUsernameExists(null);
+                return;
+            }
 
-    return () => clearTimeout(delayDebounce);
-}, [formDatas.username]);
+            // ✅ If same as current username — skip check
+            if (inputUsername === currentUsername) {
+                setUsernameExists(null); // Not a problem; no alert shown
+                return;
+            }
+
+            setCheckingUsername(true);
+
+            try {
+                const response = await axios.post("https://nextalk-u0y1.onrender.com/check-username", {
+                    username: inputUsername,
+                });
+
+                setUsernameExists(response.data.exists); // true = taken, false = available
+            } catch (error) {
+                console.error("Username check error:", error);
+                setUsernameExists(false); // fallback
+            } finally {
+                setCheckingUsername(false);
+            }
+        };
+
+        const delay = setTimeout(() => {
+            checkUsername();
+        }, 600); // debounce typing
+
+        return () => clearTimeout(delay);
+    }, [formDatas.username]);
 
 
+
+    useEffect(() => {
+
+        const checkEmail = async () => {
+
+            const userData = JSON.parse(sessionStorage.getItem("user")); // Always pull from session
+            const currentUsername = userData.user.email;
+            const inputUsername = formDatas.email?.trim();
+
+            // 👉 If no input, reset check
+            if (!inputUsername) {
+                setEmailExists(null);
+                return;
+            }
+
+            // ✅ If same as current username — skip check
+            if (inputUsername === currentUsername) {
+                setEmailExists(null); // Not a problem; no alert shown
+                return;
+            }
+
+            setCheckingEmail(true);
+
+            try {
+                const response = await axios.post("https://nextalk-u0y1.onrender.com/check-email", {
+                    email: inputUsername,
+                });
+
+                setEmailExists(response.data.exists); // true = taken, false = available
+            } catch (error) {
+                console.error("Username check error:", error);
+                setEmailExists(false); // fallback
+            } finally {
+                setCheckingEmail(false);
+            }
+        };
+
+        const delay = setTimeout(() => {
+            checkEmail();
+        }, 600); // debounce typing
+
+        return () => clearTimeout(delay);
+    }, [formDatas.email]);
 
     return (
         <DashboardLayout>
@@ -407,22 +466,35 @@ export default function EditProfile() {
 
                                 </div>
                             )}
-                            {checkingUsername && formDatas.username && (
+                            {/* Show only one of these alert sections at a time */}
+                            {checkingUsername ? (
                                 <div className="alert alert-secondary" role="alert">
-                                    ⏳ <strong>Checking...</strong>
+                                    <strong>Checking...</strong> ⏳ Checking username...
                                 </div>
-                            )}
-
-                            {!checkingUsername && formDatas.username && usernameExists !== null && (
+                            ) : usernameExists !== null && formDatas.username && !checkingUsername ? (
                                 <div
                                     className={`alert ${usernameExists ? 'alert-danger' : 'alert-success'}`}
                                     role="alert"
                                 >
                                     {usernameExists
-                                        ? '❌ This username is already taken.'
-                                        : '✅ Username is available!'}
+                                        ? <span>❌ This username is already taken.</span>
+                                        : <span>✅ This username is available.</span>}
                                 </div>
-                            )}
+                            ) : checkingEmail ? (
+                                <div className="alert alert-secondary" role="alert">
+                                    <strong>Checking...</strong> ⏳ Checking email...
+                                </div>
+                            ) : emailExists !== null && formDatas.email && !checkingEmail ? (
+                                <div
+                                    className={`alert ${emailExists ? 'alert-danger' : 'alert-success'}`}
+                                    role="alert"
+                                >
+                                    {emailExists
+                                        ? <span>❌ This E-mail is already taken.</span>
+                                        : <span>✅ This E-mail is available.</span>}
+                                </div>
+                            ) : null}
+
 
                             {visible ? (
                                 <div className="custom-alert-container">
@@ -437,7 +509,7 @@ export default function EditProfile() {
                                 <input
                                     type="text"
                                     name="username"
-                                    value={formDatas.username}
+                                    value={tempProfile.username}
                                     onChange={handleInputChange}
                                     required
                                 />
