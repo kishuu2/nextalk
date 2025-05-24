@@ -50,7 +50,7 @@ app.use(
         allowedHeaders: ["Content-Type", "Authorization"],
     })
 );
-app.use(express.urlencoded({ limit: "10mb", extended: true }));
+app.use(express.urlencoded({ limit: "5mb", extended: true }));
 app.use(cookieParser());
 app.use(session({
   secret: process.env.SESSION_SECRET,
