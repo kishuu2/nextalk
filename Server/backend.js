@@ -24,6 +24,8 @@ mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
 
 const app = express();
 app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
+
 console.log("App listen at port 5000");
 const allowedOrigins = [
     "http://localhost:3000",
