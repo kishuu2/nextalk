@@ -367,6 +367,36 @@ app.post("/update-image", async (req, res) => {
     }
 });
 
+app.put("/update-profile", async (req, res) => {
+    const { id, username, name, email, bio } = req.body;
+
+    if (!id) {
+        return res.status(400).json({ message: "User ID is required." });
+    }
+
+    try {
+        const updatedFields = {};
+        if (username) updatedFields.username = username;
+        if (name) updatedFields.name = name;
+        if (email) updatedFields.email = email;
+        if (bio !== undefined) updatedFields.bio = bio; // even empty string allowed
+
+        const updatedUser = await Users.findByIdAndUpdate(id, updatedFields, { new: true });
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        res.status(200).json({
+            message: "Profile updated successfully.",
+            user: updatedUser,
+        });
+    } catch (err) {
+        console.error("Update profile error:", err);
+        res.status(500).json({ message: "Server error while updating profile." });
+    }
+});
+
 
 app.listen(5000, () => {
   console.log("Server is Running now")
