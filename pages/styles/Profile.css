@@ -621,3 +621,52 @@
     transform: translateY(0);
     box-shadow: none;
 }
+
+.custom-alert-container {
+  position: fixed;
+  top: 30px;
+  right: 30px;
+  z-index: 9999;
+  animation: slideIn 0.5s ease forwards;
+}
+
+.custom-alert {
+  background-color: #dc3545;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-weight: bold;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  position: relative;
+  min-width: 300px;
+}
+
+.timer-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 5px;
+  background-color: #ffffff;
+  animation: countdownBar 8s linear forwards;
+  border-radius: 0 0 8px 8px;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes countdownBar {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}

@@ -173,6 +173,57 @@ export default function EditProfile() {
             alert("Error showing please try again somtimes!");
         }
     };
+    const [visible, setVisible] = useState(true);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setVisible(false);
+        }, 8000); // 8 seconds
+
+        return () => clearTimeout(timer);
+    }, []);
+
+    const handleProfileSubmit = async (e) => {
+        e.preventDefault();
+
+        const userData = JSON.parse(sessionStorage.getItem("user"));
+        if (!userData?.user?.id) {
+            alert("User not logged in");
+            return;
+        }
+
+        const updatedData = {
+            id: userData.user.id,
+            username: tempProfile.username,
+            name: tempProfile.name,
+            email: tempProfile.email,
+            bio: tempProfile.bio || "", // Add if missing, update if exists
+        };
+        console.log(updatedData);
+
+        try {
+            const response = await fetch("https://nextalk-u0y1.onrender.com/update-profile", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(updatedData),
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log("Profile updated:", result);
+                alert("Profile successfully updated!");
+                setProfile(updatedData); // Optimistically update UI
+            } else {
+                console.error("Profile update failed:", response.statusText);
+                alert("Error updating profile. Try again.");
+            }
+        } catch (err) {
+            console.error("Request error:", err);
+            alert("Server error occurred.");
+        }
+    };
 
     return (
         <DashboardLayout>
@@ -317,10 +368,17 @@ export default function EditProfile() {
                                             />
                                         </div>
                                     </div>
+
                                 </div>
                             )}
-
-
+                            {visible ? (
+                                <div className="custom-alert-container">
+                                    <div className="custom-alert">
+                                        <strong>⚠ Warning!</strong> Profile image must be under 30KB
+                                        <div className="timer-bar" />
+                                    </div>
+                                </div>
+                            ) : null}
                             <div className="form-group">
                                 <label>Username</label>
                                 <input
@@ -370,7 +428,7 @@ export default function EditProfile() {
                                 </p>
                             </div>
                             <div className="form-buttons">
-                                <button type="submit" className="submit-button">
+                                <button type="submit" onClick={handleProfileSubmit} className="submit-button">
                                     Submit
                                 </button>
                                 <button type="button" className="cancel-button" onClick={handleCancel}>
