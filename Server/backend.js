@@ -122,7 +122,7 @@ app.post("/login", async (req, res) => {
             return res.status(401).json({ error: "Invalid username or password" });
         }
 
-        req.session.user = { id: user._id.toString(), name: user.name, email: user.email };
+        req.session.user = { id: user._id.toString(), username: user.username,name: user.name, email: user.email };
         console.log("Session set:", req.session);
 
         // Explicitly save the session
