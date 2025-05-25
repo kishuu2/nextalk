@@ -6,6 +6,8 @@ import predefine from "../../public/Images/predefine.webp";
 import "../styles/Profile.css";
 import DashboardLayout from '../Components/DashboardLayout';
 import Link from 'next/link';
+import Image from "next/image";
+import Head from 'next/head';
 
 export default function Profile() {
     const { theme, setTheme } = useTheme(); // Assuming ThemeContext provides a setTheme function
@@ -108,10 +110,13 @@ export default function Profile() {
         setTheme(theme === 'dark' ? 'light' : 'dark');
     };
 
-    if (error) return <div className="error">{error}</div>;
+    // if (error) return <div className="error">{error}</div>;
 
     return (
         <DashboardLayout>
+            <Head>
+                <title>Your Profile: {profile.username}</title>
+            </Head>
             {loading ? (
                 // Skeleton Loading
                 <div className="profile-container">
@@ -122,18 +127,18 @@ export default function Profile() {
                                     <div className="skeleton skeleton-avatar" />
                                 </div>
                                 <div>
-                                <div className='d-flex p-card' style={{ alignItems: "center" }}>
-                                    <div className="skeleton skeleton-username ot-butt" />
-                                    <div className="skeleton skeleton-button ot-butt" />
-                                    <div className="skeleton skeleton-icon ot-butt" />
-                                </div><hr />
-                                <div className="d-flex p-card">
-                                    <div><div className="skeleton skeleton-text" /><p className="stat-label">Posts</p></div>
-                                    <div><div className="skeleton skeleton-text" /><p className="stat-label">Followers</p></div>
-                                    <div><div className="skeleton skeleton-text" /><p className="stat-label">Following</p></div>
-                                </div>
-                                <div className="skeleton skeleton-line" />
-                                <div className="skeleton skeleton-line short" />
+                                    <div className='d-flex p-card' style={{ alignItems: "center" }}>
+                                        <div className="skeleton skeleton-username ot-butt" />
+                                        <div className="skeleton skeleton-button ot-butt" />
+                                        <div className="skeleton skeleton-icon ot-butt" />
+                                    </div><hr />
+                                    <div className="d-flex p-card">
+                                        <div><div className="skeleton skeleton-text" /><p className="stat-label">Posts</p></div>
+                                        <div><div className="skeleton skeleton-text" /><p className="stat-label">Followers</p></div>
+                                        <div><div className="skeleton skeleton-text" /><p className="stat-label">Following</p></div>
+                                    </div>
+                                    <div className="skeleton skeleton-line" />
+                                    <div className="skeleton skeleton-line short" />
                                 </div>
                             </div>
                         </div>
@@ -147,6 +152,7 @@ export default function Profile() {
                         <div className="profile-card " style={{ background: styles.cardBg }}>
                             <div className='d-flex p-car'>
                                 <div className="profile-avatar-container">
+
                                     <img src={profile.image || "/Images/predefine.webp"} alt={profile.name} className="profile-avatar" />
                                 </div>
                                 <div>

@@ -24,7 +24,7 @@ export default class MyDocument extends Document {
             href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
             rel="stylesheet"
           />
-          <title>NexTalk</title>
+          
         </Head>
         <body>
           <Main />

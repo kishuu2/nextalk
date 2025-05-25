@@ -5,6 +5,7 @@ import axios from '../axiosConfig';
 import predefine from "../../public/Images/predefine.webp";
 import "../styles/Profile.css";
 import DashboardLayout from '../Components/DashboardLayout';
+import Head from 'next/head';
 
 export default function EditProfile() {
     const { theme, setTheme } = useTheme();
@@ -110,7 +111,6 @@ export default function EditProfile() {
         console.log("Navigating to visibility settings...");
     };
 
-    if (error) return <div className="error">{error}</div>;
     const fileInputRef = useRef(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -320,8 +320,13 @@ export default function EditProfile() {
         return () => clearTimeout(delay);
     }, [formDatas.email]);
 
+    if (error) return <div className="error">{error}</div>;
     return (
         <DashboardLayout>
+            <Head>
+                <title>Edit Your Profile: {profile.username}</title>
+            </Head>
+
             <div className="edit-profile-layout">
                 {/* Left Sidebar */}
                 <div className="edit-profile-sidebar">

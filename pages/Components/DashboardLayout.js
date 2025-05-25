@@ -51,17 +51,6 @@ export default function DashboardLayout({ children }) {
         }
     }, [router]);
 
-    const pathname = usePathname();
-    const [brandText, setBrandText] = useState("Nextalk");
-    useEffect(() => {
-        if (pathname === "/Dashboard/Profile") {
-            setBrandText(user?.name || "User");
-        } else {
-            setBrandText("Nextalk");
-        }
-    }, [pathname, user]);
-
-
     const [profile, setProfile] = useState(null);
 
     const [tempProfile, setTempProfile] = useState(profile);
@@ -98,12 +87,23 @@ export default function DashboardLayout({ children }) {
     useEffect(() => {
         fetchProfile();
     }, []);
+
+    const pathname = usePathname();
+    const [brandText, setBrandText] = useState("Nextalk");
+    useEffect(() => {
+        if (pathname === "/Dashboard/Profile") {
+            setBrandText(profile?.name || "User");
+        } else {
+            setBrandText("Nextalk");
+        }
+    }, [pathname, profile]);
+
     return (
         <div className="dashboard-wrapper" style={{ background: currentThemeStyles.background, color: currentThemeStyles.color }}>
             {/* Mobile Navbar */}
             <nav className={`navbar sleek-navbar ${theme === 'dark' ? 'bg-dark' : 'bg-light'} d-lg-none`}>
                 <div className="container-fluid">
-                    <Link className="navbar-brand fw-bold sleek-brand" href="/dashboard">{brandText}</Link>
+                    <Link className="navbar-brand fw-bold sleek-brand" style={{textDecoration: "none"}} href="/dashboard/profile">{brandText}</Link>
                     <button
                         className={`navbar-toggler sleek-toggler ${theme === 'dark' ? 'dark-toggler' : 'light-toggler'}`}
                         type="button"
@@ -147,7 +147,7 @@ export default function DashboardLayout({ children }) {
                         </Link>
                     </li>
                     <li className="nav-item ot-but">
-                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Notification">
+                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Settings">
                             <i className="bi bi-gear-wide-connected me-2"></i>Settings
                         </Link>
                     </li>
@@ -189,7 +189,7 @@ export default function DashboardLayout({ children }) {
                                 {profile && (
                                     <img
                                         key={profile.image}
-                                        src={profile.image}
+                                        src={profile.image || "/Images/predefine.webp"}
                                         width={45}
                                         height={45}
                                         alt="User"
