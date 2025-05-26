@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import axios from '../axiosConfig';
 import { useTheme } from '../Components/ThemeContext';
 import '../styles/Login.css';
+import Head from 'next/head';
 
 function Login() {
     const [formData, setFormData] = useState({ username: '', password: '', agree: false });
@@ -110,6 +111,9 @@ function Login() {
 
     return (
         <div className="login-container">
+            <Head>
+                <title>Login in NexTalk</title>
+            </Head>
             <div className="row g-0 shadow-lg login-wrapper">
                 {/* Login Section */}
                 <div className="col-md-6 login-section">
@@ -204,7 +208,7 @@ function Login() {
                             </p>
                             <Link
                                 className="btn btn-outline-light btn-lg create-btn"
-                                href='/Auth/Signup' style={{textDecoration: "none"}}
+                                href='/Auth/Signup' style={{ textDecoration: "none" }}
                             >
                                 Create New Account
                             </Link>

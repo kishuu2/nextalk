@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import axios from 'axios';
 import { useTheme } from '../Components/ThemeContext';
 import '../styles/Login.css';
+import Head from 'next/head';
 
 function Login() {
     const [formData, setFormData] = useState({ name: '', username: '', email: '', password: '', agree: false });
@@ -142,6 +143,9 @@ function Login() {
 
     return (
         <div className="login-container">
+            <Head>
+                <title>Create The Account</title>
+            </Head>
             <div className="row g-0 shadow-lg login-wrapper">
 
                 {/* Create Account Section */}
@@ -176,7 +180,7 @@ function Login() {
                             </p>
                             <Link
                                 className="btn btn-outline-light btn-lg create-btn"
-                                href='/Auth/Login' style={{textDecoration: "none"}}
+                                href='/Auth/Login' style={{ textDecoration: "none" }}
                             >
                                 Already have account!
                             </Link>

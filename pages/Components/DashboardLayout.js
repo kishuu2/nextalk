@@ -138,12 +138,22 @@ export default function DashboardLayout({ children }) {
                     </li>
                     <li className="nav-item">
                         <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Chats">
+                            <i className="bi bi-box me-2"></i>Chat with Random
+                        </Link>
+                    </li>
+                    <li className="nav-item">
+                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Chats">
                             <i className="bi bi-plus-square me-2"></i>Create
                         </Link>
                     </li>
                     <li className="nav-item">
                         <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Chats">
                             <i className="bi bi-chat-fill me-2"></i>Messages
+                        </Link>
+                    </li>
+                    <li className="nav-item">
+                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Chats">
+                            <i className="bi bi-cpu me-2"></i>Chat with NexTalk
                         </Link>
                     </li>
                     <li className="nav-item ot-but">

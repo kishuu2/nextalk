@@ -12,13 +12,12 @@ export default function Home() {
     const [users, setUsers] = useState([]);
     const [notifications, setNotifications] = useState([]);
     const [following, setFollowing] = useState(new Set());
-    const [pendingRequests, setPendingRequests] = useState(new Set());
-    const [flipped, setFlipped] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [selectedUser, setSelectedUser] = useState(null);
 
     useEffect(() => {
-        const storedNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+        const storedNotifications = JSON.parse(localStorage.getItem('user') || '[]');
         setNotifications(storedNotifications);
 
         const fetchUsers = async () => {
@@ -27,7 +26,8 @@ export default function Home() {
                     headers: { 'Content-Type': 'application/json' },
                     withCredentials: true,
                 });
-                setUsers(response.data);
+                const sortedUsers = response.data.sort((a, b) => (a.isSessionUser ? -1 : b.isSessionUser ? 1 : 0));
+                setUsers(sortedUsers);
                 setLoading(false);
             } catch (err) {
                 console.error('Error fetching users:', err);
@@ -49,21 +49,20 @@ export default function Home() {
     const getThemeStyles = () => {
         if (theme === 'dark') {
             return {
-                background: '#1e293b',
+                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
                 color: '#e2e8f0',
-                cardBg: '#334155',
-                buttonGradient: 'linear-gradient(45deg, #3b82f6, #60a5fa)',
-                buttonHover: 'linear-gradient(45deg, #2563eb, #3b82f6)',
+                cardBg: 'rgba(255, 255, 255, 0.1)',
+                buttonGradient: 'linear-gradient(45deg, #ff6f61, #ffcc00)',
+                buttonHover: 'linear-gradient(45deg, #ff4b3a, #ffb800)',
                 notificationBg: 'rgba(51, 65, 85, 0.9)',
             };
         }
         return {
-            background: '#f1f5f9',
+            background: 'linear-gradient(135deg,rgb(255, 255, 255) 0%,rgb(244, 244, 244) 100%)',
             color: '#1e293b',
-            cardBg: '#ffffff',
+            cardBg: 'rgba(255, 255, 255, 0.8)',
             buttonGradient: 'linear-gradient(45deg, #3b82f6, #60a5fa)',
             buttonHover: 'linear-gradient(45deg, #2563eb, #3b82f6)',
-            notificationBg: 'rgba(255, 255, 255, 0.9)',
         };
     };
 
@@ -105,112 +104,125 @@ export default function Home() {
         });
     };
 
-    const handleAccept = (userId) => {
-        setPendingRequests(prev => {
-            const newRequests = new Set(prev);
-            newRequests.delete(userId);
-            return newRequests;
+    const handleFollowAll = () => {
+        const newFollowing = new Set(following);
+        suggestedUsers.forEach(user => {
+            if (!newFollowing.has(user._id)) {
+                newFollowing.add(user._id);
+                addNotification('followed', user.name, user.avatar);
+            }
         });
-        const user = users.find(u => u._id === userId);
-        setUsers(prev => prev.map(u =>
-            u._id === userId ? { ...u, isRequesting: false } : u
-        ));
-        addNotification('request_accepted', user.name, user.avatar);
+        setFollowing(newFollowing);
     };
 
-    const toggleFlip = (userId) => {
-        setFlipped(prev => {
-            const newFlipped = new Set(prev);
-            if (newFlipped.has(userId)) newFlipped.delete(userId);
-            else newFlipped.add(userId);
-            return newFlipped;
-        });
+    const openModal = (user) => {
+        setSelectedUser(user);
     };
 
-    const simulateEvent = (type) => {
-        const randomUser = users[Math.floor(Math.random() * users.length)];
-        if (randomUser) addNotification(type, randomUser.name, randomUser.avatar);
+    const closeModal = () => {
+        setSelectedUser(null);
     };
 
-    const followUsers = users.filter(user => !user.isRequesting);
-    const requestUsers = users.filter(user => user.isRequesting);
+    const allUsers = users.filter(user => !user.isRequesting);
+    const sessionUser = allUsers.find(user => user.isSessionUser);
+    const suggestedUsers = allUsers.filter(user => !user.isSessionUser);
 
-    //if (loading) return <div className="loading" aria-label="Loading" >Loading Data</div>;
+    //if (loading) return <div className="loading" aria-label="Loading">Loading Data</div>;
     //if (error) return <div className="error">{error}</div>;
 
     return (
-
         <DashboardLayout>
             <Head>
                 <title>Welcome to NexTalk</title>
             </Head>
             <div className="home-container" style={{ background: styles.background, color: styles.color }}>
-                <p className="home-title">WelCome Guys</p>
-
-                <div className="home-grid">
-                    {/* Notifications Feed */}
-                    <section className="notification-section">
-                        <h2 className="section-title">Notifications</h2>
-                        <div className="notification-list">
-                            {notifications.map((notif) => (
-                                <div
-                                    key={notif.id}
-                                    className="notification-card"
-                                    style={{ background: styles.notificationBg }}
-                                >
-                                    {notif.image ? (
-                                        <img src={notif.image} alt={notif.name} className="user-avatar" />
-                                    ) : (
-                                        <Image src={predefine} alt={notif.name} className="user-avatar" />
-                                    )}
-                                    <div className="notif-content">
-                                        <span className="notif-message">{notif.message}</span>
-                                        <span className="notif-time">
-                                            {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-                                        </span>
+                <div className="home-content">
+                    {/* Horizontal Scrollable Image Section */}
+                    <section className="image-section">
+                        <div className="image-list" aria-label="User profile images">
+                            {allUsers.map(user => (
+                                <div key={user._id} className={`image-card ${user.isSessionUser ? 'session-user' : ''}`}>
+                                    <div className="image-wrapper" onClick={() => openModal(user)}>
+                                        {user.image ? (
+                                            <img src={user.image} alt={user.name} className="image-item" />
+                                        ) : (
+                                            <Image src={predefine} alt={user.name} className="image-item" />
+                                        )}
+                                        {user.isSessionUser && <span className="session-badge">You</span>}
+                                        <div className="tooltip">
+                                            <span>{user.name}</span>
+                                            <span>{user.bio || "No bio available"}</span>
+                                        </div>
                                     </div>
+                                    <span className="image-username">{user.name}</span>
                                 </div>
                             ))}
                         </div>
-                        <div className="simulate-buttons">
-                            <button onClick={() => simulateEvent('new_message')} className="simulate-btn">Simulate Message</button>
-                            <button onClick={() => simulateEvent('user_online')} className="simulate-btn">Simulate Online</button>
-                        </div>
                     </section>
 
-                    {/* Follow Section */}
-                    <section className="user-section follow-section">
-                        <h2 className="section-title">People to Follow</h2>
-                        <div className="user-list">
-                            {followUsers.map(user => (
-                                <div
-                                    key={user._id}
-                                    className={`user-card ${flipped.has(user._id) ? 'flipped' : ''}`}
-                                    onClick={() => toggleFlip(user._id)}
-                                >
-                                    <div className="card-front" style={{ background: styles.cardBg }}>
+                    {/* Suggested for you Section */}
+                    <section className="suggested-section animate-fade-in">
+                        <div className="suggested-header">
+                            <h2 className="section-title">Suggested for You</h2>
+                            <a href="#" className="see-all">See All</a>
+                        </div>
+                        <button className="follow-all-btn" onClick={handleFollowAll}>
+                            Follow All
+                        </button>
+                        <div className="suggested-grid">
+                            {suggestedUsers.map(user => (
+                                <div key={user._id} className="suggested-card">
+                                    <div className="suggested-image-wrapper">
                                         {user.image ? (
-                                            <img src={user.image} alt={user.name} className="user-avatar" />
+                                            <img src={user.image} alt={user.name} className="suggested-image" />
                                         ) : (
-                                            <Image src={predefine} alt={user.name} className="user-avatar" />
+                                            <Image src={predefine} alt={user.name} className="suggested-image" />
                                         )}
-                                        <span className="user-name">{user.name}</span>
+                                    </div>
+                                    <div className="suggested-info">
+                                        <span className="suggested-name">{user.name}</span>
+                                        <span className="suggested-followed-by">
+                                            Followed by {user.followedBy || "user1, user2"} + {user.followedByCount || 3} more
+                                        </span><br/>
                                         <button
-                                            className="follow-btn"
-                                            style={{ background: following.has(user._id) ? styles.buttonHover : styles.buttonGradient }}
-                                            onClick={(e) => { e.stopPropagation(); handleFollow(user._id); }}
+                                            className="btn btn-outline-primary w-50 btn-sm"
+                                            style={{ background: following.has(user._id)}}
+                                            onClick={() => handleFollow(user._id)}
                                         >
                                             {following.has(user._id) ? "Following" : "Follow"}
                                         </button>
-                                    </div>
-                                    <div className="card-back" style={{ background: styles.cardBg }}>
-                                        <span className="user-bio">{user.bio}</span>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </section>
                 </div>
+
+                {/* Modal for Profile Preview */}
+                {selectedUser && (
+                    <div className="modal-overlay" onClick={closeModal}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <button className="modal-close" onClick={closeModal}>×</button>
+                            <div className="modal-body">
+                                {selectedUser.image ? (
+                                    <img src={selectedUser.image} alt={selectedUser.name} className={`modal-image ${selectedUser.isSessionUser ? 'session-user' : ''}`} />
+                                ) : (
+                                    <Image src={predefine} alt={selectedUser.name} className={`modal-image ${selectedUser.isSessionUser ? 'session-user' : ''}`} />
+                                )}
+                                <h3>{selectedUser.name}</h3>
+                                <p>{selectedUser.bio || "No bio available"}</p>
+                                <button
+                                    className="follow-btn"
+                                    style={{ background: following.has(selectedUser._id) ? styles.buttonHover : styles.buttonGradient }}
+                                    onClick={() => handleFollow(selectedUser._id)}
+                                >
+                                    {following.has(selectedUser._id) ? "Following" : "Follow"}
+                                </button>
+
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </DashboardLayout>
     );

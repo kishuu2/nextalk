@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import axios from '../axiosConfig';
 import { useTheme } from '../Components/ThemeContext';
 import '../styles/Login.css';
+import Head from 'next/head';
 
 function Login() {
     const [formData, setFormData] = useState({ email: '', otp: '', newPassword: '', confirmPassword: '' });
@@ -178,6 +179,9 @@ function Login() {
 
     return (
         <div className="login-container">
+            <Head>
+                    <title>Forgot Password</title>
+                </Head>
             <div className="row g-0 shadow-lg login-wrapper">
                 {/* Login Section */}
                 <div className="col-md-6 login-section">
