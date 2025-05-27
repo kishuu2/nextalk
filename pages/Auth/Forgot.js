@@ -96,10 +96,11 @@ function Login() {
     };
 
     useEffect(() => {
-        if (error) {
-            setError("");
-        }
-    }, [formData.email]);
+    if (error) {
+        setError("");
+    }
+}, [formData.email, error]);
+
 
     useEffect(() => {
         const checkEmail = async () => {

@@ -12,11 +12,12 @@ const ProtectedRoute = ({ children }) => {
       .catch(() => setIsAuth(false));
   }, []);
 
-  useEffect(() => {
+ useEffect(() => {
     if (isAuth === false) {
       router.replace('/');
     }
-  }, [isAuth]);
+}, [isAuth, router]);
+
 
   if (isAuth === null) return <div>Checking session...</div>;
   if (isAuth === false) return null; // Already redirected
