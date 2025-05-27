@@ -6,6 +6,7 @@ import predefine from "../../public/Images/predefine.webp";
 import DashboardLayout from '../Components/DashboardLayout';
 import Image from "next/image";
 import Head from 'next/head';
+import ModalPortal from "./ModalPortal";
 
 export default function Home() {
     const { theme } = useTheme();
@@ -14,31 +15,44 @@ export default function Home() {
     const [following, setFollowing] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [selectedUser, setSelectedUser] = useState(null);
+    const [sessionUser, setSessionUser] = useState(null); // 👈 NEW
+    const [selectedUser, setSelectedUser] = useState(null); // 👈 MODAL only
+
 
     useEffect(() => {
-        const storedNotifications = JSON.parse(localStorage.getItem('user') || '[]');
-        setNotifications(storedNotifications);
+        const storedUser = JSON.parse(sessionStorage.getItem('user'));
+        const sessionId = storedUser?.user?.id;
+
+        console.log('👉 Session ID:', sessionId); // 🧪 DEBUG 1
 
         const fetchUsers = async () => {
             try {
-                const response = await axios.post('https://nextalk-u0y1.onrender.com/displayusersProfile', {}, {
-                    headers: { 'Content-Type': 'application/json' },
-                    withCredentials: true,
-                });
-                const sortedUsers = response.data.sort((a, b) => (a.isSessionUser ? -1 : b.isSessionUser ? 1 : 0));
-                setUsers(sortedUsers);
+                const response = await axios.post(
+                    'https://nextalk-u0y1.onrender.com/displayusersProfile',
+                    {},
+                    {
+                        headers: { 'Content-Type': 'application/json' },
+                        withCredentials: true,
+                    }
+                );
+
+                const all = response.data;
+                console.log('👉 All users from backend:', all); // 🧪 DEBUG 2
+
+                // ❗ Fixing the ID comparison properly
+                const filtered = all.filter(user => user._id !== sessionId);
+                const sessionUser = all.find(user => user._id === sessionId);
+
+                setSessionUser(sessionUser); // 👈 just image display
+                setUsers(filtered); // users excluding session user
                 setLoading(false);
             } catch (err) {
-                console.error('Error fetching users:', err);
-                if (err.response && err.response.status === 404) {
-                    setError('Users endpoint not found on server. Contact support.');
-                } else {
-                    setError('Failed to load users. Please check your connection or try again later.');
-                }
+                console.error('❌ Error fetching users:', err);
+                setError('Failed to load users.');
                 setLoading(false);
             }
         };
+
         fetchUsers();
     }, []);
 
@@ -122,11 +136,15 @@ export default function Home() {
     const closeModal = () => {
         setSelectedUser(null);
     };
-
-    const allUsers = users.filter(user => !user.isRequesting);
-    const sessionUser = allUsers.find(user => user.isSessionUser);
-    const suggestedUsers = allUsers.filter(user => !user.isSessionUser);
-
+    useEffect(() => {
+        if (selectedUser) {
+            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'auto';
+            document.documentElement.style.overflow = 'auto';
+        }
+    }, [selectedUser]);
     //if (loading) return <div className="loading" aria-label="Loading">Loading Data</div>;
     //if (error) return <div className="error">{error}</div>;
 
@@ -140,15 +158,33 @@ export default function Home() {
                     {/* Horizontal Scrollable Image Section */}
                     <section className="image-section">
                         <div className="image-list" aria-label="User profile images">
-                            {allUsers.map(user => (
-                                <div key={user._id} className={`image-card ${user.isSessionUser ? 'session-user' : ''}`}>
-                                    <div className="image-wrapper" onClick={() => openModal(user)}>
-                                        {user.image ? (
-                                            <img src={user.image} alt={user.name} className="image-item" />
-                                        ) : (
-                                            <Image src={predefine} alt={user.name} className="image-item" />
-                                        )}
-                                        {user.isSessionUser && <span className="session-badge">You</span>}
+                            {/* 🔥 Always show session user image */}
+                            {sessionUser && (
+                                <div key={sessionUser._id} className="image-card session-user">
+                                    <div className="image-wrapper" onClick={() => setSelectedUser(sessionUser)}>
+                                        <img
+                                            src={sessionUser.image || predefine}
+                                            alt={sessionUser.name}
+                                            className="image-item"
+                                        /><br />
+                                        <span className="session-badge">You</span>
+                                        <div className="tooltip">
+                                            <span></span>
+                                            <span>{sessionUser.bio || "No bio available"}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 🔁 Render other users */}
+                            {users.map(user => (
+                                <div key={user._id} className="image-card">
+                                    <div className="image-wrapper" onClick={() => setSelectedUser(user)}>
+                                        <img
+                                            src={user.image || predefine}
+                                            alt={user.name}
+                                            className="image-item"
+                                        />
                                         <div className="tooltip">
                                             <span>{user.name}</span>
                                             <span>{user.bio || "No bio available"}</span>
@@ -157,6 +193,8 @@ export default function Home() {
                                     <span className="image-username">{user.name}</span>
                                 </div>
                             ))}
+
+
                         </div>
                     </section>
 
@@ -170,7 +208,7 @@ export default function Home() {
                             Follow All
                         </button>
                         <div className="suggested-grid">
-                            {suggestedUsers.map(user => (
+                            {/*suggestedUsers.map(user => (
                                 <div key={user._id} className="suggested-card">
                                     <div className="suggested-image-wrapper">
                                         {user.image ? (
@@ -183,46 +221,48 @@ export default function Home() {
                                         <span className="suggested-name">{user.name}</span>
                                         <span className="suggested-followed-by">
                                             Followed by {user.followedBy || "user1, user2"} + {user.followedByCount || 3} more
-                                        </span><br/>
+                                        </span><br />
                                         <button
                                             className="btn btn-outline-primary w-50 btn-sm"
-                                            style={{ background: following.has(user._id)}}
+                                            style={{ background: following.has(user._id) }}
                                             onClick={() => handleFollow(user._id)}
                                         >
                                             {following.has(user._id) ? "Following" : "Follow"}
                                         </button>
                                     </div>
                                 </div>
-                            ))}
+                            ))*/}
                         </div>
                     </section>
                 </div>
 
                 {/* Modal for Profile Preview */}
-                {selectedUser && (
-                    <div className="modal-overlay" onClick={closeModal}>
-                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                            <button className="modal-close" onClick={closeModal}>×</button>
-                            <div className="modal-body">
-                                {selectedUser.image ? (
-                                    <img src={selectedUser.image} alt={selectedUser.name} className={`modal-image ${selectedUser.isSessionUser ? 'session-user' : ''}`} />
-                                ) : (
-                                    <Image src={predefine} alt={selectedUser.name} className={`modal-image ${selectedUser.isSessionUser ? 'session-user' : ''}`} />
-                                )}
-                                <h3>{selectedUser.name}</h3>
-                                <p>{selectedUser.bio || "No bio available"}</p>
-                                <button
-                                    className="follow-btn"
-                                    style={{ background: following.has(selectedUser._id) ? styles.buttonHover : styles.buttonGradient }}
-                                    onClick={() => handleFollow(selectedUser._id)}
-                                >
-                                    {following.has(selectedUser._id) ? "Following" : "Follow"}
-                                </button>
+                <ModalPortal>
+                    {selectedUser && (
+                        <div className="modal-overlay" onClick={closeModal}>
+                            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                                <button className="modal-close" ><i onClick={closeModal} class="bi bi-x-lg"></i></button>
+                                <div className="modal-body">
+                                    {selectedUser.image ? (
+                                        <img src={selectedUser.image} alt={selectedUser.name} className={`modal-image ${selectedUser.isSessionUser ? 'session-user' : ''}`} />
+                                    ) : (
+                                        <Image src={predefine} alt={selectedUser.name} className={`modal-image ${selectedUser.isSessionUser ? 'session-user' : ''}`} />
+                                    )}
+                                    <h3>{selectedUser.name}</h3>
+                                    <p>{selectedUser.bio || "No bio available"}</p>
+                                    <button
+                                        className="btn btn-outline-primary w-50 btn-sm"
+                                        style={{ background: following.has(selectedUser._id) }}
+                                        onClick={() => handleFollow(selectedUser._id)}
+                                    >
+                                        {following.has(selectedUser._id) ? "Following" : "Follow"}
+                                    </button>
 
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </ModalPortal>
             </div>
         </DashboardLayout>
     );

@@ -376,17 +376,14 @@
     .user-bio { font-size: 0.9rem; }
     .follow-btn, .accept-btn { padding: 6px 16px; font-size: 0.85rem; }
     .simulate-btn { padding: 5px 10px; font-size: 0.8rem; }
+    .home-container {
+    padding: 2px;
+    position: relative;
+}
 }
 
 .notification-card, .user-card { animation: bounceIn 0.5s ease; }
 
-
-
-
-.home-container {
-    padding: 20px;
-    position: relative;
-}
 
 .home-content {
     display: flex;
@@ -430,29 +427,6 @@
     object-fit: cover;
     border: 2px solid;
     transition: border-image 0.3s ease;
-}
-
-.session-user .image-item {
-    border: none;
-    box-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc, 0 0 30px #00ffcc;
-    animation: glow 1.5s ease-in-out infinite alternate;
-}
-
-.session-user .modal-image {
-    box-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc, 0 0 30px #00ffcc;
-    animation: glow 1.5s ease-in-out infinite alternate;
-}
-
-.session-badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: #00ffcc;
-    color: #000;
-    font-size: 0.6rem;
-    padding: 2px 5px;
-    border-radius: 10px;
-    font-weight: 600;
 }
 
 
@@ -609,16 +583,30 @@
 
 /* Modal Styles */
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  /* Start with hidden and slightly moved up */
+  opacity: 0;
+  transform: translateY(-20px);
+  
+  /* Animate when appearing */
+  animation: fadeSlideIn 0.3s forwards;
+  z-index: 1000;
+}
+
+@keyframes fadeSlideIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .modal-content {
@@ -661,6 +649,7 @@
 .modal-body h3 {
     margin: 10px 0 5px;
     font-size: 1.2rem;
+    color: #b0b0b0;
 }
 
 .modal-body p {
@@ -758,3 +747,21 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+.image-card.session-user {
+    position: relative;
+    margin-right: 1.2rem;
+    padding-right: 1rem;
+}
+
+.image-card.session-user::after {
+    content: "";
+    position: absolute;
+    top: 5%;
+    right: 0;
+    height: 80%;
+    width: 2px;
+    background: linear-gradient(to bottom, #4f46e5, #9333ea); /* Styled look */
+    border-radius: 2px;
+}
+

@@ -29,7 +29,7 @@ export default class MyDocument extends Document {
         <body>
           <Main />
           <NextScript />
-          
+           <div id="modal-root"></div>
           {/* ✅ Bootstrap JS Bundle (Optional) */}
           <script
             src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
