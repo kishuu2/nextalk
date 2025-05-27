@@ -191,7 +191,7 @@ export default function Home() {
                             {/* 🔥 Always show session user image */}
                             {sessionUser && (
                                 <div key={sessionUser._id} className="image-card session-user">
-                                    <div className="image-wrapper" onClick={() => setSelectedUser(sessionUser)}>
+                                    <div className="image-wrapper">
                                         <img
                                             src={sessionUser.image || predefine}
                                             alt={sessionUser.name}
@@ -272,7 +272,7 @@ export default function Home() {
                     {selectedUser && (
                         <div className="modal-overlay" onClick={closeModal}>
                             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                                <button className="modal-close" ><i onClick={closeModal} class="bi bi-x-lg"></i></button>
+                                <button className="modal-close" ><i onClick={closeModal} className="bi bi-x-lg"></i></button>
                                 <div className="modal-body">
                                     {selectedUser.image ? (
                                         <img src={selectedUser.image} alt={selectedUser.name} className={`modal-image ${selectedUser.isSessionUser ? 'session-user' : ''}`} />
