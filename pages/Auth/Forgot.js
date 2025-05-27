@@ -170,6 +170,8 @@ function Login() {
     };
 
     const themeKeys = Object.keys(videoSrc);
+    const currentTheme = themeKeys.includes(theme) ? theme : 'homeback';
+
     const ChangeColor = () => {
         const randomIndex = Math.floor(Math.random() * themeKeys.length);
         const randomTheme = themeKeys[randomIndex];
@@ -180,8 +182,8 @@ function Login() {
     return (
         <div className="login-container">
             <Head>
-                    <title>Forgot Password</title>
-                </Head>
+                <title>Forgot Password</title>
+            </Head>
             <div className="row g-0 shadow-lg login-wrapper">
                 {/* Login Section */}
                 <div className="col-md-6 login-section">
@@ -321,7 +323,7 @@ function Login() {
                     <div
                         className="Randomimages1"
                         style={{
-                            backgroundImage: `url(${videoSrc[theme]}), ${gradients[theme]}`,
+                            backgroundImage: `url(${videoSrc[currentTheme]}), ${gradients[currentTheme]}`,
                             backgroundSize: "cover",
                             backgroundRepeat: "no-repeat",
                             backgroundPosition: "center",
@@ -331,8 +333,8 @@ function Login() {
                             left: 0,
                             width: "100%",
                             height: "100%",
-                            zIndex: 0, // Background behind content
-                            transition: "background-image 0.5s ease", // Smooth transition
+                            zIndex: 0,
+                            transition: "background-image 0.5s ease",
                         }}
                     ></div>
 
@@ -342,14 +344,14 @@ function Login() {
                         </svg></div>
                     <div className='create-section1 text-center d-flex align-items-center justify-content-center'>
                         <div className="p-2">
-                            <h3 className="text-white mb-3">🔐 Remembered password?{' '}</h3>
+                            <h3 className="text-white mb-3">Remembered password ?{' '}</h3>
                             <p className="text-white mb-4">
                                 Thought you forgot it? Happens to the best of us 😅.
                                 If your memory just clicked back into place, no stress.
                             </p>
                             <Link
                                 className="btn btn-outline-light btn-lg create-btn"
-                                href='/Auth/Login' style={{textDecoration: "none"}}
+                                href='/Auth/Login' style={{ textDecoration: "none" }}
                             >
                                 Login now
                             </Link>

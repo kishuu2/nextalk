@@ -6,135 +6,170 @@ import predefine from "../../public/Images/predefine.webp";
 import DashboardLayout from '../Components/DashboardLayout';
 import Image from "next/image";
 import Head from 'next/head';
+import '../styles/Login.css';
 
 export default function Settings() {
-     const { theme } = useTheme();
-        const [users, setUsers] = useState([]);
-        const [notifications, setNotifications] = useState([]);
-        const [following, setFollowing] = useState(new Set());
-        const [pendingRequests, setPendingRequests] = useState(new Set());
-        const [flipped, setFlipped] = useState(new Set());
-        const [loading, setLoading] = useState(true);
-        const [error, setError] = useState(null);
-    
-        useEffect(() => {
-            const storedNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
-            setNotifications(storedNotifications);
-    
-            const fetchUsers = async () => {
-                try {
-                    const response = await axios.post('https://nextalk-u0y1.onrender.com/displayusersProfile', {}, {
-                        headers: { 'Content-Type': 'application/json' },
-                        withCredentials: true,
-                    });
-                    setUsers(response.data);
-                    setLoading(false);
-                } catch (err) {
-                    console.error('Error fetching users:', err);
-                    if (err.response && err.response.status === 404) {
-                        setError('Users endpoint not found on server. Contact support.');
-                    } else {
-                        setError('Failed to load users. Please check your connection or try again later.');
-                    }
-                    setLoading(false);
+    const { theme } = useTheme();
+    const [users, setUsers] = useState([]);
+    const [notifications, setNotifications] = useState([]);
+    const [following, setFollowing] = useState(new Set());
+    const [pendingRequests, setPendingRequests] = useState(new Set());
+    const [flipped, setFlipped] = useState(new Set());
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const storedNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+        setNotifications(storedNotifications);
+
+        const fetchUsers = async () => {
+            try {
+                const response = await axios.post('https://nextalk-u0y1.onrender.com/displayusersProfile', {}, {
+                    headers: { 'Content-Type': 'application/json' },
+                    withCredentials: true,
+                });
+                setUsers(response.data);
+                setLoading(false);
+            } catch (err) {
+                console.error('Error fetching users:', err);
+                if (err.response && err.response.status === 404) {
+                    setError('Users endpoint not found on server. Contact support.');
+                } else {
+                    setError('Failed to load users. Please check your connection or try again later.');
                 }
-            };
-            fetchUsers();
-        }, []);
-    
-        useEffect(() => {
-            localStorage.setItem('notifications', JSON.stringify(notifications));
-        }, [notifications]);
-    
-        const getThemeStyles = () => {
-            if (theme === 'dark') {
-                return {
-                    background: '#1e293b',
-                    color: '#e2e8f0',
-                    cardBg: '#334155',
-                    buttonGradient: 'linear-gradient(45deg, #3b82f6, #60a5fa)',
-                    buttonHover: 'linear-gradient(45deg, #2563eb, #3b82f6)',
-                    notificationBg: 'rgba(51, 65, 85, 0.9)',
-                };
+                setLoading(false);
             }
+        };
+        fetchUsers();
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+    }, [notifications]);
+
+    const getThemeStyles = () => {
+        if (theme === 'dark') {
             return {
-                background: '#f1f5f9',
-                color: '#1e293b',
-                cardBg: '#ffffff',
+                background: '#1e293b',
+                color: '#e2e8f0',
+                cardBg: '#334155',
                 buttonGradient: 'linear-gradient(45deg, #3b82f6, #60a5fa)',
                 buttonHover: 'linear-gradient(45deg, #2563eb, #3b82f6)',
-                notificationBg: 'rgba(255, 255, 255, 0.9)',
+                notificationBg: 'rgba(51, 65, 85, 0.9)',
             };
+        }
+        return {
+            background: '#f1f5f9',
+            color: '#1e293b',
+            cardBg: '#ffffff',
+            buttonGradient: 'linear-gradient(45deg, #3b82f6, #60a5fa)',
+            buttonHover: 'linear-gradient(45deg, #2563eb, #3b82f6)',
+            notificationBg: 'rgba(255, 255, 255, 0.9)',
         };
-    
-        const styles = getThemeStyles();
-    
-        const addNotification = (type, userName, userAvatar) => {
-            const newNotification = {
-                id: Date.now(),
-                type,
-                message: getNotificationMessage(type, userName),
-                avatar: predefine,
-                createdAt: new Date().toISOString(),
-                read: false,
-            };
-            setNotifications(prev => [newNotification, ...prev].slice(0, 50));
-        };
-    
-        const getNotificationMessage = (type, userName) => {
-            switch (type) {
-                case 'new_message': return `${userName} sent you a new message!`;
-                case 'followed': return `${userName} followed you!`;
-                case 'request_accepted': return `${userName} accepted your follow request!`;
-                case 'user_online': return `${userName} is now online!`;
-                default: return 'New event occurred!';
-            }
-        };
-    
-        const handleFollow = (userId) => {
-            setFollowing(prev => {
-                const newFollowing = new Set(prev);
-                const user = users.find(u => u._id === userId);
-                if (newFollowing.has(userId)) {
-                    newFollowing.delete(userId);
-                } else {
-                    newFollowing.add(userId);
-                    addNotification('followed', user.name, user.avatar);
-                }
-                return newFollowing;
-            });
-        };
-    
-        const handleAccept = (userId) => {
-            setPendingRequests(prev => {
-                const newRequests = new Set(prev);
-                newRequests.delete(userId);
-                return newRequests;
-            });
-            const user = users.find(u => u._id === userId);
-            setUsers(prev => prev.map(u =>
-                u._id === userId ? { ...u, isRequesting: false } : u
-            ));
-            addNotification('request_accepted', user.name, user.avatar);
-        };
-    
-        const toggleFlip = (userId) => {
-            setFlipped(prev => {
-                const newFlipped = new Set(prev);
-                if (newFlipped.has(userId)) newFlipped.delete(userId);
-                else newFlipped.add(userId);
-                return newFlipped;
-            });
-        };
-    
-        const simulateEvent = (type) => {
-            const randomUser = users[Math.floor(Math.random() * users.length)];
-            if (randomUser) addNotification(type, randomUser.name, randomUser.avatar);
-        };
-    
-        const followUsers = users.filter(user => !user.isRequesting);
-        const requestUsers = users.filter(user => user.isRequesting);
+    };
 
+    const styles = getThemeStyles();
+
+    const addNotification = (type, userName, userAvatar) => {
+        const newNotification = {
+            id: Date.now(),
+            type,
+            message: getNotificationMessage(type, userName),
+            avatar: predefine,
+            createdAt: new Date().toISOString(),
+            read: false,
+        };
+        setNotifications(prev => [newNotification, ...prev].slice(0, 50));
+    };
+
+    const getNotificationMessage = (type, userName) => {
+        switch (type) {
+            case 'new_message': return `${userName} sent you a new message!`;
+            case 'followed': return `${userName} followed you!`;
+            case 'request_accepted': return `${userName} accepted your follow request!`;
+            case 'user_online': return `${userName} is now online!`;
+            default: return 'New event occurred!';
+        }
+    };
+
+    const handleFollow = (userId) => {
+        setFollowing(prev => {
+            const newFollowing = new Set(prev);
+            const user = users.find(u => u._id === userId);
+            if (newFollowing.has(userId)) {
+                newFollowing.delete(userId);
+            } else {
+                newFollowing.add(userId);
+                addNotification('followed', user.name, user.avatar);
+            }
+            return newFollowing;
+        });
+    };
+
+    const handleAccept = (userId) => {
+        setPendingRequests(prev => {
+            const newRequests = new Set(prev);
+            newRequests.delete(userId);
+            return newRequests;
+        });
+        const user = users.find(u => u._id === userId);
+        setUsers(prev => prev.map(u =>
+            u._id === userId ? { ...u, isRequesting: false } : u
+        ));
+        addNotification('request_accepted', user.name, user.avatar);
+    };
+
+    const toggleFlip = (userId) => {
+        setFlipped(prev => {
+            const newFlipped = new Set(prev);
+            if (newFlipped.has(userId)) newFlipped.delete(userId);
+            else newFlipped.add(userId);
+            return newFlipped;
+        });
+    };
+
+    const simulateEvent = (type) => {
+        const randomUser = users[Math.floor(Math.random() * users.length)];
+        if (randomUser) addNotification(type, randomUser.name, randomUser.avatar);
+    };
+
+    const followUsers = users.filter(user => !user.isRequesting);
+    const requestUsers = users.filter(user => user.isRequesting);
+
+     if (loading) return <div className="custom-loader-overlay">
+        <svg viewBox="0 0 100 100">
+            <g fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6">
+                {/* left line */}
+                <path d="M 21 40 V 59">
+                    <animateTransform attributeName="transform" type="rotate" values="0 21 59; 180 21 59" dur="2s" repeatCount="indefinite" />
+                </path>
+                {/* right line */}
+                <path d="M 79 40 V 59">
+                    <animateTransform attributeName="transform" type="rotate" values="0 79 59; -180 79 59" dur="2s" repeatCount="indefinite" />
+                </path>
+                {/* top line */}
+                <path d="M 50 21 V 40">
+                    <animate attributeName="d" values="M 50 21 V 40; M 50 59 V 40" dur="2s" repeatCount="indefinite" />
+                </path>
+                {/* bottom line */}
+                <path d="M 50 60 V 79">
+                    <animate attributeName="d" values="M 50 60 V 79; M 50 98 V 79" dur="2s" repeatCount="indefinite" />
+                </path>
+                {/* top box */}
+                <path d="M 50 21 L 79 40 L 50 60 L 21 40 Z">
+                    <animate attributeName="stroke" values="rgba(255,255,255,1); rgba(100,100,100,0)" dur="2s" repeatCount="indefinite" />
+                </path>
+                {/* mid box */}
+                <path d="M 50 40 L 79 59 L 50 79 L 21 59 Z" />
+                {/* bottom box */}
+                <path d="M 50 59 L 79 78 L 50 98 L 21 78 Z">
+                    <animate attributeName="stroke" values="rgba(100,100,100,0); rgba(255,255,255,1)" dur="2s" repeatCount="indefinite" />
+                </path>
+                <animateTransform attributeName="transform" type="translate" values="0 0; 0 -19" dur="2s" repeatCount="indefinite" />
+            </g>
+        </svg>
+    </div>;
+    
     return (
         <DashboardLayout>
             <Head>

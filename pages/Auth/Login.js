@@ -47,20 +47,15 @@ function Login() {
         }, 200);
 
         try {
-            setProgress(30);
             const response = await axios.post('https://nextalk-u0y1.onrender.com/login', formData, {
                 headers: { 'Content-Type': 'application/json' },
                 withCredentials: true,
             });
 
-            setProgress(70);
             sessionStorage.setItem("user", JSON.stringify(response.data));
-            setProgress(100);
             setSuccess("Login successful! 🎉");
 
-            setTimeout(() => {
-                router.push('/Dashboard');
-            }, 500);
+            router.replace('/Dashboard');
         } catch (error) {
             setProgress(0);
             if (error.response) {
@@ -110,113 +105,137 @@ function Login() {
     }, [currentTheme]);
 
     return (
-        <div className="login-container">
-            <Head>
-                <title>Login in NexTalk</title>
-            </Head>
-            <div className="row g-0 shadow-lg login-wrapper">
-                {/* Login Section */}
-                <div className="col-md-6 login-section">
-                    {error && (
-                        <div className="alert alert-danger" role="alert">
-                            <strong>Alert!</strong> {error}
+        <>{loading && !error &&(
+            <div className="custom-loader-overlay">
+                <svg viewBox="0 0 100 100">
+                    <g fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6">
+                        {/* left line */}
+                        <path d="M 21 40 V 59">
+                            <animateTransform attributeName="transform" type="rotate" values="0 21 59; 180 21 59" dur="2s" repeatCount="indefinite" />
+                        </path>
+                        {/* right line */}
+                        <path d="M 79 40 V 59">
+                            <animateTransform attributeName="transform" type="rotate" values="0 79 59; -180 79 59" dur="2s" repeatCount="indefinite" />
+                        </path>
+                        {/* top line */}
+                        <path d="M 50 21 V 40">
+                            <animate attributeName="d" values="M 50 21 V 40; M 50 59 V 40" dur="2s" repeatCount="indefinite" />
+                        </path>
+                        {/* bottom line */}
+                        <path d="M 50 60 V 79">
+                            <animate attributeName="d" values="M 50 60 V 79; M 50 98 V 79" dur="2s" repeatCount="indefinite" />
+                        </path>
+                        {/* top box */}
+                        <path d="M 50 21 L 79 40 L 50 60 L 21 40 Z">
+                            <animate attributeName="stroke" values="rgba(255,255,255,1); rgba(100,100,100,0)" dur="2s" repeatCount="indefinite" />
+                        </path>
+                        {/* mid box */}
+                        <path d="M 50 40 L 79 59 L 50 79 L 21 59 Z" />
+                        {/* bottom box */}
+                        <path d="M 50 59 L 79 78 L 50 98 L 21 78 Z">
+                            <animate attributeName="stroke" values="rgba(100,100,100,0); rgba(255,255,255,1)" dur="2s" repeatCount="indefinite" />
+                        </path>
+                        <animateTransform attributeName="transform" type="translate" values="0 0; 0 -19" dur="2s" repeatCount="indefinite" />
+                    </g>
+                </svg>
+            </div>
+        )}
+            <div className="login-container">
+                <Head>
+                    <title>Login in NexTalk</title>
+                </Head>
+                <div className="row g-0 shadow-lg login-wrapper">
+                    {/* Login Section */}
+                    <div className="col-md-6 login-section">
+                        {error && (
+                            <div className="alert alert-danger" role="alert">
+                                <strong>Alert!</strong> {error}
+                            </div>
+                        )}
+
+                        <div className="card-body">
+                            <h2 className="text-center mb-4 text-primary">Welcome Back</h2>
+                            <form onSubmit={handleSubmit}>
+                                <div className="mb-3">
+                                    <label htmlFor="username" className="form-label fw-bold">Username</label>
+                                    <input
+                                        type="text"
+                                        className="form-control form-control-lg"
+                                        id="username"
+                                        name="username"
+                                        placeholder="Enter your username"
+                                        value={formData.username}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+
+                                <div className="mb-3">
+                                    <label htmlFor="password" className="form-label fw-bold">Password</label>
+                                    <input
+                                        type="password"
+                                        className="form-control form-control-lg"
+                                        id="password"
+                                        name="password"
+                                        placeholder="Enter your password"
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                <br /><br />
+                                <button type="submit" className="btn btn-primary w-100 login-btn">
+                                    Login
+                                </button>
+                                <br /><br />
+                                <Link href="/Auth/Forgot" className="btn btn-lg btn-primary w-100 login-btn" style={{ textDecoration: "none" }}>
+                                    Forgotten password
+                                </Link>
+                            </form>
                         </div>
-                    )}
-                    {loading && (
-                        <div className="alert alert-success" role="alert">
-                            <strong>Loading . . .</strong> {success}
-                            <div className="progress mt-2" style={{ height: "10px", borderRadius: "5px", overflow: "hidden" }}>
-                                <div
-                                    className="progress-bar progress-bar-striped progress-bar-animated bg-success"
-                                    role="progressbar"
-                                    style={{ width: `${progress}%`, transition: "width 0.3s ease-in-out" }}
-                                ></div>
-                            </div>
+                    </div>
+
+                    {/* Create Account Section */}
+                    <div className="col-md-6 create-section" id='two'>
+                        <div
+                            className="Randomimages1"
+                            style={{
+                                backgroundImage: `url(${videoSrc[currentTheme]}), ${gradients[currentTheme]}`,
+                                backgroundSize: "cover",
+                                backgroundRepeat: "no-repeat",
+                                backgroundPosition: "center",
+                                backgroundBlendMode: "overlay",
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                zIndex: 0,
+                                transition: "background-image 0.5s ease",
+                            }}
+                        ></div>
+
+                        <div className="rand" onClick={() => console.log('Theme before change:', theme) || ChangeColor()} style={{ zIndex: 3, position: "absolute", top: "20px", right: "20px" }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" className="bi bi-dice-5-fill" viewBox="0 0 16 16">
+                                <path d="M3 0a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V3a3 3 0 0 0-3-3zm2.5 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m8 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M12 13.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3M5.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M8 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3" />
+                            </svg>
                         </div>
-                    )}
-
-                    <div className="card-body">
-                        <h2 className="text-center mb-4 text-primary">Welcome Back</h2>
-                        <form onSubmit={handleSubmit}>
-                            <div className="mb-3">
-                                <label htmlFor="username" className="form-label fw-bold">Username</label>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-lg"
-                                    id="username"
-                                    name="username"
-                                    placeholder="Enter your username"
-                                    value={formData.username}
-                                    onChange={handleChange}
-                                />
+                        <div className='create-section1 text-center d-flex align-items-center justify-content-center'>
+                            <div className="p-2">
+                                <h3 className="text-white mb-3">New Here?</h3>
+                                <p className="text-white mb-4">
+                                    Don’t have an account yet? Create one now and join the conversation!
+                                </p>
+                                <Link
+                                    className="btn btn-outline-light btn-lg create-btn"
+                                    href='/Auth/Signup' style={{ textDecoration: "none" }}
+                                >
+                                    Create New Account
+                                </Link>
                             </div>
-
-                            <div className="mb-3">
-                                <label htmlFor="password" className="form-label fw-bold">Password</label>
-                                <input
-                                    type="password"
-                                    className="form-control form-control-lg"
-                                    id="password"
-                                    name="password"
-                                    placeholder="Enter your password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                />
-                            </div>
-                            <br /><br />
-                            <button type="submit" className="btn btn-primary w-100 login-btn">
-                                Login
-                            </button>
-                            <br /><br />
-                            <Link href="/Auth/Forgot" className="btn btn-lg btn-primary w-100 login-btn" style={{ textDecoration: "none" }}>
-                                Forgotten password
-                            </Link>
-                        </form>
-                    </div>
-                </div>
-
-                {/* Create Account Section */}
-                <div className="col-md-6 create-section" id='two'>
-                    <div
-                        className="Randomimages1"
-                        style={{
-                            backgroundImage: `url(${videoSrc[currentTheme]}), ${gradients[currentTheme]}`,
-                            backgroundSize: "cover",
-                            backgroundRepeat: "no-repeat",
-                            backgroundPosition: "center",
-                            backgroundBlendMode: "overlay",
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "100%",
-                            zIndex: 0,
-                            transition: "background-image 0.5s ease",
-                        }}
-                    ></div>
-
-                    <div className="rand" onClick={() => console.log('Theme before change:', theme) || ChangeColor()} style={{ zIndex: 3, position: "absolute", top: "20px", right: "20px" }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" className="bi bi-dice-5-fill" viewBox="0 0 16 16">
-                            <path d="M3 0a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V3a3 3 0 0 0-3-3zm2.5 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m8 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M12 13.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3M5.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M8 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3" />
-                        </svg>
-                    </div>
-                    <div className='create-section1 text-center d-flex align-items-center justify-content-center'>
-                        <div className="p-2">
-                            <h3 className="text-white mb-3">New Here?</h3>
-                            <p className="text-white mb-4">
-                                Don’t have an account yet? Create one now and join the conversation!
-                            </p>
-                            <Link
-                                className="btn btn-outline-light btn-lg create-btn"
-                                href='/Auth/Signup' style={{ textDecoration: "none" }}
-                            >
-                                Create New Account
-                            </Link>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }
 

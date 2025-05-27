@@ -118,11 +118,6 @@ export default function DashboardLayout({ children }) {
             <aside className={`sidebar sleek-sidebar ${theme === 'dark' ? 'bg-dark' : 'bg-light'} ${isSidebarOpen ? 'open' : ''}`}>
                 <div className="sidebar-header sleek-header">
                     <h4 className="p-3 fw-bold text-uppercase d-none d-lg-block">{brandText}</h4>
-                    <button
-                        className="btn-close p-3 d-lg-none sleek-close"
-                        type="button"
-                        onClick={() => setIsSidebarOpen(false)}
-                    ></button>
                 </div>
 
                 <ul className="nav flex-column p-3 sleek-nav">
@@ -165,7 +160,13 @@ export default function DashboardLayout({ children }) {
                         <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Notification">
                             <i className="bi bi-heart me-2"></i>Notification
                         </Link>
-                    </li>
+                    </li><br/>
+                    <li className='nav-item'>
+                    <Link href=""
+                        className="btn btn-primary w-100 p-2 d-lg-none" style={{textDecoration:"none"}}
+                        type="button"
+                        onClick={() => setIsSidebarOpen(false)}
+                    >Close </Link></li>
                 </ul>
 
 

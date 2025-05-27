@@ -7,6 +7,7 @@ import DashboardLayout from '../Components/DashboardLayout';
 import Image from "next/image";
 import Head from 'next/head';
 import ModalPortal from "./ModalPortal";
+import '../styles/Login.css';
 
 export default function Home() {
     const { theme } = useTheme();
@@ -120,7 +121,7 @@ export default function Home() {
 
     const handleFollowAll = () => {
         const newFollowing = new Set(following);
-        suggestedUsers.forEach(user => {
+        users.forEach(user => {
             if (!newFollowing.has(user._id)) {
                 newFollowing.add(user._id);
                 addNotification('followed', user.name, user.avatar);
@@ -145,7 +146,39 @@ export default function Home() {
             document.documentElement.style.overflow = 'auto';
         }
     }, [selectedUser]);
-    //if (loading) return <div className="loading" aria-label="Loading">Loading Data</div>;
+    if (loading) return <div className="custom-loader-overlay">
+        <svg viewBox="0 0 100 100">
+            <g fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6">
+                {/* left line */}
+                <path d="M 21 40 V 59">
+                    <animateTransform attributeName="transform" type="rotate" values="0 21 59; 180 21 59" dur="2s" repeatCount="indefinite" />
+                </path>
+                {/* right line */}
+                <path d="M 79 40 V 59">
+                    <animateTransform attributeName="transform" type="rotate" values="0 79 59; -180 79 59" dur="2s" repeatCount="indefinite" />
+                </path>
+                {/* top line */}
+                <path d="M 50 21 V 40">
+                    <animate attributeName="d" values="M 50 21 V 40; M 50 59 V 40" dur="2s" repeatCount="indefinite" />
+                </path>
+                {/* bottom line */}
+                <path d="M 50 60 V 79">
+                    <animate attributeName="d" values="M 50 60 V 79; M 50 98 V 79" dur="2s" repeatCount="indefinite" />
+                </path>
+                {/* top box */}
+                <path d="M 50 21 L 79 40 L 50 60 L 21 40 Z">
+                    <animate attributeName="stroke" values="rgba(255,255,255,1); rgba(100,100,100,0)" dur="2s" repeatCount="indefinite" />
+                </path>
+                {/* mid box */}
+                <path d="M 50 40 L 79 59 L 50 79 L 21 59 Z" />
+                {/* bottom box */}
+                <path d="M 50 59 L 79 78 L 50 98 L 21 78 Z">
+                    <animate attributeName="stroke" values="rgba(100,100,100,0); rgba(255,255,255,1)" dur="2s" repeatCount="indefinite" />
+                </path>
+                <animateTransform attributeName="transform" type="translate" values="0 0; 0 -19" dur="2s" repeatCount="indefinite" />
+            </g>
+        </svg>
+    </div>;
     //if (error) return <div className="error">{error}</div>;
 
     return (
@@ -196,6 +229,7 @@ export default function Home() {
 
 
                         </div>
+                        
                     </section>
 
                     {/* Suggested for you Section */}
@@ -208,7 +242,7 @@ export default function Home() {
                             Follow All
                         </button>
                         <div className="suggested-grid">
-                            {/*suggestedUsers.map(user => (
+                            {users.map(user => (
                                 <div key={user._id} className="suggested-card">
                                     <div className="suggested-image-wrapper">
                                         {user.image ? (
@@ -231,7 +265,7 @@ export default function Home() {
                                         </button>
                                     </div>
                                 </div>
-                            ))*/}
+                            ))}
                         </div>
                     </section>
                 </div>

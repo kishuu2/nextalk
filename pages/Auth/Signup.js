@@ -134,6 +134,8 @@ function Login() {
     };
 
     const themeKeys = Object.keys(videoSrc);
+    const currentTheme = themeKeys.includes(theme) ? theme : 'homeback';
+    
     const ChangeColor = () => {
         const randomIndex = Math.floor(Math.random() * themeKeys.length);
         const randomTheme = themeKeys[randomIndex];
@@ -151,22 +153,22 @@ function Login() {
                 {/* Create Account Section */}
                 <div className="col-md-6 create-section" id='two'>
                     <div
-                        className="Randomimages1"
-                        style={{
-                            backgroundImage: `url(${videoSrc[theme]}), ${gradients[theme]}`,
-                            backgroundSize: "cover",
-                            backgroundRepeat: "no-repeat",
-                            backgroundPosition: "center",
-                            backgroundBlendMode: "overlay",
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "100%",
-                            zIndex: 0, // Background behind content
-                            transition: "background-image 0.5s ease", // Smooth transition
-                        }}
-                    ></div>
+                            className="Randomimages1"
+                            style={{
+                                backgroundImage: `url(${videoSrc[currentTheme]}), ${gradients[currentTheme]}`,
+                                backgroundSize: "cover",
+                                backgroundRepeat: "no-repeat",
+                                backgroundPosition: "center",
+                                backgroundBlendMode: "overlay",
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                zIndex: 0,
+                                transition: "background-image 0.5s ease",
+                            }}
+                        ></div>
 
                     <div className="rand" onClick={ChangeColor} style={{ zIndex: 3, position: "absolute", top: "20px", right: "20px" }}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" className="bi bi-dice-5-fill" viewBox="0 0 16 16">
@@ -203,7 +205,7 @@ function Login() {
                         </div>
                     )}
 
-                    {loading && (
+                    {loading && !errors &&(
                         <div className="alert alert-success" role="alert">
                             <strong>Loading . . .</strong> {success}
                             <div className="progress mt-2" style={{ height: "10px", borderRadius: "5px", overflow: "hidden" }}>
