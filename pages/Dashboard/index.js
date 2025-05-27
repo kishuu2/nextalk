@@ -223,7 +223,7 @@ export default function Home() {
                                             alt={user.name}
                                             width={85}
                                             height={85}
-                                            className="image-item"
+                                            className="image-item sleek-avatar"
                                         />
                                         <div className="tooltip">
                                             <span>{user.name}</span>
@@ -259,7 +259,7 @@ export default function Home() {
                                                 alt={user.name}
                                                 width={85}
                                                 height={85}
-                                                className="image-item"
+                                                className="image-item sleek-avatar"
                                             />
                                         ) : (
                                             <Image src={predefine} alt={user.name} className="suggested-image" />
