@@ -1,5 +1,5 @@
 // pages/_app.js
-import { ThemeProvider } from './Components/ThemeContext';
+import { ThemeProvider } from '../context/ThemeContext';
 import "../pages/styles/Login.css";
 import "../pages/styles/Home.css";
 import "../pages/styles/DashboardLayout.css";

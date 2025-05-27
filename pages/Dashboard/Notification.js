@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useTheme } from '../Components/ThemeContext';
+import { useTheme } from '../../context/ThemeContext';
 import axios from '../axiosConfig';
 import predefine from "../../public/Images/predefine.webp";
 import DashboardLayout from '../Components/DashboardLayout';

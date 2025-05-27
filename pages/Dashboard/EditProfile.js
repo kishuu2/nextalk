@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTheme } from '../Components/ThemeContext';
+import { useTheme } from '../../context/ThemeContext';
 import axios from '../axiosConfig';
 import predefine from "../../public/Images/predefine.webp";
 import DashboardLayout from '../Components/DashboardLayout';

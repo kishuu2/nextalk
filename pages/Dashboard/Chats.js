@@ -1,6 +1,6 @@
 // Chats.jsx
 import { useState, useRef, useEffect } from "react";
-import { useTheme } from '../Components/ThemeContext';
+import { useTheme } from '../../context/ThemeContext';
 import DashboardLayout from '../Components/DashboardLayout';
 
 export default function Chats() {

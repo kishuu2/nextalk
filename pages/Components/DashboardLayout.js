@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Image from 'next/image';
 import predefine from "../../public/Images/predefine.webp";
-import { useTheme } from './ThemeContext';
+import { useTheme } from '../../context/ThemeContext';
 import axios from '../axiosConfig';
 
 export default function DashboardLayout({ children }) {

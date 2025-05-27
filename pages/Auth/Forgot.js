@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import axios from '../axiosConfig';
-import { useTheme } from '../Components/ThemeContext';
+import { useTheme } from '../../context/ThemeContext';
 import Head from 'next/head';
 
 function Login() {
