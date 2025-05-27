@@ -21,10 +21,15 @@ export default function Home() {
 
 
     useEffect(() => {
-        const storedUser = JSON.parse(sessionStorage.getItem('user'));
-        const sessionId = storedUser?.user?.id;
-
         const fetchUsers = async () => {
+            const storedUser = JSON.parse(sessionStorage.getItem('user'));
+            const sessionId = storedUser?.user?.id;
+
+            if (!sessionId) {
+                setError('No session found.');
+                return;
+            }
+
             try {
                 const response = await axios.post(
                     'https://nextalk-u0y1.onrender.com/displayusersProfile',
@@ -36,13 +41,11 @@ export default function Home() {
                 );
 
                 const all = response.data;
-
-                // ❗ Fixing the ID comparison properly
                 const filtered = all.filter(user => user._id !== sessionId);
                 const sessionUser = all.find(user => user._id === sessionId);
 
-                setSessionUser(sessionUser); // 👈 just image display
-                setUsers(filtered); // users excluding session user
+                setSessionUser(sessionUser);
+                setUsers(filtered);
                 setLoading(false);
             } catch (err) {
                 console.error('❌ Error fetching users:', err);
@@ -53,6 +56,7 @@ export default function Home() {
 
         fetchUsers();
     }, []);
+
 
     useEffect(() => {
         localStorage.setItem('notifications', JSON.stringify(notifications));
@@ -192,10 +196,13 @@ export default function Home() {
                             {sessionUser && (
                                 <div key={sessionUser._id} className="image-card session-user">
                                     <div className="image-wrapper">
-                                        <img
+                                        <Image
+                                            key={sessionUser.image}
                                             src={sessionUser.image || predefine}
                                             alt={sessionUser.name}
-                                            className="image-item"
+                                            width={85}
+                                            height={85}
+                                            className="rounded-circle image-item"
                                         /><br />
                                         <span className="session-badge">You</span>
                                         <div className="tooltip">
@@ -210,9 +217,12 @@ export default function Home() {
                             {users.map(user => (
                                 <div key={user._id} className="image-card">
                                     <div className="image-wrapper" onClick={() => setSelectedUser(user)}>
-                                        <img
+                                        <Image
+                                            key={user.image}
                                             src={user.image || predefine}
                                             alt={user.name}
+                                            width={85}
+                                            height={85}
                                             className="image-item"
                                         />
                                         <div className="tooltip">
@@ -226,7 +236,7 @@ export default function Home() {
 
 
                         </div>
-                        
+
                     </section>
 
                     {/* Suggested for you Section */}
@@ -243,7 +253,14 @@ export default function Home() {
                                 <div key={user._id} className="suggested-card">
                                     <div className="suggested-image-wrapper">
                                         {user.image ? (
-                                            <img src={user.image} alt={user.name} className="suggested-image" />
+                                            <Image
+                                                key={user.image}
+                                                src={user.image || predefine}
+                                                alt={user.name}
+                                                width={85}
+                                                height={85}
+                                                className="image-item"
+                                            />
                                         ) : (
                                             <Image src={predefine} alt={user.name} className="suggested-image" />
                                         )}
@@ -275,7 +292,9 @@ export default function Home() {
                                 <button className="modal-close" ><i onClick={closeModal} className="bi bi-x-lg"></i></button>
                                 <div className="modal-body">
                                     {selectedUser.image ? (
-                                        <img src={selectedUser.image} alt={selectedUser.name} className={`modal-image ${selectedUser.isSessionUser ? 'session-user' : ''}`} />
+                                        <Image key={selectedUser.image} 
+                                                width={85}
+                                                height={85} src={selectedUser.image} alt={selectedUser.name} className={`modal-image ${selectedUser.isSessionUser ? 'session-user' : ''}`} />
                                     ) : (
                                         <Image src={predefine} alt={selectedUser.name} className={`modal-image ${selectedUser.isSessionUser ? 'session-user' : ''}`} />
                                     )}

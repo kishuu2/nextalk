@@ -17,8 +17,6 @@ export default function DashboardLayout({ children }) {
     const { theme, handleThemeClick } = useTheme();
     const router = useRouter(); // corrected here
 
-
-
     const toggleTheme = () => {
         const newTheme = theme === 'dark' ? 'light' : 'dark';
         handleThemeClick(newTheme);
@@ -83,8 +81,11 @@ export default function DashboardLayout({ children }) {
     };
 
     useEffect(() => {
-        fetchProfile();
+        if (typeof window !== 'undefined') {
+            fetchProfile();
+        }
     }, []);
+
 
     const pathname = usePathname();
     const [brandText, setBrandText] = useState("Nextalk");
@@ -206,7 +207,7 @@ export default function DashboardLayout({ children }) {
                         (
                             <Link href='/Dashboard/Profile' onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} className="user-profile sleek-profile nav-link d-flex align-items-center gap-3">
                                 {profile && (
-                                    <img
+                                    <Image
                                         key={profile.image}
                                         src={profile.image || "/Images/predefine.webp"}
                                         width={45}

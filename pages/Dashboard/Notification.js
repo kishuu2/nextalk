@@ -146,7 +146,7 @@ export default function Settings() {
     const followUsers = users.filter(user => !user.isRequesting);
     const requestUsers = users.filter(user => user.isRequesting);
 
-     if (loading) return <div className="custom-loader-overlay">
+    if (loading) return <div className="custom-loader-overlay">
         <svg viewBox="0 0 100 100">
             <g fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6">
                 {/* left line */}
@@ -179,7 +179,7 @@ export default function Settings() {
             </g>
         </svg>
     </div>;
-    
+
     return (
         <DashboardLayout>
             <Head>
@@ -198,7 +198,8 @@ export default function Settings() {
                                     style={{ background: styles.notificationBg }}
                                 >
                                     {notif.image ? (
-                                        <img src={notif.image} alt={notif.name} className="user-avatar" />
+                                        <Image width={85}
+                                                height={85} key={notif.image} src={notif.image} alt={notif.name} className="user-avatar" />
                                     ) : (
                                         <Image src={predefine} alt={notif.name} className="user-avatar" />
                                     )}
@@ -229,7 +230,8 @@ export default function Settings() {
                                 >
                                     <div className="card-front" style={{ background: styles.cardBg }}>
                                         {user.image ? (
-                                            <img src={user.image} alt={user.name} className="user-avatar" />
+                                            <Image width={85}
+                                                height={85} key={user.image} src={user.image} alt={user.name} className="user-avatar" />
                                         ) : (
                                             <Image src={predefine} alt={user.name} className="user-avatar" />
                                         )}
@@ -262,9 +264,11 @@ export default function Settings() {
                                 >
                                     <div className="card-front" style={{ background: styles.cardBg }}>
                                         {user.avatar ? (
-                                            <img src={user.avatar} alt={user.name} className="user-avatar" />
+                                            <Image width={85}
+                                                height={85} key={user.avatar} src={user.avatar} alt={user.name} className="user-avatar" />
                                         ) : (
-                                            <img src={predefine} alt={user.name} className="user-avatar" />
+                                            <Image width={85}
+                                                height={85} src={predefine} alt={user.name} className="user-avatar" />
                                         )}
                                         <span className="user-name">{user.name}</span>
                                         <button

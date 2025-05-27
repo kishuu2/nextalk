@@ -186,7 +186,8 @@ export default function Profile() {
                             <div className='d-flex p-car'>
                                 <div className="profile-avatar-container">
 
-                                    <img src={profile.image || "/Images/predefine.webp"} alt={profile.name} className="profile-avatar" />
+                                    <Image width={85}
+                                                height={85} src={profile.image || "/Images/predefine.webp"} alt={profile.name} className="profile-avatar" />
                                 </div>
                                 <div>
                                     <div className='d-flex p-card' style={{ alignItems: "center" }}>

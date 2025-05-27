@@ -512,7 +512,9 @@
     max-height: 400px;
     overflow-y: auto;
 }
-
+::-webkit-scrollbar{
+    display: none;
+}
 .suggested-card {
     display: flex;
     flex-direction: column;

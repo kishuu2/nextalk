@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { useRouter } from 'next/router';
 import axios from '../axiosConfig';
 
 const ProtectedRoute = ({ children }) => {
   const [isAuth, setIsAuth] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     axios.get('/check-auth')
@@ -11,8 +12,14 @@ const ProtectedRoute = ({ children }) => {
       .catch(() => setIsAuth(false));
   }, []);
 
+  useEffect(() => {
+    if (isAuth === false) {
+      router.replace('/');
+    }
+  }, [isAuth]);
+
   if (isAuth === null) return <div>Checking session...</div>;
-  if (!isAuth) return <Navigate to="/" replace />;
+  if (isAuth === false) return null; // Already redirected
 
   return children;
 };

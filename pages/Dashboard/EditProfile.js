@@ -6,6 +6,7 @@ import predefine from "../../public/Images/predefine.webp";
 import "../styles/Profile.css";
 import DashboardLayout from '../Components/DashboardLayout';
 import Head from 'next/head';
+import Image from 'next/image';
 
 export default function EditProfile() {
     const { theme, setTheme } = useTheme();
@@ -73,7 +74,9 @@ export default function EditProfile() {
     };
 
     useEffect(() => {
-        fetchProfile();
+        if (typeof window !== 'undefined') {
+            fetchProfile();
+        }
     }, []);
 
     const handleInputChange = (e) => {
@@ -437,13 +440,15 @@ export default function EditProfile() {
                                     <div className="d-flex justify-content-between align-items-center">
                                         <div className="d-flex gap-3 align-items-center">
                                             <div onClick={handleButtonClick} style={{ cursor: "pointer" }}>
-                                                <img
-                                                    key={profile.image}
-                                                    src={profile.image || "/Images/predefine.webp"}
-                                                    alt={profile.name}
-                                                    className="profile-avatar"
-                                                    style={{ width: "80px", height: "80px" }}
-                                                />
+                                                {profile && (
+                                                    <Image
+                                                        key={profile.image}
+                                                        src={profile.image || "/Images/predefine.webp"}
+                                                        width={85}
+                                                        height={85}
+                                                        alt="User"
+                                                        className="rounded-circle sleek-avatar"
+                                                    />)}
                                             </div>
                                             <div>
                                                 <span className="text-dark">{profile.username}</span>
