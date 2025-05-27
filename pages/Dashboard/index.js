@@ -24,8 +24,6 @@ export default function Home() {
         const storedUser = JSON.parse(sessionStorage.getItem('user'));
         const sessionId = storedUser?.user?.id;
 
-        console.log('👉 Session ID:', sessionId); // 🧪 DEBUG 1
-
         const fetchUsers = async () => {
             try {
                 const response = await axios.post(
@@ -38,7 +36,6 @@ export default function Home() {
                 );
 
                 const all = response.data;
-                console.log('👉 All users from backend:', all); // 🧪 DEBUG 2
 
                 // ❗ Fixing the ID comparison properly
                 const filtered = all.filter(user => user._id !== sessionId);

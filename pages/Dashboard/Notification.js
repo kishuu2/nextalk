@@ -17,29 +17,39 @@ export default function Settings() {
     const [flipped, setFlipped] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [sessionUser, setSessionUser] = useState(null);
 
     useEffect(() => {
-        const storedNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
-        setNotifications(storedNotifications);
+        const storedUser = JSON.parse(sessionStorage.getItem('user'));
+        const sessionId = storedUser?.user?.id;
 
         const fetchUsers = async () => {
             try {
-                const response = await axios.post('https://nextalk-u0y1.onrender.com/displayusersProfile', {}, {
-                    headers: { 'Content-Type': 'application/json' },
-                    withCredentials: true,
-                });
-                setUsers(response.data);
+                const response = await axios.post(
+                    'https://nextalk-u0y1.onrender.com/displayusersProfile',
+                    {},
+                    {
+                        headers: { 'Content-Type': 'application/json' },
+                        withCredentials: true,
+                    }
+                );
+
+                const all = response.data;
+
+                // ❗ Fixing the ID comparison properly
+                const filtered = all.filter(user => user._id !== sessionId);
+                const sessionUser = all.find(user => user._id === sessionId);
+
+                setSessionUser(sessionUser); // 👈 just image display
+                setUsers(filtered); // users excluding session user
                 setLoading(false);
             } catch (err) {
-                console.error('Error fetching users:', err);
-                if (err.response && err.response.status === 404) {
-                    setError('Users endpoint not found on server. Contact support.');
-                } else {
-                    setError('Failed to load users. Please check your connection or try again later.');
-                }
+                console.error('❌ Error fetching users:', err);
+                setError('Failed to load users.');
                 setLoading(false);
             }
         };
+
         fetchUsers();
     }, []);
 
