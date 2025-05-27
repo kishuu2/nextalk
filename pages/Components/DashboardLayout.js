@@ -5,12 +5,9 @@ import Link from 'next/link';
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Image from 'next/image';
-import "../styles/DashboardLayout.css";
 import predefine from "../../public/Images/predefine.webp";
 import { useTheme } from './ThemeContext';
 import axios from '../axiosConfig';
-import "../styles/Home.css";
-import "../styles/Profile.css";
 
 export default function DashboardLayout({ children }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
