@@ -29,7 +29,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 console.log("App listen at port 5000");
 const allowedOrigins = [
     "http://localhost:3000",
-    "https://kishuu2.github.io",
+    "https://nextalk-jouy.vercel.app",
     "http://192.168.1.3:3000",
     "https://nextalk-u0y1.onrender.com"
 ];
