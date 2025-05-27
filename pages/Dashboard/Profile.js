@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useRouter } from 'next/navigation';
-import axios from '../axiosConfig';
+import axios from '../../utils/axiosConfig';
 import predefine from "../../public/Images/predefine.webp";
 import DashboardLayout from '../Components/DashboardLayout';
 import Link from 'next/link';

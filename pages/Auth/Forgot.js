@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import axios from '../axiosConfig';
+import axios from '../../utils/axiosConfig';
 import { useTheme } from '../../context/ThemeContext';
 import Head from 'next/head';
 

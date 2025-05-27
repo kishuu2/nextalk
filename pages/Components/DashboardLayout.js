@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import Image from 'next/image';
 import predefine from "../../public/Images/predefine.webp";
 import { useTheme } from '../../context/ThemeContext';
-import axios from '../axiosConfig';
+import axios from '../../utils/axiosConfig';
 
 export default function DashboardLayout({ children }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);

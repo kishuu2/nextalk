@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTheme } from '../../context/ThemeContext';
-import axios from '../axiosConfig';
+import axios from '../../utils/axiosConfig';
 import predefine from "../../public/Images/predefine.webp";
 import DashboardLayout from '../Components/DashboardLayout';
 import Image from "next/image";
