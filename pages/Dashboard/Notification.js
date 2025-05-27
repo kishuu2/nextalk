@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
 import { useTheme } from '../Components/ThemeContext';
 import axios from '../axiosConfig';
-import "../styles/Home.css";
 import predefine from "../../public/Images/predefine.webp";
 import DashboardLayout from '../Components/DashboardLayout';
 import Image from "next/image";
 import Head from 'next/head';
-import '../styles/Login.css';
 
 export default function Settings() {
     const { theme } = useTheme();

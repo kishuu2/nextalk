@@ -3,7 +3,6 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from '../Components/ThemeContext';
 import axios from '../axiosConfig';
 import predefine from "../../public/Images/predefine.webp";
-import "../styles/Profile.css";
 import DashboardLayout from '../Components/DashboardLayout';
 import Head from 'next/head';
 import Image from 'next/image';

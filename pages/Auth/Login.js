@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import axios from '../axiosConfig';
 import { useTheme } from '../Components/ThemeContext';
-import '../styles/Login.css';
 import Head from 'next/head';
 
 function Login() {

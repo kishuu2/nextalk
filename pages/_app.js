@@ -1,5 +1,11 @@
 // pages/_app.js
 import { ThemeProvider } from './Components/ThemeContext';
+import "../pages/styles/Login.css";
+import "../pages/styles/Home.css";
+import "../pages/styles/DashboardLayout.css";
+import "../pages/styles/globals.css";
+import "../pages/styles/Profile.css";
+import "../pages/styles/Chats.css";
 
 function MyApp({ Component, pageProps }) {
   return (

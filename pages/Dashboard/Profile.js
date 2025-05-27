@@ -3,12 +3,10 @@ import { useTheme } from '../Components/ThemeContext';
 import { useRouter } from 'next/navigation';
 import axios from '../axiosConfig';
 import predefine from "../../public/Images/predefine.webp";
-import "../styles/Profile.css";
 import DashboardLayout from '../Components/DashboardLayout';
 import Link from 'next/link';
 import Image from "next/image";
 import Head from 'next/head';
-import '../styles/Login.css';
 
 export default function Profile() {
     const { theme, setTheme } = useTheme(); // Assuming ThemeContext provides a setTheme function
