@@ -10,16 +10,14 @@ import predefine from "../../public/Images/predefine.webp";
 import { useTheme } from './ThemeContext';
 import axios from '../axiosConfig';
 import "../styles/Home.css";
+import "../styles/Profile.css";
 
 export default function DashboardLayout({ children }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const { theme, handleThemeClick } = useTheme();
     const router = useRouter(); // corrected here
 
-    const handleLogout = () => {
-        sessionStorage.removeItem("user");
-        router.push("/");
-    };
+
 
     const toggleTheme = () => {
         const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -98,12 +96,22 @@ export default function DashboardLayout({ children }) {
         }
     }, [pathname, profile]);
 
+
+    const [showConfirm, setShowConfirm] = useState(false);
+    const handleLogout = () => {
+        setShowConfirm(true);
+    };
+
+    const handleConfirmUpload = async (e) => {
+        sessionStorage.removeItem("user");
+        router.push("/");
+    }
     return (
         <div className="dashboard-wrapper" style={{ background: currentThemeStyles.background, color: currentThemeStyles.color }}>
             {/* Mobile Navbar */}
             <nav className={`navbar sleek-navbar ${theme === 'dark' ? 'bg-dark' : 'bg-light'} d-lg-none`}>
                 <div className="container-fluid">
-                    <Link className="navbar-brand fw-bold sleek-brand" style={{textDecoration: "none"}} href="/dashboard/profile">{brandText}</Link>
+                    <Link className="navbar-brand fw-bold sleek-brand" style={{ textDecoration: "none" }} href="/dashboard/profile">{brandText}</Link>
                     <button
                         className={`navbar-toggler sleek-toggler ${theme === 'dark' ? 'dark-toggler' : 'light-toggler'}`}
                         type="button"
@@ -160,19 +168,19 @@ export default function DashboardLayout({ children }) {
                         <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Notification">
                             <i className="bi bi-heart me-2"></i>Notification
                         </Link>
-                    </li><br/>
+                    </li><br />
                     <li className='nav-item'>
-                    <Link href=""
-                        className="btn btn-primary w-100 p-2 d-lg-none" style={{textDecoration:"none"}}
-                        type="button"
-                        onClick={() => setIsSidebarOpen(false)}
-                    >Close </Link></li>
+                        <Link href=""
+                            className="btn btn-primary w-100 p-2 d-lg-none" style={{ textDecoration: "none" }}
+                            type="button"
+                            onClick={() => setIsSidebarOpen(false)}
+                        >Close </Link></li>
                 </ul>
 
 
                 <div className="sidebar-footer p-3 sleek-footer">
                     {loading ? (
-                        <Link href='/Dashboard/Profile' onClick={() => setIsSidebarOpen(false)} style={{background: "darkgray", textDecoration: "none" }} className="user-profile sleek-profile nav-link d-flex align-items-center gap-3">
+                        <Link href='/Dashboard/Profile' onClick={() => setIsSidebarOpen(false)} style={{ background: "darkgray", textDecoration: "none" }} className="user-profile sleek-profile nav-link d-flex align-items-center gap-3">
                             <div
                                 className="skeleton"
                                 style={{
@@ -236,6 +244,25 @@ export default function DashboardLayout({ children }) {
                 <div className="container-fluid p-1 sleek-container">
                     {children} {/* NOT Outlet! */}
                 </div>
+                {showConfirm && (
+                    <div className="modal-overlay">
+                        <div className="modal-content">
+                            <h4 className="modal-title">Log Out?</h4>
+                            <p className="modal-text">
+                                Are you sure you want to log out? You will be signed out of your account and redirected to the login page.
+                            </p>
+
+                            <div className="modal-actions">
+                                <button className="modal-btn modal-btn-success" onClick={handleConfirmUpload}>
+                                    ✅ Confirm !
+                                </button>
+                                <button className="modal-btn modal-btn-cancel" onClick={() => setShowConfirm(false)}>
+                                    ❌ Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );

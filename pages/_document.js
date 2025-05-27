@@ -31,11 +31,7 @@ export default class MyDocument extends Document {
           <NextScript />
            <div id="modal-root"></div>
           {/* ✅ Bootstrap JS Bundle (Optional) */}
-          <script
-            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-ENjdO4Dr2bkBIFxQpeoAh632zV6L9ZZ6ms8x3Gk0tGLaZ1D2eAG0nNLD69Npy4HI"
-            crossOrigin="anonymous"
-          ></script>
+          <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
         </body>
       </Html>
     );
