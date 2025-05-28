@@ -1,11 +1,12 @@
 const mongoose = require("mongoose");
 
 const followSchema = new mongoose.Schema({
-  follower: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  followee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  status: { type: String, default: 'pending' },
+  follower: { type: mongoose.Schema.Types.ObjectId, ref: 'Users' }, // who sends request
+  followee: { type: mongoose.Schema.Types.ObjectId, ref: 'Users' }, // who receives request
+  status: { type: String, enum: ['pending', 'accepted'], default: 'pending' },
   followedAt: { type: Date, default: Date.now }
 });
+
 
 
 // Add a virtual to return formatted 12-hour time

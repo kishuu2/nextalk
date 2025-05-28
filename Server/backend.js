@@ -28,27 +28,27 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 console.log("App listen at port 5000");
 const allowedOrigins = [
-    "http://localhost:3000",
-    "https://nextalk-jouy.vercel.app",
-    "http://192.168.1.3:3000",
-    "https://nextalk-u0y1.onrender.com"
+  "http://localhost:3000",
+  "https://nextalk-jouy.vercel.app",
+  "http://192.168.1.3:3000",
+  "https://nextalk-u0y1.onrender.com"
 ];
 
 app.use(
-    cors({
-        origin: function (origin, callback) {
-            console.log("Request origin:", origin); // Debug origin
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                console.error("CORS error: Origin not allowed:", origin);
-                callback(new Error("Not allowed by CORS"));
-            }
-        },
-        credentials: true,
-        methods: ["GET", "POST", "PUT", "DELETE"],
-        allowedHeaders: ["Content-Type", "Authorization"],
-    })
+  cors({
+    origin: function (origin, callback) {
+      console.log("Request origin:", origin); // Debug origin
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.error("CORS error: Origin not allowed:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
 );
 app.use(cookieParser());
 app.use(session({
@@ -104,39 +104,39 @@ app.post('/signup', async (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
-    const { username, password } = req.body;
-    console.log("Login attempt:", { username });
+  const { username, password } = req.body;
+  console.log("Login attempt:", { username });
 
-    if (!username || !password) {
-        return res.status(400).json({ error: "Username and password are required" });
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password are required" });
+  }
+
+  try {
+    const user = await Users.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ error: "Invalid username or password" });
     }
 
-    try {
-        const user = await Users.findOne({ username });
-        if (!user) {
-            return res.status(401).json({ error: "Invalid username or password" });
-        }
-
-        // Plain text password check (insecure, consider bcrypt)
-        if (user.password !== password) {
-            return res.status(401).json({ error: "Invalid username or password" });
-        }
-
-        req.session.user = { id: user._id.toString(), username: user.username,name: user.name, email: user.email };
-        console.log("Session set:", req.session);
-
-        // Explicitly save the session
-        req.session.save((err) => {
-            if (err) {
-                console.error("Session save error:", err);
-                return res.status(500).json({ error: "Failed to save session" });
-            }
-            res.json({ message: "Login successful", user: req.session.user });
-        });
-    } catch (err) {
-        console.error("Login error:", err);
-        res.status(500).json({ error: "Internal server error" });
+    // Plain text password check (insecure, consider bcrypt)
+    if (user.password !== password) {
+      return res.status(401).json({ error: "Invalid username or password" });
     }
+
+    req.session.user = { id: user._id.toString(), username: user.username, name: user.name, email: user.email };
+    console.log("Session set:", req.session);
+
+    // Explicitly save the session
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session save error:", err);
+        return res.status(500).json({ error: "Failed to save session" });
+      }
+      res.json({ message: "Login successful", user: req.session.user });
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 app.get('/me', (req, res) => {
@@ -244,7 +244,7 @@ app.post("/check-email", async (req, res) => {
 app.post("/check-username", async (req, res) => {
   const { username } = req.body;
   try {
-    const user = await Users.findOne({ username: username}); 
+    const user = await Users.findOne({ username: username });
     res.json({ exists: !!user }); // true or false
   } catch (error) {
     console.error("Error checking email:", error);
@@ -322,25 +322,31 @@ const extractUserIdFromHeader = (req, res, next) => {
 
 app.get('/profile', extractUserIdFromHeader, async (req, res) => {
   try {
-    // Assuming Users is a Mongoose model
-    const user = await Users.findById(req.userId); // Use findById for single document
-    if (user) {
-      // Match frontend's expected profile structure
-      return res.status(200).json({
-        username: user.username,
-        name: user.name,
-        email: user.email,
-        bio: user.bio || 'No bio yet.', // Provide default if missing
-        image: user.image || '' // Provide default or stored avatar URL
-      });
-    } else {
-      return res.status(404).json({ message: 'User not found' });
-    }
-  } catch (error) {
-    console.error('Error fetching user:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
+    const userId = req.userId;
+    const [followersCount, followingCount] = await Promise.all([
+      Follow.countDocuments({ followee: userId, status: 'accepted' }),
+      Follow.countDocuments({ follower: userId, status: 'accepted' }),
+    ]);
+
+    const user = await Users.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    res.json({
+      name: user.name,
+      email: user.email,
+      image: user.image || '',
+      bio: user.bio || 'No bio yet.',
+      followers: followersCount,
+      following: followingCount,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
+
+
+
 
 const imageSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'Users', required: true },
@@ -350,127 +356,212 @@ const imageSchema = new mongoose.Schema({
 module.exports = mongoose.model('Image', imageSchema);
 
 app.post("/update-image", async (req, res) => {
-    const { id, image } = req.body;
+  const { id, image } = req.body;
 
-    if (!id || !image) {
-        return res.status(400).json({ message: "User ID and image are required" });
+  if (!id || !image) {
+    return res.status(400).json({ message: "User ID and image are required" });
+  }
+
+  try {
+    // Find user by ID
+    const user = await Users.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    try {
-        // Find user by ID
-        const user = await Users.findById(id);
+    // Update or add image field
+    user.image = image;
 
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
+    // Save updated user
+    await user.save();
 
-        // Update or add image field
-        user.image = image;
-
-        // Save updated user
-        await user.save();
-
-        console.log("User updated:", user);
-        return res.status(200).json({ message: "Image updated successfully", imageUrl: user.image });
-    } catch (error) {
-        console.error("Error updating image:", error);
-        return res.status(500).json({ message: "Internal server error" });
-    }
+    console.log("User updated:", user);
+    return res.status(200).json({ message: "Image updated successfully", imageUrl: user.image });
+  } catch (error) {
+    console.error("Error updating image:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 app.put("/update-profile", async (req, res) => {
-    const { id, username, name, email, bio } = req.body;
+  const { id, username, name, email, bio } = req.body;
 
-    if (!id) {
-        return res.status(400).json({ message: "User ID is required." });
+  if (!id) {
+    return res.status(400).json({ message: "User ID is required." });
+  }
+
+  try {
+    const updatedFields = {};
+    if (username) updatedFields.username = username;
+    if (name) updatedFields.name = name;
+    if (email) updatedFields.email = email;
+    if (bio !== undefined) updatedFields.bio = bio; // even empty string allowed
+
+    const updatedUser = await Users.findByIdAndUpdate(id, updatedFields, { new: true });
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found." });
     }
 
-    try {
-        const updatedFields = {};
-        if (username) updatedFields.username = username;
-        if (name) updatedFields.name = name;
-        if (email) updatedFields.email = email;
-        if (bio !== undefined) updatedFields.bio = bio; // even empty string allowed
-
-        const updatedUser = await Users.findByIdAndUpdate(id, updatedFields, { new: true });
-
-        if (!updatedUser) {
-            return res.status(404).json({ message: "User not found." });
-        }
-
-        res.status(200).json({
-            message: "Profile updated successfully.",
-            user: updatedUser,
-        });
-    } catch (err) {
-        console.error("Update profile error:", err);
-        res.status(500).json({ message: "Server error while updating profile." });
-    }
+    res.status(200).json({
+      message: "Profile updated successfully.",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error("Update profile error:", err);
+    res.status(500).json({ message: "Server error while updating profile." });
+  }
 });
 
 const Follow = require("./Models/Follow");
 
 app.post("/follow", async (req, res) => {
-    const { followerId, followeeId } = req.body;
+  const { followerId, followeeId } = req.body;
 
-    try {
-        if (followerId === followeeId) {
-            return res.status(400).json({ message: "You can't follow yourself." });
-        }
-
-        const alreadyExists = await Follow.findOne({ follower: followerId, followee: followeeId });
-        if (alreadyExists) {
-            return res.status(409).json({ message: "Already following" });
-        }
-
-        const followDoc = await Follow.create({ follower: followerId, followee: followeeId });
-
-        res.status(200).json({
-            message: "Followed successfully",
-            follow: {
-                follower: followDoc.follower,
-                followee: followDoc.followee,
-                time: followDoc.followTime, // 12-hr format
-            },
-        });
-    } catch (err) {
-        console.error("Follow Error:", err);
-        res.status(500).json({ message: "Internal server error" });
+  try {
+    if (followerId === followeeId) {
+      return res.status(400).json({ message: "You can't follow yourself." });
     }
+
+    const alreadyExists = await Follow.findOne({
+      follower: followerId,
+      followee: followeeId
+    });
+
+    if (alreadyExists) {
+      return res.status(409).json({ message: "Follow request already sent or already following." });
+    }
+
+    const followDoc = await Follow.create({
+      follower: followerId,
+      followee: followeeId,
+      status: "pending", // 🔑 This keeps track of whether it's been accepted yet
+      followTime: new Date()
+    });
+
+    res.status(200).json({
+      message: "Follow request sent successfully",
+      follow: {
+        id: followDoc._id,
+        follower: followDoc.follower,
+        followee: followDoc.followee,
+        status: followDoc.status,
+        time: new Date(followDoc.followTime).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })
+      }
+    });
+
+  } catch (err) {
+    console.error("🔥 Follow Error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
+
+
 
 app.get("/requests/:userId", async (req, res) => {
-    const { userId } = req.params;
-    console.log("Hit /requests/:userId with", userId); // Add this
+  const { userId } = req.params;
 
-    try {
-        const requests = await Follow.find({ followee: userId, status: 'pending' })
-            .populate('follower', 'name image bio');
+  try {
+    const requests = await Follow.find({ followee: userId, status: 'pending' })
+      .populate('follower', 'name image bio');
 
-        console.log("Found requests:", requests); // And this
+    console.log("✅ Raw requests fetched:", requests);
 
-        const result = requests.map(req => ({
-            _id: req.follower._id,
-            name: req.follower.name,
-            avatar: req.follower.image,
-            bio: req.follower.bio,
-            time: new Date(req.followedAt).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-            })
-        }));
+    const result = requests.map(req => {
+      if (!req.follower) {
+        console.warn("⚠️ Skipping request, follower not populated:", req);
+        return null;
+      }
 
-        res.json(result);
+      return {
+        _id: req.follower._id,
+        name: req.follower.name,
+        avatar: req.follower.image,
+        bio: req.follower.bio,
+        time: new Date(req.followedAt).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })
+      };
+    }).filter(Boolean); // remove nulls
+    res.json(result);
 
-    } catch (err) {
-        console.error("Error fetching follow requests:", err);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
+  } catch (err) {
+    console.error("❌ Error fetching follow requests:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.put('/accept-request', async (req, res) => {
+  const { followerId, followeeId } = req.body;
+
+  try {
+    const follow = await Follow.findOneAndUpdate(
+      { follower: followerId, followee: followeeId },
+      { status: 'accepted' },
+      { new: true }
+    );
+
+    if (!follow) return res.status(404).json({ message: 'Request not found' });
+
+    // ✅ B accepts A's request → so B gains a follower, A gains a following
+    await Users.findByIdAndUpdate(followeeId, { $inc: { followers: 1 } }); // B = followee
+    await Users.findByIdAndUpdate(followerId, { $inc: { following: 1 } }); // A = follower
+
+    res.status(200).json({ message: 'Accepted', follow });
+  } catch (err) {
+    console.error("🔥 Accept error:", err);
+    res.status(500).json({ message: 'Internal error' });
+  }
 });
 
 
 
+app.get('/follow-status/:userId', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    // Fetch follows where user is the follower (sent requests)
+    const outgoing = await Follow.find({ follower: userId });
+
+    // Fetch follows where user is the followee (received & accepted)
+    const incomingAccepted = await Follow.find({
+      followee: userId,
+      status: 'accepted'
+    });
+
+    const following = outgoing.map(f => f.followee.toString());
+    const accepted = [
+      ...outgoing.filter(f => f.status === 'accepted').map(f => f.followee.toString()),
+      ...incomingAccepted.map(f => f.follower.toString())
+    ];
+
+    res.json({
+      following,
+      accepted,
+    });
+  } catch (err) {
+    console.error('🔥 Error getting follow status:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// GET /pending-follow-requests/:userId
+app.get("/pending-follow-requests/:userId", async (req, res) => {
+  try {
+    const requests = await Follow.find({ followee: req.params.userId, status: "pending" });
+    res.status(200).json({ count: requests.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 
 app.listen(5000, () => {

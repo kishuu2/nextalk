@@ -116,37 +116,46 @@ export default function Settings() {
     };
 
     useEffect(() => {
-    const fetchRequests = async () => {
-        const storedUser = JSON.parse(sessionStorage.getItem('user'));
+        const fetchRequests = async () => {
+            const storedUser = JSON.parse(sessionStorage.getItem('user'));
+            try {
+                const res = await fetch(`http://localhost:5000/requests/${storedUser.user.id}`);
+                const data = await res.json();
+                setPendingRequests(data); // 👈 this has user info from .populate()
+            } catch (err) {
+                console.error("Failed to fetch follow requests:", err);
+            }
+        };
+
+        fetchRequests();
+    }, []);
+
+    const handleAccept = async (followerId) => {
         try {
-            const res = await fetch(`https://nextalk-u0y1.onrender.com/requests/${storedUser.user.id}`);
+            const res = await fetch(`http://localhost:5000/accept-request`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    followerId,
+                    followeeId: JSON.parse(sessionStorage.getItem('user')).user.id
+                })
+            });
+
             const data = await res.json();
-            console.log("Fetched request data:", data); // Log it
-            setPendingRequests(data);
+            if (res.ok) {
+                console.log("Request accepted ✅", data);
+                // Optionally remove from pending UI
+                setRequestUsers(prev => prev.filter(user => user._id !== followerId));
+            } else {
+                console.error("❌ Failed to accept:", data.message);
+            }
         } catch (err) {
-            console.error("Failed to fetch follow requests:", err);
+            console.error("🔥 Error accepting request:", err);
         }
     };
 
-    fetchRequests();
-}, []);
-
-
-
-
-
-    const handleAccept = (userId) => {
-        setPendingRequests(prev => {
-            const newRequests = new Set(prev);
-            newRequests.delete(userId);
-            return newRequests;
-        });
-        const user = users.find(u => u._id === userId);
-        setUsers(prev => prev.map(u =>
-            u._id === userId ? { ...u, isRequesting: false } : u
-        ));
-        addNotification('request_accepted', user.name, user.avatar);
-    };
 
     const toggleFlip = (userId) => {
         setFlipped(prev => {
@@ -274,22 +283,19 @@ export default function Settings() {
                     <section className="user-section accept-section">
                         <h2 className="section-title">Follow Requests</h2>
                         <div className="user-list">
-                            {requestUsers.map(user => (
+                            {pendingRequests.map(user => (
                                 <div
                                     key={user._id}
                                     className={`user-card ${flipped.has(user._id) ? 'flipped' : ''}`}
                                     onClick={() => toggleFlip(user._id)}
-                                    tabIndex={0} // keyboard accessible
-                                    role="button"
-                                    aria-pressed={flipped.has(user._id)}
                                 >
                                     <div className="card-front" style={{ background: styles.cardBg }}>
-                                        {user.image ? (
+                                        {user.avatar ? (
                                             <Image
                                                 width={85}
                                                 height={85}
-                                                src={user.image}
-                                                alt={`${user.name}'s avatar`}
+                                                src={user.avatar}
+                                                alt={user.name}
                                                 className="user-avatar"
                                             />
                                         ) : (
@@ -297,7 +303,7 @@ export default function Settings() {
                                                 width={85}
                                                 height={85}
                                                 src={predefine}
-                                                alt="Default avatar"
+                                                alt={user.name}
                                                 className="user-avatar"
                                             />
                                         )}
@@ -309,16 +315,16 @@ export default function Settings() {
                                                 e.stopPropagation();
                                                 handleAccept(user._id);
                                             }}
-                                            aria-label={`Accept follow request from ${user.name}`}
                                         >
                                             Accept
                                         </button>
                                     </div>
                                     <div className="card-back" style={{ background: styles.cardBg }}>
-                                        <span className="user-bio">{user.bio}</span>
+                                        <span className="user-bio">{user.bio || "No bio added"}</span>
                                     </div>
                                 </div>
                             ))}
+
 
                         </div>
                     </section>

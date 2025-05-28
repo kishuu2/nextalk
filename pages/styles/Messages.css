@@ -1,0 +1,180 @@
+/* Messages.css */
+body {
+  background-color: #ffffff;
+  color: #333;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+}
+
+h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 1.5rem 0;
+  color: #333;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0 1rem;
+  margin-bottom: 1rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.search-bar {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 1.5rem;
+  font-size: 0.875rem;
+  width: 100%;
+  max-width: 300px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-bar:focus {
+  outline: none;
+  border-color: #5a67d8;
+  box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.2);
+}
+
+.online-toggle {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: #333;
+  cursor: pointer;
+}
+
+.online-toggle input {
+  margin-right: 0.5rem;
+  accent-color: #5a67d8;
+}
+
+.chat-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0 1rem;
+}
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.chat-item:hover {
+  background-color: #f7fafc;
+}
+
+.image-item.sleek-avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 1rem;
+}
+
+.chat-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.friend-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.timestamp {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+.last-message-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.last-message {
+  font-size: 0.875rem;
+  color: #718096;
+  margin: 0.25rem 0 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reaction {
+  font-size: 0.875rem;
+}
+
+.loading {
+  text-align: center;
+  font-size: 1.25rem;
+  color: #5a67d8;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #5a67d8;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error {
+  text-align: center;
+  font-size: 1.25rem;
+  color: #e53e3e;
+  padding: 2rem;
+  background-color: #fff5f5;
+  border-radius: 0.375rem;
+}
+
+.no-friends {
+  text-align: center;
+  font-size: 1.25rem;
+  color: #718096;
+  padding: 2rem;
+  background-color: #edf2f7;
+  border-radius: 0.375rem;
+}
+
+@media (max-width: 640px) {
+  .search-bar {
+    max-width: 100%;
+  }
+
+  .chat-item {
+    padding: 0.5rem 0;
+  }
+
+  .image-item.sleek-avatar {
+    width: 40px;
+    height: 40px;
+  }
+}

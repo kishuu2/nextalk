@@ -12,6 +12,7 @@ export default function Home() {
     const [users, setUsers] = useState([]);
     const [notifications, setNotifications] = useState([]);
     const [following, setFollowing] = useState(new Set());
+    const [accepted, setAccepted] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [sessionUser, setSessionUser] = useState(null); // 👈 NEW
@@ -19,7 +20,7 @@ export default function Home() {
 
 
     useEffect(() => {
-        const fetchUsers = async () => {
+        const fetchData = async () => {
             const storedUser = JSON.parse(sessionStorage.getItem('user'));
             const sessionId = storedUser?.user?.id;
 
@@ -29,6 +30,7 @@ export default function Home() {
             }
 
             try {
+                // 1. Fetch all users
                 const response = await axios.post(
                     'https://nextalk-u0y1.onrender.com/displayusersProfile',
                     {},
@@ -38,22 +40,30 @@ export default function Home() {
                     }
                 );
 
-                const all = response.data;
-                const filtered = all.filter(user => user._id !== sessionId);
-                const sessionUser = all.find(user => user._id === sessionId);
-
+                const allUsers = response.data;
+                const filteredUsers = allUsers.filter(user => user._id !== sessionId);
+                const sessionUser = allUsers.find(user => user._id === sessionId);
                 setSessionUser(sessionUser);
-                setUsers(filtered);
+
+                // 2. Fetch follow status
+                const followRes = await fetch(`http://localhost:5000/follow-status/${sessionId}`);
+                const followData = await followRes.json();
+                setFollowing(new Set(followData.following));
+                setAccepted(new Set(followData.accepted));
+
+                // 3. Finally set users after everything else is ready
+                setUsers(filteredUsers);
                 setLoading(false);
             } catch (err) {
-                console.error('❌ Error fetching users:', err);
-                setError('Failed to load users.');
+                console.error('❌ Error fetching data:', err);
+                setError('Failed to load data.');
                 setLoading(false);
             }
         };
 
-        fetchUsers();
+        fetchData();
     }, []);
+
 
 
     useEffect(() => {
@@ -270,38 +280,42 @@ export default function Home() {
                             Follow All
                         </button>
                         <div className="suggested-grid">
-                            {users.map(user => (
-                                <div key={user._id} className="suggested-card">
-                                    <div className="suggested-image-wrapper">
-                                        {user.image ? (
+                            {users
+                                .filter(user => !accepted.has(user._id) && user._id !== sessionUser._id)
+                                .map(user => {
+                                    const isFollowing = following.has(user._id);
+
+                                    return (
+                                        <div key={user._id} className="suggested-card">
                                             <Image
-                                                key={user.image}
                                                 src={user.image || predefine}
                                                 alt={user.name}
                                                 width={85}
                                                 height={85}
                                                 className="image-item sleek-avatar"
                                             />
-                                        ) : (
-                                            <Image src={predefine} alt={user.name} className="suggested-image" />
-                                        )}
-                                    </div>
-                                    <div className="suggested-info">
-                                        <span className="suggested-name">{user.name}</span>
-                                        <span className="suggested-followed-by">
-                                            Followed by {user.followedBy || "user1, user2"} + {user.followedByCount || 3} more
-                                        </span><br />
-                                        <button
-                                            className="btn btn-primary w-50 btn-sm"
-                                            style={{ background: following.has(user._id) }}
-                                            onClick={() => handleFollow(user._id)}
-                                        >
-                                            {following.has(user._id) ? "Requested" : "Follow"}
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                                            <div className="suggested-info">
+                                                <span className="suggested-name">{user.name}</span>
+                                                <span className="suggested-followed-by">
+                                                    Followed by {user.followedBy || "user1, user2"} + {user.followedByCount || 3} more
+                                                </span>
+                                                <br />
+                                                {isFollowing ? (
+                                                    <button disabled className="btn btn-secondary">Requested</button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleFollow(user._id)}
+                                                        className="btn btn-primary"
+                                                    >
+                                                        Follow
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                         </div>
+
                     </section>
                 </div>
 

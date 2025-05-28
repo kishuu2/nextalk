@@ -6,6 +6,7 @@ import "../pages/styles/DashboardLayout.css";
 import "../pages/styles/globals.css";
 import "../pages/styles/Profile.css";
 import "../pages/styles/Chats.css";
+import "../pages/styles/Messages.css";
 
 function MyApp({ Component, pageProps }) {
   return (

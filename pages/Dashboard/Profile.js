@@ -44,7 +44,7 @@ export default function Profile() {
             }
 
             try {
-                const response = await axios.get('https://nextalk-u0y1.onrender.com/profile', {
+                const response = await axios.get('http://localhost:5000/profile', {
                     headers: {
                         Authorization: `Bearer ${userData.user.id}`,
                     },
@@ -61,7 +61,7 @@ export default function Profile() {
         };
         fetchProfile();
     }, []);
-
+    
     const getThemeStyles = () => {
         if (theme === 'dark') {
             return {

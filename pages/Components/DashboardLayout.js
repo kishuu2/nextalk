@@ -104,6 +104,33 @@ export default function DashboardLayout({ children }) {
         sessionStorage.removeItem("user");
         router.push("/");
     }
+
+    const [pendingCount, setPendingCount] = useState(0);
+
+    useEffect(() => {
+        const fetchPendingRequests = async () => {
+            const storedUser = JSON.parse(sessionStorage.getItem("user"));
+            const sessionId = storedUser?.user?.id;
+
+            if (!sessionId) return;
+
+            try {
+                const res = await axios.get(`http://localhost:5000/pending-follow-requests/${sessionId}`);
+                setPendingCount(res.data.count);
+            } catch (err) {
+                console.error("❌ Failed to fetch pending request count:", err);
+            }
+        };
+
+        fetchPendingRequests();
+
+        // OPTIONAL: Poll every 30s for updates
+        const interval = setInterval(fetchPendingRequests, 30000);
+
+        return () => clearInterval(interval); // cleanup on unmount
+    }, []);
+
+
     return (
         <div className="dashboard-wrapper" style={{ background: currentThemeStyles.background, color: currentThemeStyles.color }}>
             {/* Mobile Navbar */}
@@ -148,7 +175,7 @@ export default function DashboardLayout({ children }) {
                         </Link>
                     </li>
                     <li className="nav-item">
-                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Chats">
+                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Messages">
                             <i className="bi bi-chat-fill me-2"></i>Messages
                         </Link>
                     </li>
@@ -163,8 +190,25 @@ export default function DashboardLayout({ children }) {
                         </Link>
                     </li>
                     <li className="nav-item">
-                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Notification">
+                        <Link className="nav-link sleek-nav-link justify-content-between" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Notification">
+                            <div>
                             <i className="bi bi-heart me-2"></i>Notification
+                            </div>
+                            {pendingCount > 0 && (
+                                <span
+                                    style={{
+                                        backgroundColor: "#008080",
+                                        color: "white",
+                                        fontSize: "0.7rem",
+                                        padding: "6px 12px",
+                                        borderRadius: "50%",
+                                        top: "10px",
+                                        right: "10px",
+                                    }}
+                                >
+                                    {pendingCount}
+                                </span>
+                            )}
                         </Link>
                     </li><br />
                     <li className='nav-item'>
