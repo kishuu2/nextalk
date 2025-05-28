@@ -16,6 +16,7 @@ export default function Settings() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [sessionUser, setSessionUser] = useState(null);
+    const [requestUsers, setRequestUsers] = useState([]);
 
     useEffect(() => {
         const storedUser = JSON.parse(sessionStorage.getItem('user'));
@@ -115,20 +116,22 @@ export default function Settings() {
     };
 
     useEffect(() => {
-        const fetchRequests = async () => {
-            try {
-                const res = await fetch(`https://nextalk-u0y1.onrender.com/requests/${sessionUser._id}`, {
-                    credentials: "include"
-                });
-                const data = await res.json();
-                setRequestUsers(data);
-            } catch (err) {
-                console.error("Failed to fetch follow requests:", err);
-            }
-        };
+    const fetchRequests = async () => {
+        const storedUser = JSON.parse(sessionStorage.getItem('user'));
+        try {
+            const res = await fetch(`https://nextalk-u0y1.onrender.com/requests/${storedUser.user.id}`);
+            const data = await res.json();
+            console.log("Follow requests:", data);
+            setRequestUsers(data);
+        } catch (err) {
+            console.error("Failed to fetch follow requests:", err);
+        }
+    };
 
-        if (sessionUser?._id) fetchRequests();
-    }, [sessionUser]);
+    fetchRequests();
+}, []);
+
+
 
 
     const handleAccept = (userId) => {
@@ -159,7 +162,6 @@ export default function Settings() {
     };
 
     const followUsers = users.filter(user => !user.isRequesting);
-    const requestUsers = users.filter(user => user.isRequesting);
 
     if (loading) return <div className="custom-loader-overlay">
         <svg viewBox="0 0 100 100">
@@ -276,20 +278,37 @@ export default function Settings() {
                                     key={user._id}
                                     className={`user-card ${flipped.has(user._id) ? 'flipped' : ''}`}
                                     onClick={() => toggleFlip(user._id)}
+                                    tabIndex={0} // keyboard accessible
+                                    role="button"
+                                    aria-pressed={flipped.has(user._id)}
                                 >
                                     <div className="card-front" style={{ background: styles.cardBg }}>
-                                        {user.avatar ? (
-                                            <Image width={85}
-                                                height={85} key={user.avatar} src={user.avatar} alt={user.name} className="user-avatar" />
+                                        {user.image ? (
+                                            <Image
+                                                width={85}
+                                                height={85}
+                                                src={user.image}
+                                                alt={`${user.name}'s avatar`}
+                                                className="user-avatar"
+                                            />
                                         ) : (
-                                            <Image width={85}
-                                                height={85} src={predefine} alt={user.name} className="user-avatar" />
+                                            <Image
+                                                width={85}
+                                                height={85}
+                                                src={predefine}
+                                                alt="Default avatar"
+                                                className="user-avatar"
+                                            />
                                         )}
                                         <span className="user-name">{user.name}</span>
                                         <button
                                             className="accept-btn"
                                             style={{ background: styles.buttonGradient }}
-                                            onClick={(e) => { e.stopPropagation(); handleAccept(user._id); }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleAccept(user._id);
+                                            }}
+                                            aria-label={`Accept follow request from ${user.name}`}
                                         >
                                             Accept
                                         </button>
@@ -299,6 +318,7 @@ export default function Settings() {
                                     </div>
                                 </div>
                             ))}
+
                         </div>
                     </section>
                 </div>
