@@ -104,22 +104,45 @@ export default function Home() {
         }
     };
 
-    const handleFollow = (userId) => {
-        setFollowing(prev => {
-            const newFollowing = new Set(prev);
-            const user = users.find(u => u._id === userId);
-            if (newFollowing.has(userId)) {
-                newFollowing.delete(userId);
+    const handleFollow = async (userId) => {
+        const user = users.find(u => u._id === userId);
+
+        try {
+            const response = await fetch("http://localhost:5000/api/follow", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include", // if you're using sessions/cookies
+                body: JSON.stringify({
+                    followerId: sessionUser._id,
+                    followeeId: userId
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setFollowing(prev => {
+                    const updated = new Set(prev);
+                    updated.add(userId);
+                    return updated;
+                });
+
+                console.log(`You followed ${user.name} at ${data.follow.time}`);
+                // Optional: Show toast or notification with data.follow.time
             } else {
-                newFollowing.add(userId);
-                addNotification('followed', user.name, user.avatar);
+                alert(data.message);
             }
-            return newFollowing;
-        });
+
+        } catch (error) {
+            console.error("Follow request failed:", error);
+        }
     };
 
+
     const handleFollowAll = () => {
-        const newFollowing = new Set(following);
+        const newFollowing = new Set(Requested);
         users.forEach(user => {
             if (!newFollowing.has(user._id)) {
                 newFollowing.add(user._id);
@@ -269,11 +292,11 @@ export default function Home() {
                                             Followed by {user.followedBy || "user1, user2"} + {user.followedByCount || 3} more
                                         </span><br />
                                         <button
-                                            className="btn btn-outline-primary w-50 btn-sm"
+                                            className="btn btn-primary w-50 btn-sm"
                                             style={{ background: following.has(user._id) }}
                                             onClick={() => handleFollow(user._id)}
                                         >
-                                            {following.has(user._id) ? "Following" : "Follow"}
+                                            {following.has(user._id) ? "Requested" : "Follow"}
                                         </button>
                                     </div>
                                 </div>
@@ -290,9 +313,9 @@ export default function Home() {
                                 <button className="modal-close" ><i onClick={closeModal} className="bi bi-x-lg"></i></button>
                                 <div className="modal-body">
                                     {selectedUser.image ? (
-                                        <Image key={selectedUser.image} 
-                                                width={85}
-                                                height={85} src={selectedUser.image} alt={selectedUser.name} className={`modal-image ${selectedUser.isSessionUser ? 'session-user' : ''}`} />
+                                        <Image key={selectedUser.image}
+                                            width={85}
+                                            height={85} src={selectedUser.image} alt={selectedUser.name} className={`modal-image ${selectedUser.isSessionUser ? 'session-user' : ''}`} />
                                     ) : (
                                         <Image src={predefine} alt={selectedUser.name} className={`modal-image ${selectedUser.isSessionUser ? 'session-user' : ''}`} />
                                     )}

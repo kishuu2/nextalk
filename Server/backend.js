@@ -408,6 +408,36 @@ app.put("/update-profile", async (req, res) => {
     }
 });
 
+const Follow = require("./Models/Follow");
+ 
+app.post("/follow", async (req, res) => {
+    const { followerId, followeeId } = req.body;
+
+    try {
+        if (followerId === followeeId) {
+            return res.status(400).json({ message: "You can't follow yourself." });
+        }
+
+        const alreadyExists = await Follow.findOne({ follower: followerId, followee: followeeId });
+        if (alreadyExists) {
+            return res.status(409).json({ message: "Already following" });
+        }
+
+        const followDoc = await Follow.create({ follower: followerId, followee: followeeId });
+
+        res.status(200).json({
+            message: "Followed successfully",
+            follow: {
+                follower: followDoc.follower,
+                followee: followDoc.followee,
+                time: followDoc.followTime, // 12-hr format
+            },
+        });
+    } catch (err) {
+        console.error("Follow Error:", err);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
 
 app.listen(5000, () => {
   console.log("Server is Running now")
