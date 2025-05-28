@@ -46,7 +46,7 @@ export default function Home() {
                 setSessionUser(sessionUser);
 
                 // 2. Fetch follow status
-                const followRes = await fetch(`http://localhost:5000/follow-status/${sessionId}`);
+                const followRes = await fetch(`https://nextalk-jouy.vercel.app/follow-status/${sessionId}`);
                 const followData = await followRes.json();
                 setFollowing(new Set(followData.following));
                 setAccepted(new Set(followData.accepted));

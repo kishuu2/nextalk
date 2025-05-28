@@ -44,7 +44,7 @@ export default function Profile() {
             }
 
             try {
-                const response = await axios.get('http://localhost:5000/profile', {
+                const response = await axios.get('https://nextalk-jouy.vercel.app/profile', {
                     headers: {
                         Authorization: `Bearer ${userData.user.id}`,
                     },
