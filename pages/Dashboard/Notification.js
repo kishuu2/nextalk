@@ -119,7 +119,7 @@ export default function Settings() {
         const fetchRequests = async () => {
             const storedUser = JSON.parse(sessionStorage.getItem('user'));
             try {
-                const res = await fetch(`https://nextalk-jouy.vercel.app/requests/${storedUser.user.id}`);
+                const res = await fetch(`https://nextalk-u0y1.onrender.com/requests/${storedUser.user.id}`);
                 const data = await res.json();
                 setPendingRequests(data); // 👈 this has user info from .populate()
             } catch (err) {
@@ -132,7 +132,7 @@ export default function Settings() {
 
     const handleAccept = async (followerId) => {
         try {
-            const res = await fetch(`https://nextalk-jouy.vercel.app/accept-request`, {
+            const res = await fetch(`https://nextalk-u0y1.onrender.com/accept-request`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'

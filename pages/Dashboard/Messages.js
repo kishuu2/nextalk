@@ -48,7 +48,7 @@ export default function Messages() {
                 setSessionUser(sessionUser);
 
                 // Fetch follow status
-                const followRes = await fetch(`https://nextalk-jouy.vercel.app/follow-status/${sessionId}`);
+                const followRes = await fetch(`https://nextalk-u0y1.onrender.com/follow-status/${sessionId}`);
                 const followData = await followRes.json();
                 setFollowing(new Set(followData.following));
                 setAccepted(new Set(followData.accepted));

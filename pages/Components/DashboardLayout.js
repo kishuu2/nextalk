@@ -115,7 +115,7 @@ export default function DashboardLayout({ children }) {
             if (!sessionId) return;
 
             try {
-                const res = await axios.get(`https://nextalk-jouy.vercel.app/pending-follow-requests/${sessionId}`);
+                const res = await axios.get(`https://nextalk-u0y1.onrender.com/pending-follow-requests/${sessionId}`);
                 setPendingCount(res.data.count);
             } catch (err) {
                 console.error("❌ Failed to fetch pending request count:", err);
