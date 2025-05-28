@@ -114,6 +114,23 @@ export default function Settings() {
         });
     };
 
+    useEffect(() => {
+        const fetchRequests = async () => {
+            try {
+                const res = await fetch(`https://nextalk-u0y1.onrender.com/requests/${sessionUser._id}`, {
+                    credentials: "include"
+                });
+                const data = await res.json();
+                setRequestUsers(data);
+            } catch (err) {
+                console.error("Failed to fetch follow requests:", err);
+            }
+        };
+
+        if (sessionUser?._id) fetchRequests();
+    }, [sessionUser]);
+
+
     const handleAccept = (userId) => {
         setPendingRequests(prev => {
             const newRequests = new Set(prev);
@@ -197,7 +214,7 @@ export default function Settings() {
                                 >
                                     {notif.image ? (
                                         <Image width={85}
-                                                height={85} key={notif.image} src={notif.image} alt={notif.name} className="user-avatar" />
+                                            height={85} key={notif.image} src={notif.image} alt={notif.name} className="user-avatar" />
                                     ) : (
                                         <Image src={predefine} alt={notif.name} className="user-avatar" />
                                     )}

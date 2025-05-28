@@ -108,7 +108,7 @@ export default function Home() {
         const user = users.find(u => u._id === userId);
 
         try {
-            const response = await fetch("http://localhost:5000/api/follow", {
+            const response = await fetch("https://nextalk-u0y1.onrender.com/follow", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"

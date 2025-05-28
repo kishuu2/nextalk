@@ -409,7 +409,7 @@ app.put("/update-profile", async (req, res) => {
 });
 
 const Follow = require("./Models/Follow");
- 
+
 app.post("/follow", async (req, res) => {
     const { followerId, followeeId } = req.body;
 
@@ -438,6 +438,32 @@ app.post("/follow", async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 });
+
+app.get("/requests/:userId", async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const requests = await Follow.find({ followee: userId })
+            .populate("follower", "name avatar bio") // JOIN with User model
+            .sort({ followedAt: -1 });
+
+        const formatted = requests.map(req => ({
+            _id: req.follower._id,
+            name: req.follower.name,
+            avatar: req.follower.avatar,
+            bio: req.follower.bio,
+            time: req.followTime // virtual or formatted field
+        }));
+
+        res.status(200).json(formatted);
+
+    } catch (error) {
+        console.error("Failed to fetch follow requests:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
+
 
 app.listen(5000, () => {
   console.log("Server is Running now")
