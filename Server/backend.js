@@ -443,23 +443,26 @@ app.get("/requests/:userId", async (req, res) => {
     const { userId } = req.params;
 
     try {
-        const requests = await Follow.find({ followee: userId })
-            .populate("follower", "name avatar bio") // JOIN with User model
-            .sort({ followedAt: -1 });
+        const requests = await Follow.find({ followee: userId, status: 'pending' })
+            .populate('follower', 'name') // grab user info
 
-        const formatted = requests.map(req => ({
+        const result = requests.map(req => ({
             _id: req.follower._id,
             name: req.follower.name,
-            avatar: req.follower.avatar,
+            avatar: req.follower.image,
             bio: req.follower.bio,
-            time: req.followTime // virtual or formatted field
+            time: new Date(req.followedAt).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            })
         }));
 
-        res.status(200).json(formatted);
+        res.json(result);
 
-    } catch (error) {
-        console.error("Failed to fetch follow requests:", error);
-        res.status(500).json({ message: "Server error" });
+    } catch (err) {
+        console.error("Error fetching follow requests:", err);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
