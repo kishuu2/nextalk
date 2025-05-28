@@ -440,34 +440,35 @@ app.post("/follow", async (req, res) => {
 });
 
 app.get("/requests/:userId", async (req, res) => {
-  const { userId } = req.params;
+    const { userId } = req.params;
+    console.log("Hit /requests/:userId with", userId); // Add this
 
-  try {
-    const requests = await Follow.find({ followee: userId, status: 'pending' })
-      .populate('follower', 'name image bio');
+    try {
+        const requests = await Follow.find({ followee: userId, status: 'pending' })
+            .populate('follower', 'name image bio');
 
-    const result = requests.map(req => {
-      if (!req.follower) return null;
-      return {
-        _id: req.follower._id,
-        name: req.follower.name,
-        avatar: req.follower.image,
-        bio: req.follower.bio,
-        time: new Date(req.createdAt).toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true,
-        }),
-      };
-    }).filter(Boolean);
+        console.log("Found requests:", requests); // And this
 
-    res.json(result);
+        const result = requests.map(req => ({
+            _id: req.follower._id,
+            name: req.follower.name,
+            avatar: req.follower.image,
+            bio: req.follower.bio,
+            time: new Date(req.followedAt).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            })
+        }));
 
-  } catch (err) {
-    console.error("Error fetching follow requests:", err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
+        res.json(result);
+
+    } catch (err) {
+        console.error("Error fetching follow requests:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
 });
+
 
 
 

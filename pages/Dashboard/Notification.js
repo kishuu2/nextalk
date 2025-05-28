@@ -121,8 +121,8 @@ export default function Settings() {
         try {
             const res = await fetch(`https://nextalk-u0y1.onrender.com/requests/${storedUser.user.id}`);
             const data = await res.json();
-            console.log("Follow requests:", data);
-            setRequestUsers(data);
+            console.log("Fetched request data:", data); // Log it
+            setPendingRequests(data);
         } catch (err) {
             console.error("Failed to fetch follow requests:", err);
         }
@@ -130,6 +130,7 @@ export default function Settings() {
 
     fetchRequests();
 }, []);
+
 
 
 
