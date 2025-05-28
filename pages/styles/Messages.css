@@ -1,18 +1,4 @@
 /* Messages.css */
-body {
-  background-color: #ffffff;
-  color: #333;
-  font-family: 'Inter', sans-serif;
-  margin: 0;
-}
-
-h3 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  text-align: center;
-  margin: 1.5rem 0;
-  color: #333;
-}
 
 .controls {
   display: flex;
@@ -68,10 +54,6 @@ h3 {
   transition: background-color 0.2s ease;
 }
 
-.chat-item:hover {
-  background-color: #f7fafc;
-}
-
 .image-item.sleek-avatar {
   border-radius: 50%;
   object-fit: cover;
@@ -93,7 +75,6 @@ h3 {
 .friend-name {
   font-size: 1rem;
   font-weight: 600;
-  color: #333;
 }
 
 .timestamp {
