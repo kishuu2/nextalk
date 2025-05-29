@@ -245,26 +245,26 @@ export default function Home() {
                             )}
 
                             {/* 🔁 Render other users */}
-                            {users.map(user => (
-                                <div key={user._id} className="image-card">
-                                    <div className="image-wrapper" onClick={() => setSelectedUser(user)}>
-                                        <Image
-                                            key={user.image}
-                                            src={user.image || predefine}
-                                            alt={user.name}
-                                            width={85}
-                                            height={85}
-                                            className="image-item rounded-circle"
-                                        />
-                                        <div className="tooltip">
-                                            <span>{user.name}</span>
-                                            <span>{user.bio || "No bio available"}</span>
+                            {users.filter(user => accepted.has(user._id))
+                                .map(user => (
+                                    <div key={user._id} className="image-card">
+                                        <div className="image-wrapper" onClick={() => setSelectedUser(user)}>
+                                            <Image
+                                                key={user.image}
+                                                src={user.image || predefine}
+                                                alt={user.name}
+                                                width={85}
+                                                height={85}
+                                                className="image-item rounded-circle"
+                                            />
+                                            <div className="tooltip">
+                                                <span>{user.name}</span>
+                                                <span>{user.bio || "No bio available"}</span>
+                                            </div>
                                         </div>
+                                        <span className="image-username">{user.name}</span>
                                     </div>
-                                    <span className="image-username">{user.name}</span>
-                                </div>
-                            ))}
-
+                                ))}
 
                         </div>
 
@@ -338,9 +338,8 @@ export default function Home() {
                                     <button
                                         className="btn btn-outline-primary w-50 btn-sm"
                                         style={{ background: following.has(selectedUser._id) }}
-                                        onClick={() => handleFollow(selectedUser._id)}
                                     >
-                                        {following.has(selectedUser._id) ? "Following" : "Follow"}
+                                        Message
                                     </button>
 
                                 </div>

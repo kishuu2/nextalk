@@ -222,3 +222,26 @@
       box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
   }
 }
+
+.user-result {
+  transition: background-color 0.3s ease;
+}
+.user-result:hover {
+  background-color: rgba(105, 105, 105, 0.5);
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out forwards;
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0px);
+    opacity: 1;
+  }
+}

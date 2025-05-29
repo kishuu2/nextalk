@@ -21,7 +21,7 @@ export default function DashboardLayout({ children }) {
 
     const getThemeStyles = () => {
         if (theme === 'dark') {
-            return { background: '#0f172a', color: '#e2e8f0', chatBackground: '#1e293b' };
+            return { background: '#0f172a', color: '#e2e8f0', chatBackground: '#1e293b', cardBg: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' };
         }
         return { background: '#f1f5f9', color: '#1e293b', chatBackground: '#ffffff' };
     };
@@ -130,6 +130,51 @@ export default function DashboardLayout({ children }) {
         return () => clearInterval(interval); // cleanup on unmount
     }, []);
 
+    const [users, setUsers] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [sessionUserId, setSessionUserId] = useState(null);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            const storedUser = JSON.parse(sessionStorage.getItem("user"));
+            const sessionId = storedUser?.user?.id;
+            setSessionUserId(sessionId);
+
+            try {
+                const response = await axios.post(
+                    "https://nextalk-u0y1.onrender.com/displayusersProfile",
+                    {},
+                    {
+                        headers: { 'Content-Type': 'application/json' },
+                        withCredentials: true
+                    }
+                );
+
+                const allUsers = response.data;
+                const filtered = allUsers.filter(user => user._id !== sessionId);
+                setUsers(filtered);
+            } catch (error) {
+                console.error("Error fetching users:", error);
+            }
+        };
+
+        fetchUsers();
+    }, []);
+
+    useEffect(() => {
+        if (searchTerm.trim() === '') {
+            setSearchResults([]);
+            return;
+        }
+
+        const results = users.filter(user =>
+            user.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        setSearchResults(results);
+    }, [searchTerm, users]);
+
 
     return (
         <div className="dashboard-wrapper" style={{ background: currentThemeStyles.background, color: currentThemeStyles.color }}>
@@ -160,9 +205,9 @@ export default function DashboardLayout({ children }) {
                         </Link>
                     </li>
                     <li className="nav-item">
-                        <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Chats">
+                        <button className="nav-link sleek-nav-link w-100" data-bs-toggle="offcanvas" data-bs-target="#Search" style={{ textDecoration: "none" }}>
                             <i className="bi bi-search me-2"></i>Search
-                        </Link>
+                        </button>
                     </li>
                     <li className="nav-item">
                         <Link className="nav-link sleek-nav-link" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Chats">
@@ -192,7 +237,7 @@ export default function DashboardLayout({ children }) {
                     <li className="nav-item">
                         <Link className="nav-link sleek-nav-link justify-content-between" onClick={() => setIsSidebarOpen(false)} style={{ textDecoration: "none" }} href="/Dashboard/Notification">
                             <div>
-                            <i className="bi bi-heart me-2"></i>Notification
+                                <i className="bi bi-heart me-2"></i>Notification
                             </div>
                             {pendingCount > 0 && (
                                 <span
@@ -305,6 +350,99 @@ export default function DashboardLayout({ children }) {
                         </div>
                     </div>
                 )}
+                <div className="offcanvas offcanvas-start" style={{ background: currentThemeStyles.cardBg, color: currentThemeStyles.color }} id="Search">
+                    <div className="offcanvas-header">
+                        <h3 className="offcanvas-title">Search</h3>
+                        <button type="button" className="btn-close bg-danger" data-bs-dismiss="offcanvas"></button>
+                    </div>
+                    <div className="offcanvas-body">
+                        <input
+                            type="search"
+                            name="search"
+                            id="search"
+                            className="form-control mb-3"
+                            placeholder="Search users..."
+                            value={searchTerm}
+                            style={{
+                                backgroundColor: "white",
+                                transition: "background 0.3s",
+                                gap: "10px",
+                                border: "1px solid #333"
+                            }}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = "white"}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = "whitesmock"}
+                        />
+                        {
+                            loading ? (
+                                <div className='d-flex gap-4'>
+                                    <div
+                                        className="skeleton"
+                                        style={{
+                                            width: "45px",
+                                            height: "45px",
+                                            borderRadius: "50%",
+                                        }}
+                                    ></div>
+                                    <div>
+                                        <div
+                                            className="skeleton"
+                                            style={{
+                                                width: "120px",
+                                                height: "16px",
+                                                borderRadius: "4px",
+                                                marginBottom: "8px",
+                                            }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    {searchResults.map(user => (
+                                        <div
+                                            key={user._id}
+                                            className="d-flex gap-4 align-items-center user-result mb-2 p-2 rounded"
+                                            style={{
+                                                cursor: "pointer",
+                                            }}
+                                        >
+                                            <Image
+                                                src={user.image || predefine}
+                                                alt={user.name}
+                                                width={60}
+                                                height={60}
+                                                className="rounded-circle"
+                                                style={{ objectFit: "cover" }}
+                                            />
+                                            <div>
+                                                <strong>{user.username}</strong><br />
+                                                <span>{user.name}</span>
+                                            </div>
+                                        </div>
+
+                                    ))}
+
+                                    {searchResults.length === 0 && searchTerm && (
+                                        <div className="text-center mt-4 fade-in">
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="64"
+                                                height="64"
+                                                fill="gray"
+                                                viewBox="0 0 24 24"
+                                                style={{ opacity: 0.5 }}
+                                            >
+                                                <path d="M10 2a8 8 0 015.293 13.707l5 5a1 1 0 01-1.414 1.414l-5-5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z" />
+                                            </svg>
+                                            <p className="mt-2">No users found</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )
+                        }
+                    </div>
+                </div>
+
             </main>
         </div>
     );
