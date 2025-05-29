@@ -22,14 +22,14 @@ function MyApp({ Component, pageProps }) {
         <meta property="og:url" content="https://nextalk-jouy.vercel.app/" />
         <meta property="og:title" content="Nextalk - Real-Time Chat App" />
         <meta property="og:description" content="Connect, chat and vibe. Fast, private and fun messaging — just like it should be." />
-        <meta property="og:image" content="https://nextalk-jouy.vercel.app/logo.png" />
+        <meta property="og:image" content="https://nextalk-jouy.vercel.app/logo.jpg" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:url" content="https://nextalk-jouy.vercel.app/" />
         <meta name="twitter:title" content="Nextalk - Real-Time Chat App" />
         <meta name="twitter:description" content="Connect and chat instantly with Nextalk. Lightweight, real-time messaging." />
-        <meta name="twitter:image" content="https://nextalk-jouy.vercel.app/logo.png" />
+        <meta name="twitter:image" content="https://nextalk-jouy.vercel.app/logo.jpg" />
       </Head>
 
       <Component {...pageProps} />
