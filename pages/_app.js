@@ -11,22 +11,27 @@ import Head from 'next/head';
 
 function MyApp({ Component, pageProps }) {
   return (
-    
+
     <ThemeProvider>
       <Head>
         <title>Nextalk - Chat Smarter</title>
         <meta name="description" content="Nextalk is a real-time modern chat app built for speed and simplicity." />
+
+        {/* Open Graph for Facebook/Discord/LinkedIn */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://nextalk-jouy.vercel.app/" />
         <meta property="og:title" content="Nextalk - Real-Time Chat App" />
         <meta property="og:description" content="Connect, chat and vibe. Fast, private and fun messaging — just like it should be." />
-        <meta property="og:image" content="https://nextalk-jouy.vercel.app/logo.jpg" />
-        <meta property="og:url" content="https://nextalk-jouy.vercel.app/" />
-        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://nextalk-jouy.vercel.app/logo.png" />
 
+        {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content="https://nextalk-jouy.vercel.app/" />
         <meta name="twitter:title" content="Nextalk - Real-Time Chat App" />
         <meta name="twitter:description" content="Connect and chat instantly with Nextalk. Lightweight, real-time messaging." />
-        <meta name="twitter:image" content="https://nextalk-jouy.vercel.app/og-image.png" />
+        <meta name="twitter:image" content="https://nextalk-jouy.vercel.app/logo.png" />
       </Head>
+
       <Component {...pageProps} />
     </ThemeProvider>
   );
