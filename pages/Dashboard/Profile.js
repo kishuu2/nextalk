@@ -164,7 +164,7 @@ export default function Profile() {
         } else {
             setVisibleUsers(filtered.slice(0, displayCount));
         }
-    }, [searchTerm, users, displayCount, profile?.followers]);
+    }, [searchTerm, users, displayCount, profile]);
 
 
 
