@@ -61,7 +61,7 @@ export default function Profile() {
         };
         fetchProfile();
     }, []);
-    
+
     const getThemeStyles = () => {
         if (theme === 'dark') {
             return {
@@ -108,40 +108,85 @@ export default function Profile() {
     const toggleTheme = () => {
         setTheme(theme === 'dark' ? 'light' : 'dark');
     };
-     if (loading) return <div className="custom-loader-overlay">
-        <svg viewBox="0 0 100 100">
-            <g fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6">
-                {/* left line */}
-                <path d="M 21 40 V 59">
-                    <animateTransform attributeName="transform" type="rotate" values="0 21 59; 180 21 59" dur="2s" repeatCount="indefinite" />
-                </path>
-                {/* right line */}
-                <path d="M 79 40 V 59">
-                    <animateTransform attributeName="transform" type="rotate" values="0 79 59; -180 79 59" dur="2s" repeatCount="indefinite" />
-                </path>
-                {/* top line */}
-                <path d="M 50 21 V 40">
-                    <animate attributeName="d" values="M 50 21 V 40; M 50 59 V 40" dur="2s" repeatCount="indefinite" />
-                </path>
-                {/* bottom line */}
-                <path d="M 50 60 V 79">
-                    <animate attributeName="d" values="M 50 60 V 79; M 50 98 V 79" dur="2s" repeatCount="indefinite" />
-                </path>
-                {/* top box */}
-                <path d="M 50 21 L 79 40 L 50 60 L 21 40 Z">
-                    <animate attributeName="stroke" values="rgba(255,255,255,1); rgba(100,100,100,0)" dur="2s" repeatCount="indefinite" />
-                </path>
-                {/* mid box */}
-                <path d="M 50 40 L 79 59 L 50 79 L 21 59 Z" />
-                {/* bottom box */}
-                <path d="M 50 59 L 79 78 L 50 98 L 21 78 Z">
-                    <animate attributeName="stroke" values="rgba(100,100,100,0); rgba(255,255,255,1)" dur="2s" repeatCount="indefinite" />
-                </path>
-                <animateTransform attributeName="transform" type="translate" values="0 0; 0 -19" dur="2s" repeatCount="indefinite" />
-            </g>
-        </svg>
-    </div>;
+
     // if (error) return <div className="error">{error}</div>;
+    const [users, setUsers] = useState([]);
+    const [visibleUsers, setVisibleUsers] = useState([]); // shown on screen
+    const [sessionUserId, setSessionUserId] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [displayCount, setDisplayCount] = useState(6); // how many to show
+
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            const storedUser = JSON.parse(sessionStorage.getItem("user"));
+            const sessionId = storedUser?.user?.id;
+            setSessionUserId(sessionId);
+
+            try {
+                const response = await axios.post(
+                    "https://nextalk-u0y1.onrender.com/displayusersProfile",
+                    {},
+                    {
+                        headers: { 'Content-Type': 'application/json' },
+                        withCredentials: true
+                    }
+                );
+
+                const allUsers = response.data.filter(user => user._id !== sessionId);
+                setUsers(allUsers);
+                setVisibleUsers(allUsers.slice(0, 6)); // first 6
+                setTimeout(() => setLoading(false), 1000); // optional fake delay
+            } catch (error) {
+                console.error("Error fetching users:", error);
+            }
+        };
+
+        fetchUsers();
+    }, []);
+
+
+    useEffect(() => {
+        console.log("profile.followers", profile?.followers);
+        const followersArray = Array.isArray(profile?.followers) ? profile.followers : [];
+
+
+        const followedUsers = users.filter(user =>
+            followersArray.includes(user._id)
+        );
+
+        const filtered = followedUsers.filter(user =>
+            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.username.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        if (searchTerm.trim() === '') {
+            setVisibleUsers(followedUsers.slice(0, displayCount));
+        } else {
+            setVisibleUsers(filtered.slice(0, displayCount));
+        }
+    }, [searchTerm, users, displayCount, profile]);
+
+
+
+    const handleLoadMore = () => {
+        const prevCount = displayCount;
+        const newCount = prevCount + 6;
+        setDisplayCount(newCount);
+
+        // Scroll to the previous 6th user (after DOM update)
+        setTimeout(() => {
+            const userElems = document.querySelectorAll(".user-result");
+            if (userElems[prevCount]) {
+                userElems[prevCount].scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
+            }
+        }, 100); // wait a moment for new DOM elements to render
+    };
+
+
 
     return (
         <DashboardLayout>
@@ -185,7 +230,7 @@ export default function Profile() {
                                 <div className="profile-avatar-container">
 
                                     <Image width={85}
-                                                height={85} src={profile.image || "/Images/predefine.webp"} alt={profile.name} className="profile-avatar" />
+                                        height={85} src={profile.image || "/Images/predefine.webp"} alt={profile.name} className="profile-avatar" />
                                 </div>
                                 <div>
                                     <div className='d-flex p-card' style={{ alignItems: "center" }}>
@@ -199,7 +244,7 @@ export default function Profile() {
                                     </div><hr></hr>
                                     <div className="d-flex p-card">
                                         <div><span className="stat-value">{profile.posts || "0"}</span><p className="stat-label">Posts</p></div>
-                                        <div><span className="stat-value">{profile.followers || "0"}</span><p className="stat-label">Followers</p></div>
+                                        <div style={{ cursor: "pointer" }} data-bs-toggle="modal" data-bs-target="#followers"><span className="stat-value">{profile.followers || "0"}</span><p className="stat-label">Followers</p></div>
                                         <div><span className="stat-value">{profile.following || "0"}</span><p className="stat-label">Following</p></div>
                                     </div>
                                     <p className='ot-butt'>{profile.name}</p>
@@ -216,7 +261,113 @@ export default function Profile() {
                     </div>
                 </div>
             )}
+            <div className="modal" id="followers">
+                <div className="modal-dialog">
+                    <div className="modal-content">
+                        <div className='d-flex justify-content-between'>
+                            <div>
+                                <h5>Followers</h5>
+                            </div>
+                            <div>
+                                <button type="button" class="btn-close bg-primary" data-bs-dismiss="modal"></button>
+                            </div>
+                        </div><hr />
+                        <div className="">
+                            <div>
+                                <input
+                                    type="search"
+                                    name="search"
+                                    id="search"
+                                    className="form-control mb-3"
+                                    placeholder="Search users..."
+                                    value={searchTerm}
+                                    style={{
+                                        backgroundColor: "white",
+                                        transition: "background 0.3s",
+                                        gap: "10px",
+                                        border: "1px solid #333"
+                                    }}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "white"}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "whitesmock"}
+                                />
 
+                                {
+                                    loading ? (
+                                        <div className='d-flex gap-4'>
+                                            <div
+                                                className="skeleton"
+                                                style={{
+                                                    width: "45px",
+                                                    height: "45px",
+                                                    borderRadius: "50%",
+                                                }}
+                                            ></div>
+                                            <div>
+                                                <div
+                                                    className="skeleton"
+                                                    style={{
+                                                        width: "120px",
+                                                        height: "16px",
+                                                        borderRadius: "4px",
+                                                        marginBottom: "8px",
+                                                    }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {visibleUsers.map(user => (
+                                                <div
+                                                    key={user._id}
+                                                    className="d-flex gap-4 align-items-center user-result mb-2 p-2 rounded"
+                                                    style={{
+                                                        cursor: "pointer",
+                                                    }}
+                                                >
+                                                    <Image
+                                                        src={user.image || predefine}
+                                                        alt={user.name}
+                                                        width={60}
+                                                        height={60}
+                                                        className="rounded-circle"
+                                                        style={{ objectFit: "cover" }}
+                                                    />
+                                                    <div>
+                                                        <strong>{user.username}</strong><br />
+                                                        <span>{user.name}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+
+                                            {/* Show "Load More" button only if there are more followed users to show */}
+                                            {visibleUsers.length < (
+                                                searchTerm.trim() === ''
+                                                    ? (profile?.followers?.length || 0)
+                                                    : users.filter(user =>
+                                                        profile?.followers?.includes(user._id) &&
+                                                        (
+                                                            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                            user.username.toLowerCase().includes(searchTerm.toLowerCase())
+                                                        )
+                                                    ).length
+                                            ) && (
+                                                    <div className="text-center mt-3">
+                                                        <button className="btn w-100 btn-outline-primary" onClick={handleLoadMore}>
+                                                            Load More
+                                                        </button>
+                                                    </div>
+                                                )}
+                                        </>
+
+
+                                    )
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </DashboardLayout>
     );
 }
