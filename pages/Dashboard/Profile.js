@@ -152,7 +152,6 @@ export default function Profile() {
 
         // Extract follower user IDs from the populated followers array
         const followersArray = profile.followers.map(f => f._id?.toString());
-        console.log("Follower IDs extracted:", followersArray);
 
         // Filter only users who are followers
         const followedUsers = users.filter(user =>
@@ -175,10 +174,6 @@ export default function Profile() {
         }
 
     }, [searchTerm, users, displayCount, profile]);
-
-
-
-
 
 
     const handleLoadMore = () => {
@@ -384,7 +379,16 @@ export default function Profile() {
                                                     </div>
                                                 ))
                                             ) : (
-                                                <p>No more Followers</p>
+                                                <div className="no-followers-container text-center mt-5">
+                                                    <div className="icon-wrapper mb-3">
+                                                        <i className="bi bi-person-x" style={{ fontSize: "3rem", color: "#6c757d" }}></i>
+                                                    </div>
+                                                    <h5 style={{ color: "#6c757d" }}>No Followers Found</h5>
+                                                    <p style={{ color: "#adb5bd", fontSize: "0.9rem" }}>
+                                                        Looks like no one's following you yet... start connecting!
+                                                    </p>
+                                                </div>
+
                                             )}
                                             {/* Show "Load More" button only if there are more followed users to show */}
                                             {visibleUsers.length < filteredFollowers.length && (
