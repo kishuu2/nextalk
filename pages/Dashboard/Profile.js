@@ -147,9 +147,8 @@ export default function Profile() {
 
 
     useEffect(() => {
-        console.log("profile.followers", profile?.followers);
+        console.log("profile.followers", profile?.followersCount);
         const followersArray = Array.isArray(profile?.followers) ? profile.followers : [];
-        console.log(followersArray)
 
         const followedUsers = users.filter(user =>
             followersArray.includes(user._id)
@@ -186,6 +185,27 @@ export default function Profile() {
         }, 100); // wait a moment for new DOM elements to render
     };
 
+    const handleRemoveFollower = async (followerId) => {
+        console.log(followerId);
+        try {
+            // Optimistically update UI
+            setVisibleUsers(prev => prev.filter(user => user._id !== followerId));
+            setUsers(prev => prev.filter(user => user._id !== followerId));
+            setProfile(prev => ({
+                ...prev,
+                followers: prev.followers.filter(id => id !== followerId),
+                followersCount: prev.followersCount - 1
+            }));
+
+            // Send request to backend
+            await axios.delete(`http://localhost:5000/removeFollower/${followerId}`, {
+                headers: { 'Content-Type': 'application/json' },
+                withCredentials: true
+            });
+        } catch (err) {
+            console.error("Error removing follower:", err);
+        }
+    };
 
 
     return (
@@ -245,7 +265,7 @@ export default function Profile() {
                                     <div className="d-flex p-card">
                                         <div><span className="stat-value">{profile.posts || "0"}</span><p className="stat-label">Posts</p></div>
                                         <div style={{ cursor: "pointer" }} data-bs-toggle="modal" data-bs-target="#followers"><span className="stat-value">{profile.followersCount || "0"}</span><p className="stat-label">Followers</p></div>
-                                        <div><span className="stat-value">{profile.following || "0"}</span><p className="stat-label">Following</p></div>
+                                        <div><span className="stat-value">{profile.followingCount || "0"}</span><p className="stat-label">Following</p></div>
                                     </div>
                                     <p className='ot-butt'>{profile.name}</p>
                                     <p className='ot-butt'>{profile.bio}</p>
@@ -318,24 +338,34 @@ export default function Profile() {
                                     ) : (
                                         <>
                                             {visibleUsers.map(user => (
-                                                <div
-                                                    key={user._id}
-                                                    className="d-flex gap-4 align-items-center user-result mb-2 p-2 rounded"
-                                                    style={{
-                                                        cursor: "pointer",
-                                                    }}
-                                                >
-                                                    <Image
-                                                        src={user.image || predefine}
-                                                        alt={user.name}
-                                                        width={60}
-                                                        height={60}
-                                                        className="rounded-circle"
-                                                        style={{ objectFit: "cover" }}
-                                                    />
+                                                <div className='d-flex align-items-center mb-2 p-2 rounded user-result' style={{ justifyContent: "space-between " }}>
+                                                    <div
+                                                        key={user._id}
+                                                        className="d-flex gap-4 align-items-center"
+                                                        style={{
+                                                            cursor: "pointer",
+                                                        }}
+                                                    >
+                                                        <Image
+                                                            src={user.image || predefine}
+                                                            alt={user.name}
+                                                            width={60}
+                                                            height={60}
+                                                            className="rounded-circle"
+                                                            style={{ objectFit: "cover" }}
+                                                        />
+                                                        <div>
+                                                            <strong>{user.username}</strong><br />
+                                                            <span>{user.name}</span>
+                                                        </div>
+                                                    </div>
                                                     <div>
-                                                        <strong>{user.username}</strong><br />
-                                                        <span>{user.name}</span>
+                                                        <button
+                                                            className='btn btn-danger btn-sm'
+                                                            onClick={() => handleRemoveFollower(user._id)}
+                                                        >
+                                                            Unfollow
+                                                        </button>
                                                     </div>
                                                 </div>
                                             ))}

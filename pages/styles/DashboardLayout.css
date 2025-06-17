@@ -224,6 +224,8 @@
 }
 
 .user-result {
+  display: flex;
+  gap: 40px;
   transition: background-color 0.3s ease;
 }
 .user-result:hover {

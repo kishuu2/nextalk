@@ -573,6 +573,28 @@ app.get("/pending-follow-requests/:userId", async (req, res) => {
 });
 
 
+app.delete('/removeFollower/:followerId', extractUserIdFromHeader, async (req, res) => {
+  try {
+    const followerId = req.params.followerId;
+    const userId = req.userId;
+
+    const deleted = await Follow.findOneAndDelete({
+      follower: followerId,
+      followee: userId,
+      status: 'accepted'
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Follower relationship not found" });
+    }
+
+    res.json({ message: "Follower removed successfully" });
+  } catch (error) {
+    console.error("Error removing follower:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 app.listen(5000, () => {
   console.log("Server is Running now")
 });
