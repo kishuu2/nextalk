@@ -384,9 +384,6 @@ export default function Profile() {
                                                         <i className="bi bi-person-x" style={{ fontSize: "3rem", color: "#6c757d" }}></i>
                                                     </div>
                                                     <h5 style={{ color: "#6c757d" }}>No Followers Found</h5>
-                                                    <p style={{ color: "#adb5bd", fontSize: "0.9rem" }}>
-                                                        Looks like no one's following you yet... start connecting!
-                                                    </p>
                                                 </div>
 
                                             )}
