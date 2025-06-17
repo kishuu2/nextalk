@@ -338,9 +338,8 @@ export default function Profile() {
                                     ) : (
                                         <>
                                             {visibleUsers.map(user => (
-                                                <div className='d-flex align-items-center mb-2 p-2 rounded user-result' style={{ justifyContent: "space-between " }}>
+                                                <div key={user._id} className='d-flex align-items-center mb-2 p-2 rounded user-result' style={{ justifyContent: "space-between" }}>
                                                     <div
-                                                        key={user._id}
                                                         className="d-flex gap-4 align-items-center"
                                                         style={{
                                                             cursor: "pointer",
