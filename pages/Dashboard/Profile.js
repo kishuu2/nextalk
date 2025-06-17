@@ -17,8 +17,8 @@ export default function Profile() {
         bio: 'No bio yet.',
         avatar: predefine,
         posts: 15,
-        followers: 250,
-        following: 180,
+        followersCount: 250,
+        followingCount: 180,
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -149,7 +149,7 @@ export default function Profile() {
     useEffect(() => {
         console.log("profile.followers", profile?.followers);
         const followersArray = Array.isArray(profile?.followers) ? profile.followers : [];
-
+        console.log(followersArray)
 
         const followedUsers = users.filter(user =>
             followersArray.includes(user._id)
@@ -165,7 +165,7 @@ export default function Profile() {
         } else {
             setVisibleUsers(filtered.slice(0, displayCount));
         }
-    }, [searchTerm, users, displayCount, profile]);
+    }, [searchTerm, users, displayCount, profile?.followers]);
 
 
 
@@ -244,7 +244,7 @@ export default function Profile() {
                                     </div><hr></hr>
                                     <div className="d-flex p-card">
                                         <div><span className="stat-value">{profile.posts || "0"}</span><p className="stat-label">Posts</p></div>
-                                        <div style={{ cursor: "pointer" }} data-bs-toggle="modal" data-bs-target="#followers"><span className="stat-value">{profile.followers || "0"}</span><p className="stat-label">Followers</p></div>
+                                        <div style={{ cursor: "pointer" }} data-bs-toggle="modal" data-bs-target="#followers"><span className="stat-value">{profile.followersCount || "0"}</span><p className="stat-label">Followers</p></div>
                                         <div><span className="stat-value">{profile.following || "0"}</span><p className="stat-label">Following</p></div>
                                     </div>
                                     <p className='ot-butt'>{profile.name}</p>
@@ -269,7 +269,7 @@ export default function Profile() {
                                 <h5>Followers</h5>
                             </div>
                             <div>
-                                <button type="button" class="btn-close bg-primary" data-bs-dismiss="modal"></button>
+                                <button type="button" className="btn-close bg-primary" data-bs-dismiss="modal"></button>
                             </div>
                         </div><hr />
                         <div className="">
@@ -343,9 +343,9 @@ export default function Profile() {
                                             {/* Show "Load More" button only if there are more followed users to show */}
                                             {visibleUsers.length < (
                                                 searchTerm.trim() === ''
-                                                    ? (profile?.followers?.length || 0)
+                                                    ? (Array.isArray(profile.followers) ? profile.followers.length : 0)
                                                     : users.filter(user =>
-                                                        profile?.followers?.includes(user._id) &&
+                                                        (Array.isArray(profile.followers) ? profile.followers : []).includes(user._id) &&
                                                         (
                                                             user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                                             user.username.toLowerCase().includes(searchTerm.toLowerCase())
@@ -358,6 +358,7 @@ export default function Profile() {
                                                         </button>
                                                     </div>
                                                 )}
+
                                         </>
 
 

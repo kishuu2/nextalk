@@ -323,10 +323,15 @@ const extractUserIdFromHeader = (req, res, next) => {
 app.get('/profile', extractUserIdFromHeader, async (req, res) => {
   try {
     const userId = req.userId;
-    const [followersCount, followingCount] = await Promise.all([
-      Follow.countDocuments({ followee: userId, status: 'accepted' }),
-      Follow.countDocuments({ follower: userId, status: 'accepted' }),
+
+    // Fetch all accepted follow relationships
+    const [followersDocs, followingDocs] = await Promise.all([
+      Follow.find({ followee: userId, status: 'accepted' }),
+      Follow.find({ follower: userId, status: 'accepted' }),
     ]);
+
+    const followers = followersDocs.map(f => f.follower.toString());
+    const following = followingDocs.map(f => f.followee.toString());
 
     const user = await Users.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -336,14 +341,18 @@ app.get('/profile', extractUserIdFromHeader, async (req, res) => {
       email: user.email,
       image: user.image || '',
       bio: user.bio || 'No bio yet.',
-      followers: followersCount,
-      following: followingCount,
+      followers,                  // ✅ list of follower user IDs
+      followersCount: followers.length, // ✅ count of followers
+      following,
+      followingCount: following.length
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 
 
