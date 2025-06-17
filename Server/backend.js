@@ -318,20 +318,32 @@ const extractUserIdFromHeader = (req, res, next) => {
     console.error('Error in extractUserIdFromHeader:', error);
     return res.status(400).json({ message: 'Invalid token' });
   }
+
 };
 
 app.get('/profile', extractUserIdFromHeader, async (req, res) => {
   try {
     const userId = req.userId;
 
-    // Fetch all accepted follow relationships
+    // Fetch accepted follow relationships
     const [followersDocs, followingDocs] = await Promise.all([
-      Follow.find({ followee: userId, status: 'accepted' }),
-      Follow.find({ follower: userId, status: 'accepted' }),
+      Follow.find({ followee: userId, status: 'accepted' }).populate('follower', 'name username image'),
+      Follow.find({ follower: userId, status: 'accepted' }).populate('followee', 'name username image'),
     ]);
 
-    const followers = followersDocs.map(f => f.follower.toString());
-    const following = followingDocs.map(f => f.followee.toString());
+    const followers = followersDocs.map(f => ({
+      _id: f.follower._id,
+      name: f.follower.name,
+      username: f.follower.username,
+      image: f.follower.image || '',
+    }));
+
+    const following = followingDocs.map(f => ({
+      _id: f.followee._id,
+      name: f.followee.name,
+      username: f.followee.username,
+      image: f.followee.image || '',
+    }));
 
     const user = await Users.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -341,9 +353,9 @@ app.get('/profile', extractUserIdFromHeader, async (req, res) => {
       email: user.email,
       image: user.image || '',
       bio: user.bio || 'No bio yet.',
-      followers,                  // ✅ list of follower user IDs
-      followersCount: followers.length, // ✅ count of followers
-      following,
+      followers,                    // ✅ detailed list of follower users
+      followersCount: followers.length,
+      following,                    // ✅ detailed list of following users
       followingCount: following.length
     });
 
@@ -352,7 +364,6 @@ app.get('/profile', extractUserIdFromHeader, async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
 
 
 
@@ -573,27 +584,23 @@ app.get("/pending-follow-requests/:userId", async (req, res) => {
 });
 
 
-app.delete('/removeFollower/:followerId', extractUserIdFromHeader, async (req, res) => {
+app.delete('/removeFollower/:userId/:followerId', async (req, res) => {
+  const { userId, followerId } = req.params;
+
   try {
-    const followerId = req.params.followerId;
-    const userId = req.userId;
+    const result = await Follow.findOneAndDelete({ follower: followerId, followee: userId });
 
-    const deleted = await Follow.findOneAndDelete({
-      follower: followerId,
-      followee: userId,
-      status: 'accepted'
-    });
-
-    if (!deleted) {
-      return res.status(404).json({ message: "Follower relationship not found" });
+    if (!result) {
+      return res.status(404).json({ message: 'Follower not found' });
     }
 
-    res.json({ message: "Follower removed successfully" });
-  } catch (error) {
-    console.error("Error removing follower:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.json({ message: 'Follower removed successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 app.listen(5000, () => {
   console.log("Server is Running now")

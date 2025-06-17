@@ -196,12 +196,13 @@ export default function Profile() {
                 followers: prev.followers.filter(id => id !== followerId),
                 followersCount: prev.followersCount - 1
             }));
+            
+            const userId = JSON.parse(sessionStorage.getItem("user"))?.user?.id; // client-side ID
+            const response = await axios.delete(
+                `https://nextalk-u0y1.onrender.com/removeFollower/${userId}/${followerId}` // pass both IDs directly
+            );
 
-            // Send request to backend
-            await axios.delete(`https://nextalk-u0y1.onrender.com/removeFollower/${followerId}`, {
-                headers: { 'Content-Type': 'application/json' },
-                withCredentials: true
-            });
+            console.log('Unfollowed successfully', response.data);
         } catch (err) {
             console.error("Error removing follower:", err);
         }
