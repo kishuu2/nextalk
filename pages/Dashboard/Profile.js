@@ -198,7 +198,7 @@ export default function Profile() {
             }));
 
             // Send request to backend
-            await axios.delete(`http://localhost:5000/removeFollower/${followerId}`, {
+            await axios.delete(`https://nextalk-u0y1.onrender.com/removeFollower/${followerId}`, {
                 headers: { 'Content-Type': 'application/json' },
                 withCredentials: true
             });
