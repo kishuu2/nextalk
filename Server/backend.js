@@ -325,45 +325,58 @@ app.get('/profile', extractUserIdFromHeader, async (req, res) => {
   try {
     const userId = req.userId;
 
-    // Fetch accepted follow relationships
-    const [followersDocs, followingDocs] = await Promise.all([
-      Follow.find({ followee: userId, status: 'accepted' }).populate('follower', 'name username image'),
-      Follow.find({ follower: userId, status: 'accepted' }).populate('followee', 'name username image'),
-    ]);
+    // 1. Followers: jin logon ne mujhe follow kiya (status: accepted)
+    const followersDocs = await Follow.find({
+      followee: userId,
+      status: 'accepted'
+    }).populate('follower', 'name username image');
 
+    // 2. Following: jinhe main follow kar raha hoon (status: accepted)
+    const followingDocs = await Follow.find({
+      follower: userId,
+      status: 'accepted'
+    }).populate('followee', 'name username image');
+
+    // 3. Map followers to usable frontend structure
     const followers = followersDocs.map(f => ({
-      _id: f.follower._id,
+      _id: f.follower._id.toString(),
       name: f.follower.name,
       username: f.follower.username,
       image: f.follower.image || '',
     }));
 
+    // 4. Map following to usable frontend structure
     const following = followingDocs.map(f => ({
-      _id: f.followee._id,
+      _id: f.followee._id.toString(),
       name: f.followee.name,
       username: f.followee.username,
       image: f.followee.image || '',
     }));
 
+    // 5. Get logged-in user info
     const user = await Users.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // 6. Send profile response
     res.json({
+      _id: user._id,
       name: user.name,
       email: user.email,
+      username: user.username,
       image: user.image || '',
       bio: user.bio || 'No bio yet.',
-      followers,                    // ✅ detailed list of follower users
+      followers, // full user info array
       followersCount: followers.length,
-      following,                    // ✅ detailed list of following users
+      following,
       followingCount: following.length
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Profile Fetch Error:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 
 

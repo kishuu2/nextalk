@@ -20,6 +20,7 @@ export default function Profile() {
         followersCount: 250,
         followingCount: 180,
     });
+    const [filteredFollowers, setFilteredFollowers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -147,24 +148,36 @@ export default function Profile() {
 
 
     useEffect(() => {
-        console.log("profile.followers", profile?.followersCount);
-        const followersArray = Array.isArray(profile?.followers) ? profile.followers : [];
+        if (!profile || !Array.isArray(profile.followers)) return;
 
+        // Extract follower user IDs from the populated followers array
+        const followersArray = profile.followers.map(f => f._id?.toString());
+        console.log("Follower IDs extracted:", followersArray);
+
+        // Filter only users who are followers
         const followedUsers = users.filter(user =>
-            followersArray.includes(user._id)
+            followersArray.includes(user._id?.toString())
         );
 
+        // Filter for search
         const filtered = followedUsers.filter(user =>
             user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.username.toLowerCase().includes(searchTerm.toLowerCase())
         );
 
+        setFilteredFollowers(filtered); // useful for Load More check
+
+        // Control visible users based on search or default count
         if (searchTerm.trim() === '') {
             setVisibleUsers(followedUsers.slice(0, displayCount));
         } else {
             setVisibleUsers(filtered.slice(0, displayCount));
         }
+
     }, [searchTerm, users, displayCount, profile]);
+
+
+
 
 
 
@@ -196,7 +209,7 @@ export default function Profile() {
                 followers: prev.followers.filter(id => id !== followerId),
                 followersCount: prev.followersCount - 1
             }));
-            
+
             const userId = JSON.parse(sessionStorage.getItem("user"))?.user?.id; // client-side ID
             const response = await axios.delete(
                 `https://nextalk-u0y1.onrender.com/removeFollower/${userId}/${followerId}` // pass both IDs directly
@@ -338,48 +351,49 @@ export default function Profile() {
                                         </div>
                                     ) : (
                                         <>
-                                            {visibleUsers.map(user => (
-                                                <div key={user._id} className='d-flex align-items-center mb-2 p-2 rounded user-result' style={{ justifyContent: "space-between" }}>
-                                                    <div
-                                                        className="d-flex gap-4 align-items-center"
-                                                        style={{
-                                                            cursor: "pointer",
-                                                        }}
-                                                    >
-                                                        <Image
-                                                            src={user.image || predefine}
-                                                            alt={user.name}
-                                                            width={60}
-                                                            height={60}
-                                                            className="rounded-circle"
-                                                            style={{ objectFit: "cover" }}
-                                                        />
+                                            {visibleUsers.length > 0 ? (
+                                                visibleUsers.map(user => (
+                                                    <div key={user._id} className='d-flex align-items-center mb-2 p-2 rounded user-result' style={{ justifyContent: "space-between" }}>
+                                                        <div
+                                                            className="d-flex gap-4 align-items-center"
+                                                            style={{
+                                                                cursor: "pointer",
+                                                            }}
+                                                        >
+                                                            <Image
+                                                                src={user.image || predefine}
+                                                                alt={user.name}
+                                                                width={60}
+                                                                height={60}
+                                                                className="rounded-circle"
+                                                                style={{ objectFit: "cover" }}
+                                                            />
+                                                            <div>
+                                                                <strong>{user.username}</strong><br />
+                                                                <span>{user.name}</span>
+                                                            </div>
+                                                        </div>
                                                         <div>
-                                                            <strong>{user.username}</strong><br />
-                                                            <span>{user.name}</span>
+                                                            <button
+                                                                className='btn btn-danger btn-sm'
+                                                                onClick={() => handleRemoveFollower(user._id)}
+                                                            >
+                                                                Unfollow
+                                                            </button>
                                                         </div>
                                                     </div>
-                                                    <div>
-                                                        <button
-                                                            className='btn btn-danger btn-sm'
-                                                            onClick={() => handleRemoveFollower(user._id)}
-                                                        >
-                                                            Unfollow
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-
+                                                ))
+                                            ) : (
+                                                <p>No more Followers</p>
+                                            )}
                                             {/* Show "Load More" button only if there are more followed users to show */}
-                                            {visibleUsers.length < (
+                                            {visibleUsers.length < filteredFollowers.length && (
                                                 searchTerm.trim() === ''
-                                                    ? (Array.isArray(profile.followers) ? profile.followers.length : 0)
+                                                    ? (profile.followers.length || 0)
                                                     : users.filter(user =>
-                                                        (Array.isArray(profile.followers) ? profile.followers : []).includes(user._id) &&
-                                                        (
-                                                            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                            user.username.toLowerCase().includes(searchTerm.toLowerCase())
-                                                        )
+                                                        profile.followers.includes(user._id) &&
+                                                        (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                            user.username.toLowerCase().includes(searchTerm.toLowerCase()))
                                                     ).length
                                             ) && (
                                                     <div className="text-center mt-3">
@@ -388,6 +402,7 @@ export default function Profile() {
                                                         </button>
                                                     </div>
                                                 )}
+
 
                                         </>
 
