@@ -881,7 +881,7 @@ export default function Messages() {
                                             }}>
                                                 <i className="bi bi-chat-dots" style={{ fontSize: '3rem', opacity: 0.5 }}></i>
                                                 <h4 className="mt-3">No messages yet</h4>
-                                                <p className="text-muted">Start the conversation by sending a message!</p>
+                                                <p className="">Start the conversation by sending a message!</p>
                                             </div>
                                         )}
                                     </div>
@@ -1178,7 +1178,7 @@ export default function Messages() {
                                     <div className="text-center py-5">
                                         <i className="bi bi-chat-dots" style={{ fontSize: '3rem', opacity: 0.5 }}></i>
                                         <h4 className="mt-3">No messages yet</h4>
-                                        <p className="text-muted">Start the conversation by sending a message!</p>
+                                        <p className="">Start the conversation by sending a message!</p>
                                     </div>
                                 )}
                             </div>
