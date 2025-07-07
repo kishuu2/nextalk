@@ -6,9 +6,6 @@ import DashboardLayout from '../Components/DashboardLayout';
 import { useRouter } from 'next/router';
 import { useTheme } from '../../context/ThemeContext';
 import socketService from '../../utils/socket';
-// Import the existing Chats.css styles
-import '../styles/Chats.css';
-import '../styles/Messages.css';
 
 export default function Messages() {
     const [users, setUsers] = useState([]);
