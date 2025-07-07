@@ -8,10 +8,16 @@ const cookieParser = require('cookie-parser');
 const twilio = require('twilio');
 const fileUpload = require("express-fileupload");
 const dotenv = require('dotenv');
+const http = require('http');
+const socketIo = require('socket.io');
 
 dotenv.config();
 
 const url = process.env.MONGO_URI;
+
+// Import models
+const Users = require('./Models/Users');
+const Chat = require('./Models/Chat');
 
 
 mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -23,6 +29,28 @@ mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
   });
 
 const app = express();
+const server = http.createServer(app);
+
+// Socket.IO setup
+const io = socketIo(server, {
+  cors: {
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://nextalk-jouy.vercel.app",
+      "http://192.168.1.3:3000",
+      "https://nextalk-u0y1.onrender.com"
+    ],
+    methods: ["GET", "POST"],
+    credentials: true,
+    allowedHeaders: ["Content-Type"]
+  },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true
+});
+
+console.log('🚀 Socket.IO server initialized');
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -62,13 +90,201 @@ app.use(session({
   }
 }));
 
+// Store online users
+const onlineUsers = new Map();
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('🔗 New user connected with socket ID:', socket.id);
+
+  // Handle user joining
+  socket.on('join', (userId) => {
+    console.log('🔗 User attempting to join:', userId);
+    if (userId) {
+      socket.userId = userId;
+      onlineUsers.set(userId, {
+        socketId: socket.id,
+        lastSeen: new Date(),
+        isOnline: true
+      });
+
+      // Broadcast user online status to all connected clients
+      socket.broadcast.emit('userOnline', userId);
+
+      // Send current online users to the newly connected user
+      const onlineUserIds = Array.from(onlineUsers.keys()).filter(id =>
+        onlineUsers.get(id).isOnline
+      );
+      socket.emit('onlineUsers', onlineUserIds);
+
+      console.log(`✅ User ${userId} joined successfully. Online users: ${onlineUserIds.length}`);
+    } else {
+      console.log('❌ Join failed: No userId provided');
+    }
+  });
+
+  // Handle sending messages
+  socket.on('sendMessage', async (data) => {
+    try {
+      console.log('📨 Received sendMessage event:', data);
+      const { senderId, receiverId, message, messageType = 'text' } = data;
+
+      if (!senderId || !receiverId || !message) {
+        console.error('❌ Missing required fields:', { senderId, receiverId, message });
+        socket.emit('messageError', { error: 'Missing required fields' });
+        return;
+      }
+
+      // Check if this is a test message (non-ObjectId users)
+      const isTestMessage = !mongoose.Types.ObjectId.isValid(senderId) || !mongoose.Types.ObjectId.isValid(receiverId);
+
+      if (isTestMessage) {
+        console.log('🧪 Processing test message (no database save)');
+
+        // Create mock message data for testing
+        const mockMessageData = {
+          messageId: new mongoose.Types.ObjectId(),
+          senderId,
+          receiverId,
+          message,
+          messageType,
+          timestamp: new Date(),
+          chatId: new mongoose.Types.ObjectId()
+        };
+
+        // Send message to receiver if online
+        const receiverSocket = onlineUsers.get(receiverId);
+        if (receiverSocket && receiverSocket.isOnline) {
+          console.log('📤 Sending test message to receiver:', receiverId);
+          io.to(receiverSocket.socketId).emit('receiveMessage', mockMessageData);
+        } else {
+          console.log('� Test receiver is offline:', receiverId);
+        }
+
+        // Send confirmation back to sender
+        socket.emit('messageDelivered', {
+          messageId: mockMessageData.messageId,
+          chatId: mockMessageData.chatId,
+          timestamp: mockMessageData.timestamp,
+          success: true,
+          isTest: true
+        });
+
+        console.log(`✅ Test message sent successfully from ${senderId} to ${receiverId}`);
+        return;
+      }
+
+      // Handle real users with database operations
+      console.log('💾 Processing real message with database save');
+
+      // Find or create chat between users
+      let chat = await Chat.findChatBetweenUsers(senderId, receiverId);
+      console.log('🔍 Found existing chat:', !!chat);
+
+      if (!chat) {
+        console.log('🆕 Creating new chat between users');
+        chat = new Chat({
+          participants: [senderId, receiverId],
+          messages: []
+        });
+        console.log('💾 Saving new chat...');
+        await chat.save();
+        console.log('✅ New chat created with ID:', chat._id);
+      }
+
+      // Add message to chat
+      console.log('💾 Adding message to chat...');
+      await chat.addMessage(senderId, receiverId, message, messageType);
+
+      // Get the last message that was just added
+      const lastMessage = chat.messages[chat.messages.length - 1];
+      console.log('✅ Message saved with ID:', lastMessage._id);
+
+      // Prepare message data
+      const messageData = {
+        messageId: lastMessage._id,
+        senderId,
+        receiverId,
+        message,
+        messageType,
+        timestamp: lastMessage.timestamp,
+        chatId: chat._id
+      };
+
+      // Send message to receiver if online
+      const receiverSocket = onlineUsers.get(receiverId);
+      if (receiverSocket && receiverSocket.isOnline) {
+        console.log('📤 Sending message to receiver:', receiverId);
+        io.to(receiverSocket.socketId).emit('receiveMessage', messageData);
+      } else {
+        console.log('📴 Receiver is offline:', receiverId);
+      }
+
+      // Send confirmation back to sender
+      socket.emit('messageDelivered', {
+        messageId: lastMessage._id,
+        chatId: chat._id,
+        timestamp: lastMessage.timestamp,
+        success: true
+      });
+
+      console.log(`✅ Message sent successfully from ${senderId} to ${receiverId}`);
+
+    } catch (error) {
+      console.error('❌ Error sending message:', error);
+      console.error('❌ Error stack:', error.stack);
+      socket.emit('messageError', {
+        error: 'Failed to send message',
+        details: error.message,
+        stack: error.stack
+      });
+    }
+  });
+
+  // Handle typing indicators
+  socket.on('typing', (data) => {
+    const { senderId, receiverId, isTyping } = data;
+    const receiverSocket = onlineUsers.get(receiverId);
+
+    if (receiverSocket) {
+      io.to(receiverSocket.socketId).emit('userTyping', {
+        userId: senderId,
+        isTyping
+      });
+    }
+  });
+
+  // Handle disconnection
+  socket.on('disconnect', () => {
+    if (socket.userId) {
+      // Update user status to offline
+      const userInfo = onlineUsers.get(socket.userId);
+      if (userInfo) {
+        onlineUsers.set(socket.userId, {
+          ...userInfo,
+          isOnline: false,
+          lastSeen: new Date()
+        });
+
+        // Broadcast user offline status
+        socket.broadcast.emit('userOffline', socket.userId);
+
+        // Remove from online users after 30 seconds
+        setTimeout(() => {
+          onlineUsers.delete(socket.userId);
+        }, 30000);
+      }
+
+      console.log(`User ${socket.userId} disconnected`);
+    }
+    console.log('User disconnected:', socket.id);
+  });
+});
+
 app.get("/", (req, resp) => {
   resp.send("App is Working");
 });
 
-
-//Student Data
-const Users = require("./Models/Users");
 //const UserTeacher = require("./Models/Teachers");
 
 app.post('/signup', async (req, res) => {
@@ -614,7 +830,112 @@ app.delete('/removeFollower/:userId/:followerId', async (req, res) => {
   }
 });
 
+// Chat API Routes
 
-app.listen(5000, () => {
-  console.log("Server is Running now")
+// Get chat history between two users
+app.get('/chat/:userId1/:userId2', async (req, res) => {
+  try {
+    const { userId1, userId2 } = req.params;
+
+    const chat = await Chat.findChatBetweenUsers(userId1, userId2);
+
+    if (!chat) {
+      return res.json({ messages: [] });
+    }
+
+    // Sort messages by timestamp
+    const messages = chat.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    res.json({
+      chatId: chat._id,
+      messages: messages.map(msg => ({
+        id: msg._id,
+        senderId: msg.senderId,
+        receiverId: msg.receiverId,
+        message: msg.message,
+        messageType: msg.messageType,
+        timestamp: msg.timestamp,
+        isRead: msg.isRead,
+        isDelivered: msg.isDelivered
+      }))
+    });
+
+  } catch (error) {
+    console.error('Error fetching chat history:', error);
+    res.status(500).json({ error: 'Failed to fetch chat history' });
+  }
+});
+
+// Get all chats for a user
+app.get('/chats/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const chats = await Chat.find({
+      participants: userId
+    }).populate('participants', 'name username image')
+      .sort({ lastMessageTime: -1 });
+
+    const chatList = chats.map(chat => {
+      const otherParticipant = chat.participants.find(p => p._id.toString() !== userId);
+      return {
+        chatId: chat._id,
+        participant: otherParticipant,
+        lastMessage: chat.lastMessage,
+        lastMessageTime: chat.lastMessageTime,
+        unreadCount: chat.messages.filter(msg =>
+          msg.receiverId.toString() === userId && !msg.isRead
+        ).length
+      };
+    });
+
+    res.json(chatList);
+
+  } catch (error) {
+    console.error('Error fetching user chats:', error);
+    res.status(500).json({ error: 'Failed to fetch chats' });
+  }
+});
+
+// Get online users status
+app.get('/online-users', (req, res) => {
+  const onlineUserIds = Array.from(onlineUsers.keys()).filter(userId =>
+    onlineUsers.get(userId).isOnline
+  );
+  res.json({ onlineUsers: onlineUserIds });
+});
+
+// Mark messages as read
+app.post('/chat/mark-read', async (req, res) => {
+  try {
+    const { chatId, userId } = req.body;
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    // Mark all unread messages from other user as read
+    let updatedCount = 0;
+    chat.messages.forEach(message => {
+      if (message.receiverId.toString() === userId && !message.isRead) {
+        message.isRead = true;
+        updatedCount++;
+      }
+    });
+
+    if (updatedCount > 0) {
+      await chat.save();
+    }
+
+    res.json({ message: `${updatedCount} messages marked as read` });
+
+  } catch (error) {
+    console.error('Error marking messages as read:', error);
+    res.status(500).json({ error: 'Failed to mark messages as read' });
+  }
+});
+
+server.listen(5000, () => {
+  console.log("Server is Running now with Socket.IO support")
 });

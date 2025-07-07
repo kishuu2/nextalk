@@ -269,7 +269,7 @@ export default function Home() {
                         </div>
 
                     </section>
-
+                    
                     {/* Suggested for you Section */}
                     <section className="suggested-section animate-fade-in">
                         <div className="suggested-header">

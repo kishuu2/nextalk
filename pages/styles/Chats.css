@@ -166,3 +166,207 @@
         top: 70px; /* Accounts for navbar height */
     }
 }
+
+/* Messages Component Responsive Styles */
+.chat-list-with-panel {
+    width: 350px !important;
+}
+
+@media (max-width: 1024px) {
+    .chat-container {
+        flex-direction: column;
+        height: 90vh;
+    }
+
+    .chat-list {
+        width: 100% !important;
+        max-height: none;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .chat-panel {
+        width: 100% !important;
+        display: flex !important;
+    }
+
+    .chat-list-with-panel {
+        display: none; /* Hide chat list when chat is open on mobile */
+    }
+}
+
+@media (max-width: 768px) {
+    .chat-container {
+        height: 95vh;
+    }
+
+    .chat-item {
+        padding: 10px 15px;
+    }
+
+    .chat-messages {
+        max-height: 300px;
+    }
+
+    .message-bubble {
+        max-width: 85%;
+    }
+}
+
+@media (max-width: 480px) {
+    .chat-input-form {
+        padding: 15px;
+    }
+
+    .chat-input {
+        padding: 10px 14px;
+        font-size: 0.9rem;
+    }
+
+    .chat-send-btn {
+        width: 45px;
+        height: 45px;
+    }
+
+    .chat-title {
+        font-size: 1.2rem;
+    }
+
+    .user-name {
+        font-size: 0.8rem;
+    }
+
+    .last-message {
+        font-size: 0.7rem;
+    }
+}
+
+/* Typing Indicator Animation */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0;
+}
+
+.typing-indicator span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #6b7280;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes typing {
+    0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Status Indicator Styles */
+.status-indicator {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+    transition: background-color 0.3s ease;
+}
+
+/* Chat Messages Scrollbar */
+.chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* Fixed Chat Input Position */
+.chat-input-form {
+    position: sticky;
+    bottom: 0;
+    background: inherit;
+    padding: 15px 20px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+/* Typing Indicator in User List */
+.typing-text {
+    color: #10b981;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.typing-text .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.typing-text .typing-indicator span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: #10b981;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-text .typing-indicator span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-text .typing-indicator span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+/* Enhanced Status Indicator */
+.status-indicator {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.status-indicator.online {
+    background-color: #10b981;
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.3);
+}
+
+.status-indicator.offline {
+    background-color: #ef4444;
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3);
+}

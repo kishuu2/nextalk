@@ -15,15 +15,22 @@ export default function Settings() {
     const [flipped, setFlipped] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [accepted, setAccepted] = useState(new Set());
     const [sessionUser, setSessionUser] = useState(null);
     const [requestUsers, setRequestUsers] = useState([]);
 
     useEffect(() => {
-        const storedUser = JSON.parse(sessionStorage.getItem('user'));
-        const sessionId = storedUser?.user?.id;
+        const fetchData = async () => {
+            const storedUser = JSON.parse(sessionStorage.getItem('user'));
+            const sessionId = storedUser?.user?.id;
 
-        const fetchUsers = async () => {
+            if (!sessionId) {
+                setError('No session found.');
+                return;
+            }
+
             try {
+                // 1. Fetch all users
                 const response = await axios.post(
                     'https://nextalk-u0y1.onrender.com/displayusersProfile',
                     {},
@@ -33,23 +40,28 @@ export default function Settings() {
                     }
                 );
 
-                const all = response.data;
+                const allUsers = response.data;
+                const filteredUsers = allUsers.filter(user => user._id !== sessionId);
+                const sessionUser = allUsers.find(user => user._id === sessionId);
+                setSessionUser(sessionUser);
 
-                // ❗ Fixing the ID comparison properly
-                const filtered = all.filter(user => user._id !== sessionId);
-                const sessionUser = all.find(user => user._id === sessionId);
+                // 2. Fetch follow status
+                const followRes = await fetch(`https://nextalk-u0y1.onrender.com/follow-status/${sessionId}`);
+                const followData = await followRes.json();
+                setFollowing(new Set(followData.following));
+                setAccepted(new Set(followData.accepted));
 
-                setSessionUser(sessionUser); // 👈 just image display
-                setUsers(filtered); // users excluding session user
+                // 3. Finally set users after everything else is ready
+                setUsers(filteredUsers);
                 setLoading(false);
             } catch (err) {
-                console.error('❌ Error fetching users:', err);
-                setError('Failed to load users.');
+                console.error('❌ Error fetching data:', err);
+                setError('Failed to load data.');
                 setLoading(false);
             }
         };
 
-        fetchUsers();
+        fetchData();
     }, []);
 
     useEffect(() => {
@@ -99,20 +111,6 @@ export default function Settings() {
             case 'user_online': return `${userName} is now online!`;
             default: return 'New event occurred!';
         }
-    };
-
-    const handleFollow = (userId) => {
-        setFollowing(prev => {
-            const newFollowing = new Set(prev);
-            const user = users.find(u => u._id === userId);
-            if (newFollowing.has(userId)) {
-                newFollowing.delete(userId);
-            } else {
-                newFollowing.add(userId);
-                addNotification('followed', user.name, user.avatar);
-            }
-            return newFollowing;
-        });
     };
 
     useEffect(() => {
@@ -173,6 +171,41 @@ export default function Settings() {
 
     const followUsers = users.filter(user => !user.isRequesting);
 
+    const handleFollow = async (userId) => {
+        const user = users.find(u => u._id === userId);
+
+        try {
+            const response = await fetch("https://nextalk-u0y1.onrender.com/follow", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include", // if you're using sessions/cookies
+                body: JSON.stringify({
+                    followerId: sessionUser._id,
+                    followeeId: userId
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setFollowing(prev => {
+                    const updated = new Set(prev);
+                    updated.add(userId);
+                    return updated;
+                });
+
+                console.log(`You followed ${user.name} at ${data.follow.time}`);
+                // Optional: Show toast or notification with data.follow.time
+            } else {
+                alert(data.message);
+            }
+
+        } catch (error) {
+            console.error("Follow request failed:", error);
+        }
+    };
     if (loading) return <div className="custom-loader-overlay">
         <svg viewBox="0 0 100 100">
             <g fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6">
@@ -246,37 +279,48 @@ export default function Settings() {
                     </section>
 
                     {/* Follow Section */}
-                    <section className="user-section follow-section">
-                        <h2 className="section-title">People to Follow</h2>
-                        <div className="user-list">
-                            {followUsers.map(user => (
-                                <div
-                                    key={user._id}
-                                    className={`user-card ${flipped.has(user._id) ? 'flipped' : ''}`}
-                                    onClick={() => toggleFlip(user._id)}
-                                >
-                                    <div className="card-front" style={{ background: styles.cardBg }}>
-                                        {user.image ? (
-                                            <Image width={85}
-                                                height={85} key={user.image} src={user.image} alt={user.name} className="user-avatar" />
-                                        ) : (
-                                            <Image src={predefine} alt={user.name} className="user-avatar" />
-                                        )}
-                                        <span className="user-name">{user.name}</span>
-                                        <button
-                                            className="follow-btn"
-                                            style={{ background: following.has(user._id) ? styles.buttonHover : styles.buttonGradient }}
-                                            onClick={(e) => { e.stopPropagation(); handleFollow(user._id); }}
-                                        >
-                                            {following.has(user._id) ? "Following" : "Follow"}
-                                        </button>
-                                    </div>
-                                    <div className="card-back" style={{ background: styles.cardBg }}>
-                                        <span className="user-bio">{user.bio}</span>
-                                    </div>
-                                </div>
-                            ))}
+                    <section className="suggested-section animate-fade-in">
+                        <div className="suggested-header">
+                            <h2 className="section-title">Suggested for You</h2>
+                            <a href="#" className="see-all">See All</a>
                         </div>
+                        <div className="suggested-grid">
+                            {users
+                                .filter(user => !accepted.has(user._id) && user._id !== sessionUser._id)
+                                .map(user => {
+                                    const isFollowing = following.has(user._id);
+
+                                    return (
+                                        <div key={user._id} className="suggested-card">
+                                            <Image
+                                                src={user.image || predefine}
+                                                alt={user.name}
+                                                width={85}
+                                                height={85}
+                                                className="image-item rounded-circle"
+                                            />
+                                            <div className="suggested-info">
+                                                <span className="suggested-name">{user.name}</span>
+                                                <span className="suggested-followed-by">
+                                                    Followed by {user.followedBy || "user1, user2"} + {user.followedByCount || 3} more
+                                                </span>
+                                                <br />
+                                                {isFollowing ? (
+                                                    <button disabled className="btn btn-secondary">Requested</button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleFollow(user._id)}
+                                                        className="btn btn-primary"
+                                                    >
+                                                        Follow
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                        </div>
+
                     </section>
 
                     {/* Accept Section */}
