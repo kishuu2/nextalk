@@ -54,9 +54,8 @@
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 10px;
-  height: 10px;
-  background: radial-gradient(circle, #48bb78 60%, #38a169 100%);
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   border: 2px solid #2d3748;
   box-shadow: 0 0 5px #48bb78;
@@ -116,90 +115,82 @@
   }
 }
 
-/* Mobile - Responsive behavior */
+/* Mobile - Bootstrap Modal Approach */
 @media (max-width: 1023px) {
+  /* Main container stays normal on mobile */
   .chat-container {
     position: relative;
-    padding: 6px;
   }
 
-  /* When no chat is selected, show only chat list */
+  /* Chat list takes full width on mobile */
   .chat-list {
-    width: 100%;
+    width: 100% !important;
     display: block;
-    padding: 6px;
   }
 
+  /* Hide desktop chat panel on mobile - use modal instead */
   .chat-panel {
-    display: none;
+    display: none !important;
   }
+}
 
-  /* When chat is selected, hide list and show panel */
-  .chat-list.chat-list-with-panel {
-    display: none;
-  }
+/* Bootstrap Modal Styling for Mobile Chat */
+.modal-fullscreen .modal-content {
+  border-radius: 0;
+  border: none;
+}
 
-  .chat-panel.chat-panel-active {
-    display: flex;
-    width: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: inherit;
-    z-index: 10;
-    padding: 6px;
-  }
+.modal-fullscreen .modal-header {
+  padding: 1rem;
+  min-height: 60px;
+}
 
-  /* Mobile chat input styling */
-  .chat-input-form {
-    padding: 10px 6px;
-    background: inherit;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-  }
+.modal-fullscreen .modal-body {
+  padding: 0;
+}
 
-  .chat-input-form .input-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+/* Mobile Chat Message Styling in Modal */
+.modal .message {
+  margin-bottom: 1rem;
+}
 
-  .chat-input {
-    flex: 1;
-    border-radius: 20px !important;
-    padding: 10px 16px !important;
-    border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  }
+.modal .rounded-3 {
+  border-radius: 1rem !important;
+  max-width: 70%;
+  word-wrap: break-word;
+}
 
-  .chat-send-btn {
-    width: 40px !important;
-    height: 40px !important;
-    border-radius: 50% !important;
-    padding: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
+.modal .bg-primary {
+  background-color: #3b82f6 !important;
+}
 
-  /* Mobile chat messages */
-  .chat-messages {
-    padding: 6px 10px !important;
-    height: calc(100vh - 200px) !important;
-  }
+.modal .bg-light {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: #333 !important;
+}
 
-  /* Mobile chat header */
-  .chat-header {
-    padding: 10px 6px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  }
+/* Message alignment in modal */
+.modal .justify-content-end {
+  justify-content: flex-end !important;
+}
 
-  /* Mobile user list items */
-  .chat-item {
-    padding: 12px 6px;
-    margin: 4px 0;
-    border-radius: 12px;
-  }
+.modal .justify-content-start {
+  justify-content: flex-start !important;
+}
+
+/* Input section styling */
+.modal .border-top {
+  border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.modal .form-control {
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 25px !important;
+}
+
+.modal .btn-primary {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
 }
 
 .chat-window, .instructions {
@@ -215,7 +206,6 @@
   font-size: 1.125rem;
   font-weight: bold;
   margin-bottom: 1rem;
-  text-align: center;
 }
 
 .chat-content, .instruction-text {

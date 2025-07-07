@@ -109,25 +109,59 @@ export default function DashboardLayout({ children }) {
 
     useEffect(() => {
         const fetchPendingRequests = async () => {
-            const storedUser = JSON.parse(sessionStorage.getItem("user"));
-            const sessionId = storedUser?.user?.id;
-
-            if (!sessionId) return;
-
             try {
-                const res = await axios.get(`https://nextalk-u0y1.onrender.com/pending-follow-requests/${sessionId}`);
-                setPendingCount(res.data.count);
+                const storedUser = JSON.parse(sessionStorage.getItem("user"));
+                const sessionId = storedUser?.user?.id;
+
+                if (!sessionId) {
+                    console.log("No session ID found, skipping pending requests fetch");
+                    return;
+                }
+
+                // Add timeout and better error handling
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+                const res = await axios.get(
+                    `https://nextalk-u0y1.onrender.com/pending-follow-requests/${sessionId}`,
+                    {
+                        signal: controller.signal,
+                        timeout: 10000,
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                clearTimeout(timeoutId);
+                setPendingCount(res.data.count || 0);
+                console.log("✅ Pending requests fetched successfully:", res.data.count);
+
             } catch (err) {
-                console.error("❌ Failed to fetch pending request count:", err);
+                if (err.name === 'AbortError') {
+                    console.log("⏰ Request timeout - skipping pending requests");
+                } else if (err.code === 'NETWORK_ERROR' || err.message.includes('Network Error')) {
+                    console.log("🌐 Network error - will retry later");
+                } else {
+                    console.error("❌ Failed to fetch pending request count:", err.message);
+                }
+                // Set default count on error
+                setPendingCount(0);
             }
         };
 
-        fetchPendingRequests();
+        // Initial fetch with delay to avoid immediate network issues
+        const initialTimeout = setTimeout(() => {
+            fetchPendingRequests();
+        }, 2000);
 
-        // OPTIONAL: Poll every 30s for updates
-        const interval = setInterval(fetchPendingRequests, 30000);
+        // OPTIONAL: Poll every 60s for updates (increased interval to reduce network load)
+        const interval = setInterval(fetchPendingRequests, 60000);
 
-        return () => clearInterval(interval); // cleanup on unmount
+        return () => {
+            clearTimeout(initialTimeout);
+            clearInterval(interval);
+        };
     }, []);
 
     const [users, setUsers] = useState([]);

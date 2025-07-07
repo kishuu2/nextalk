@@ -360,6 +360,55 @@
     transform: scale(0.95);
 }
 
+/* Message Footer and Delivery Status */
+.message-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+    gap: 8px;
+}
+
+.message-timestamp {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.delivery-status {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.delivery-status i {
+    font-size: 12px;
+}
+
+/* Message Bubble Enhancements */
+.message-bubble {
+    padding: 8px 12px;
+    border-radius: 18px;
+    max-width: 70%;
+    word-wrap: break-word;
+    position: relative;
+}
+
+.message-you .message-bubble {
+    background: #3b82f6;
+    color: white;
+    margin-left: auto;
+}
+
+.message-friend .message-bubble {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    margin-right: auto;
+}
+
+.message-text {
+    display: block;
+    line-height: 1.4;
+}
+
 /* Typing Indicator in User List */
 .typing-text {
     color: #10b981;
@@ -412,4 +461,69 @@
 .status-indicator.offline {
     background-color: #ef4444;
     box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3);
+}
+
+/* Unread Message Badge */
+.unread-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #ff3b30;
+    color: white;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(255, 59, 48, 0.3);
+    animation: unreadPulse 2s infinite;
+}
+
+@keyframes unreadPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+/* Chat Item Positioning */
+.chat-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.chat-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.chat-item.selected {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid #3b82f6;
+}
+
+/* Enhanced Status Indicator */
+.status-indicator {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+    z-index: 2;
 }

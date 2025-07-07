@@ -51,9 +51,12 @@ export default function Messages() {
     const [onlineUsers, setOnlineUsers] = useState(new Set());
     const [typingUsers, setTypingUsers] = useState(new Set());
     const [isTyping, setIsTyping] = useState(false);
+    const [unreadCounts, setUnreadCounts] = useState({});
+    const [deliveredMessages, setDeliveredMessages] = useState(new Set());
+    const [showMobileModal, setShowMobileModal] = useState(false);
     const typingTimeoutRef = useRef(null);
 
-    // Local Storage utility functions
+    // Enhanced Local Storage utility functions
     const getChatHistory = (userId) => {
         try {
             if (!sessionUserId || !userId) return [];
@@ -66,11 +69,79 @@ export default function Messages() {
         }
     };
 
+    const saveChatHistory = (userId, messages) => {
+        try {
+            if (!sessionUserId || !userId) return;
+            const chatKey = `chat_${sessionUserId}_${userId}`;
+            localStorage.setItem(chatKey, JSON.stringify(messages));
+            console.log('💾 Chat history saved for user:', userId);
+        } catch (error) {
+            console.error('Error saving chat history:', error);
+        }
+    };
+
+    const getUnreadCount = (userId) => {
+        try {
+            if (!sessionUserId || !userId) return 0;
+            const unreadKey = `unread_${sessionUserId}_${userId}`;
+            const stored = localStorage.getItem(unreadKey);
+            return stored ? parseInt(stored) : 0;
+        } catch (error) {
+            console.error('Error loading unread count:', error);
+            return 0;
+        }
+    };
+
+    const saveUnreadCount = (userId, count) => {
+        try {
+            if (!sessionUserId || !userId) return;
+            const unreadKey = `unread_${sessionUserId}_${userId}`;
+            localStorage.setItem(unreadKey, count.toString());
+            setUnreadCounts(prev => ({
+                ...prev,
+                [userId]: count
+            }));
+        } catch (error) {
+            console.error('Error saving unread count:', error);
+        }
+    };
+
+    const getLastMessage = (userId) => {
+        try {
+            if (!sessionUserId || !userId) return '';
+            const lastMsgKey = `lastmsg_${sessionUserId}_${userId}`;
+            return localStorage.getItem(lastMsgKey) || '';
+        } catch (error) {
+            console.error('Error loading last message:', error);
+            return '';
+        }
+    };
+
+    const saveLastMessage = (userId, message) => {
+        try {
+            if (!sessionUserId || !userId) return;
+            const lastMsgKey = `lastmsg_${sessionUserId}_${userId}`;
+            const truncatedMessage = message.length > 30 ? message.substring(0, 30) + '...' : message;
+            localStorage.setItem(lastMsgKey, truncatedMessage);
+            setLastMessages(prev => ({
+                ...prev,
+                [userId]: truncatedMessage
+            }));
+        } catch (error) {
+            console.error('Error saving last message:', error);
+        }
+    };
+
     // Handle back to chat list on mobile
     const handleBackToList = () => {
+        console.log('🔙 Going back to chat list');
         setSelectedChat(null);
         setSelectedUser(null);
-        router.replace('/Dashboard/Messages', undefined, { shallow: true });
+        setShowMobileModal(false);
+        // Update URL only on desktop
+        if (window.innerWidth >= 1024) {
+            router.replace('/Dashboard/Messages', undefined, { shallow: true });
+        }
     };
 
     useEffect(() => {
@@ -130,6 +201,44 @@ export default function Messages() {
         fetchData();
     }, []);
 
+    // Load chat history and unread counts when users are loaded
+    useEffect(() => {
+        if (users.length > 0 && sessionUserId) {
+            console.log('📚 Loading chat history for all users...');
+            const loadedChats = {};
+            const loadedUnreadCounts = {};
+            const loadedLastMessages = {};
+
+            users.forEach(user => {
+                if (accepted.has(user._id)) {
+                    // Load chat history
+                    const history = getChatHistory(user._id);
+                    if (history.length > 0) {
+                        loadedChats[user._id] = history;
+                        console.log(`📖 Loaded ${history.length} messages for user:`, user.name);
+                    }
+
+                    // Load unread count
+                    const unreadCount = getUnreadCount(user._id);
+                    if (unreadCount > 0) {
+                        loadedUnreadCounts[user._id] = unreadCount;
+                    }
+
+                    // Load last message
+                    const lastMsg = getLastMessage(user._id);
+                    if (lastMsg) {
+                        loadedLastMessages[user._id] = lastMsg;
+                    }
+                }
+            });
+
+            setChatMessages(loadedChats);
+            setUnreadCounts(loadedUnreadCounts);
+            setLastMessages(loadedLastMessages);
+            console.log('✅ All chat data loaded from cache');
+        }
+    }, [users, sessionUserId, accepted]);
+
     // Socket.IO connection and real-time functionality
     useEffect(() => {
         if (sessionUserId) {
@@ -145,6 +254,7 @@ export default function Messages() {
                 if (receiverId === sessionUserId || senderId === sessionUserId) {
                     console.log('✅ Message is for current user, adding to chat');
                     const chatPartnerId = receiverId === sessionUserId ? senderId : receiverId;
+                    const isIncomingMessage = receiverId === sessionUserId;
 
                     const newMessage = {
                         id: messageId,
@@ -154,19 +264,32 @@ export default function Messages() {
                             hour: '2-digit',
                             minute: '2-digit',
                             hour12: true
-                        })
+                        }),
+                        delivered: true,
+                        read: false
                     };
 
-                    setChatMessages(prev => ({
-                        ...prev,
-                        [chatPartnerId]: [...(prev[chatPartnerId] || []), newMessage]
-                    }));
+                    // Update chat messages
+                    setChatMessages(prev => {
+                        const updatedMessages = [...(prev[chatPartnerId] || []), newMessage];
+                        // Save to local storage
+                        saveChatHistory(chatPartnerId, updatedMessages);
+                        return {
+                            ...prev,
+                            [chatPartnerId]: updatedMessages
+                        };
+                    });
 
-                    // Update last messages
-                    setLastMessages(prev => ({
-                        ...prev,
-                        [chatPartnerId]: message.length > 30 ? message.substring(0, 30) + '...' : message
-                    }));
+                    // Update last message
+                    saveLastMessage(chatPartnerId, message);
+
+                    // Handle unread count for incoming messages
+                    if (isIncomingMessage) {
+                        const currentUnread = getUnreadCount(chatPartnerId);
+                        const newUnreadCount = currentUnread + 1;
+                        saveUnreadCount(chatPartnerId, newUnreadCount);
+                        console.log(`📬 Unread count for ${chatPartnerId}: ${newUnreadCount}`);
+                    }
                 }
             });
 
@@ -362,23 +485,27 @@ export default function Messages() {
                         hour: '2-digit',
                         minute: '2-digit',
                         hour12: true
-                    })
+                    }),
+                    delivered: onlineUsers.has(selectedChat), // Mark as delivered if user is online
+                    read: false
                 };
 
                 const currentMessages = chatMessages[selectedChat] || [];
                 const updatedMessages = [...currentMessages, newMsg];
 
-                // Update chat messages state
-                setChatMessages(prev => ({
-                    ...prev,
-                    [selectedChat]: updatedMessages
-                }));
+                // Update chat messages state and save to local storage
+                setChatMessages(prev => {
+                    const updated = {
+                        ...prev,
+                        [selectedChat]: updatedMessages
+                    };
+                    // Save to local storage
+                    saveChatHistory(selectedChat, updatedMessages);
+                    return updated;
+                });
 
-                // Update last messages for the chat list
-                setLastMessages(prev => ({
-                    ...prev,
-                    [selectedChat]: newMsg.text.length > 30 ? newMsg.text.substring(0, 30) + '...' : newMsg.text
-                }));
+                // Update last message
+                saveLastMessage(selectedChat, newMsg.text);
 
                 // Clear input
                 setNewMessage("");
@@ -510,7 +637,7 @@ export default function Messages() {
             ) : (
                 <div className="chat-container" style={{ background: styles.background, color: styles.color }}>
                     {/* Left Sidebar for Chat List */}
-                    <div className="chat-list">
+                    <div className={`chat-list ${selectedChat ? 'chat-list-with-panel' : ''}`}>
                         {/* Session User Name - Hidden on mobile */}
                         <h2 className="chat-title d-none d-md-block">
                             {sessionUser?.name || sessionUser?.username || 'User'}
@@ -543,7 +670,7 @@ export default function Messages() {
                         </div>
 
                         {/* Messages Label */}
-                        <span className="fw-bold text-muted mb-2 d-block px-3">Messages</span>
+                        <span className="fw-bold mb-2 d-block px-3">Messages</span>
                         {filteredUsers.map(user => (
                             <div
                                 key={user._id}
@@ -551,22 +678,38 @@ export default function Messages() {
                                 onClick={() => {
                                     setSelectedChat(user._id);
                                     setSelectedUser(user);
-                                    // Update URL with user ID
-                                    router.replace(`/Dashboard/Messages?userId=${user._id}`, undefined, { shallow: true });
+
+                                    // Mark messages as read and clear unread count
+                                    saveUnreadCount(user._id, 0);
+
+                                    // Check if mobile view
+                                    const isMobile = window.innerWidth < 1024;
+
+                                    if (isMobile) {
+                                        // Open modal on mobile
+                                        setShowMobileModal(true);
+                                    } else {
+                                        // Update URL on desktop
+                                        router.replace(`/Dashboard/Messages?userId=${user._id}`, undefined, { shallow: true });
+                                    }
+
                                     // Load chat history for this user
                                     const history = getChatHistory(user._id);
-                                    setChatMessages(prev => ({
-                                        ...prev,
-                                        [user._id]: history
-                                    }));
+                                    if (history.length > 0) {
+                                        setChatMessages(prev => ({
+                                            ...prev,
+                                            [user._id]: history
+                                        }));
+                                        console.log(`📖 Loaded ${history.length} messages for chat with:`, user.name);
+                                    }
                                 }}
                             >
                                 <div className="avatar-container">
                                     <Image
                                         src={user.image || predefine}
                                         alt={user.name}
-                                        width={40}
-                                        height={40}
+                                        width={80}
+                                        height={80}
                                         className="avatar"
                                     />
                                     <span
@@ -595,27 +738,24 @@ export default function Messages() {
                                             lastMessages[user._id] || 'No messages yet'
                                         )}
                                     </p>
-
                                 </div>
+
+                                {/* Unread Message Count Badge */}
+                                {unreadCounts[user._id] > 0 && (
+                                    <div className="unread-badge">
+                                        {unreadCounts[user._id] > 4 ? '4+' : unreadCounts[user._id]}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
 
-                    {/* Right Panel for Chat or Instructions */}
-                    <div className={`chat-panel ${selectedChat ? 'chat-panel-active' : ''}`}>
+                    {/* Right Panel for Chat or Instructions - Desktop Only */}
+                    <div className="chat-panel d-none d-lg-flex">
                         {selectedChat ? (
                             <div className="chat-window">
                                 {/* Chat Header with Back Button for Mobile */}
-                                <div className="chat-header d-flex align-items-center gap-3">
-                                    {/* Back Button - Only visible on mobile */}
-                                    <button
-                                        className="btn btn-link d-md-none p-0"
-                                        onClick={handleBackToList}
-                                        style={{ fontSize: '1.2rem', color: getThemeStyles().color }}
-                                    >
-                                        <i className="bi bi-arrow-left"></i>
-                                    </button>
-
+                                <div className="chat-header d-flex align-items-center justify-content-between w-100">
                                     <div className="d-flex align-items-center gap-3">
                                         <Image
                                             src={filteredUsers.find(u => u._id === selectedChat)?.image || predefine}
@@ -629,9 +769,33 @@ export default function Messages() {
                                             <h3 className="mb-0" style={{ fontSize: '1.2rem' }}>
                                                 {filteredUsers.find(u => u._id === selectedChat)?.name}
                                             </h3>
-                                            <p className="mb-0 text-muted" style={{ fontSize: '0.85rem' }}>Active now</p>
                                         </div>
                                     </div>
+
+                                    {/* Back Button - Right side on mobile */}
+                                    <button
+                                        type="button"
+                                        className="btn d-md-none"
+                                        onClick={() => {
+                                            console.log('🔙 Back button clicked');
+                                            setSelectedChat(null);
+                                            setSelectedUser(null);
+                                        }}
+                                        style={{
+                                            fontSize: '1.5rem',
+                                            color: getThemeStyles().color,
+                                            background: 'none',
+                                            border: 'none',
+                                            padding: '8px',
+                                            minWidth: '44px',
+                                            height: '44px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                    >
+                                        <i className="bi bi-x-lg"></i>
+                                    </button>
                                 </div>
                                 <div
                                     className=""
@@ -664,12 +828,23 @@ export default function Messages() {
                                                             style={{
                                                                 background: msg.sender === "You"
                                                                     ? currentThemeStyles.messageBgYou || '#3b82f6'
-                                                                    : currentThemeStyles.messageBgFriend || (theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'),
-                                                                color: msg.sender === "You" ? '#ffffff' : currentThemeStyles.color
+                                                                    : 'rgba(255, 255, 255, 0.9)',
+                                                                color: msg.sender === "You" ? '#ffffff' : '#333'
                                                             }}
                                                         >
                                                             <span className="message-text">{msg.text}</span>
-                                                            <span className="message-timestamp">{msg.timestamp}</span>
+                                                            <div className="message-footer">
+                                                                <span className="message-timestamp">{msg.timestamp}</span>
+                                                                {msg.sender === "You" && (
+                                                                    <span className="delivery-status">
+                                                                        {msg.delivered ? (
+                                                                            <span>Seen</span>
+                                                                        ) : (
+                                                                            <span>Sent</span>
+                                                                        )}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -680,8 +855,8 @@ export default function Messages() {
                                                         <div
                                                             className="message-bubble"
                                                             style={{
-                                                                background: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                                                                color: currentThemeStyles.color
+                                                                background: 'rgba(255, 255, 255, 0.9)',
+                                                                color: '#333'
                                                             }}
                                                         >
                                                             <span className="typing-indicator">
@@ -714,7 +889,7 @@ export default function Messages() {
                                         <div className="input-group">
                                             <input
                                                 type="text"
-                                                className="chat-input form-control"
+                                                className="form-control"
                                                 placeholder="Type a message..."
                                                 value={newMessage}
                                                 onChange={(e) => handleTyping(e.target.value)}
@@ -886,6 +1061,177 @@ export default function Messages() {
 
                                     )
                                 }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bootstrap 5 Modal for Mobile Chat */}
+            <div
+                className={`modal fade ${showMobileModal ? 'show' : ''}`}
+                id="mobileChat"
+                tabIndex="-1"
+                aria-labelledby="mobileChatLabel"
+                aria-hidden={!showMobileModal}
+                style={{
+                    display: showMobileModal ? 'block' : 'none',
+                    backgroundColor: showMobileModal ? 'rgba(0,0,0,0.5)' : 'transparent'
+                }}
+            >
+                <div className="modal-dialog modal-fullscreen">
+                    <div className="modal-content" style={{ background: styles.background, color: styles.color }}>
+                        {/* Modal Header */}
+                        <div className="modal-header" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
+                            <div className="d-flex align-items-center gap-3">
+                                <Image
+                                    src={selectedUser?.image || predefine}
+                                    alt={selectedUser?.name || 'User'}
+                                    width={40}
+                                    height={40}
+                                    className="rounded-circle"
+                                />
+                                <div>
+                                    <h5 className="modal-title mb-0" id="mobileChatLabel">
+                                        {selectedUser?.name || 'User'}
+                                    </h5>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                className="btn-close"
+                                aria-label="Close"
+                                onClick={handleBackToList}
+                                style={{
+                                    filter: theme === 'dark' ? 'invert(1)' : 'none'
+                                }}
+                            ></button>
+                        </div>
+
+                        {/* Modal Body - Chat Messages */}
+                        <div className="modal-body p-0 d-flex flex-column" style={{ height: 'calc(100vh - 120px)' }}>
+                            <div
+                                className="flex-grow-1 overflow-auto"
+                                style={{
+                                    maxHeight: 'calc(100vh - 200px)',
+                                    padding: '8px'
+                                }}
+                            >
+                                {selectedChat && chatMessages[selectedChat] && chatMessages[selectedChat].length > 0 ? (
+                                    <>
+                                        {chatMessages[selectedChat].map((msg) => (
+                                            <div
+                                                key={msg.id}
+                                                className={`d-flex mb-3 ${msg.sender === "You" ? "justify-content-end" : "justify-content-start"}`}
+                                            >
+                                                <div
+                                                    className={`px-3 py-2 rounded-3 ${
+                                                        msg.sender === "You"
+                                                            ? "bg-primary text-white"
+                                                            : ""
+                                                    }`}
+                                                    style={{
+                                                        backgroundColor: msg.sender === "You"
+                                                            ? '#3b82f6'
+                                                            : 'rgba(255, 255, 255, 0.9)',
+                                                        color: msg.sender === "You" ? 'white' : '#333',
+                                                        Width: '100%',
+                                                        wordWrap: 'break-word'
+                                                    }}
+                                                >
+                                                    <div className="message-text">{msg.text}</div>
+                                                    <div className="d-flex align-items-center justify-content-between mt-1">
+                                                        <small className="opacity-75">{msg.timestamp}</small>
+                                                        {msg.sender === "You" && (
+                                                            <small className="opacity-75 ms-2">
+                                                                {msg.delivered ? "Seen" : "Sent"}
+                                                            </small>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {/* Typing Indicator */}
+                                        {typingUsers.has(selectedChat) && (
+                                            <div className="d-flex mb-3 justify-content-start">
+                                                <div
+                                                    className="px-3 py-2 rounded-3"
+                                                    style={{
+                                                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                                        color: '#333'
+                                                    }}
+                                                >
+                                                    <span className="typing-indicator">
+                                                        <span></span>
+                                                        <span></span>
+                                                        <span></span>
+                                                    </span>
+                                                    <small className="ms-2">typing...</small>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div ref={messagesEndRef} />
+                                    </>
+                                ) : (
+                                    <div className="text-center py-5">
+                                        <i className="bi bi-chat-dots" style={{ fontSize: '3rem', opacity: 0.5 }}></i>
+                                        <h4 className="mt-3">No messages yet</h4>
+                                        <p className="text-muted">Start the conversation by sending a message!</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Chat Input - Full Width */}
+                            <div
+                                className="border-top"
+                                style={{
+                                    borderColor: 'rgba(0,0,0,0.1)',
+                                    padding: '8px',
+                                    width: '100%'
+                                }}
+                            >
+                                <form onSubmit={handleSendMessage} style={{ width: '100%' }}>
+                                    <div className="d-flex align-items-center gap-2" style={{ width: '100%' }}>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder="Type a message..."
+                                            value={newMessage}
+                                            onChange={(e) => handleTyping(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    handleSendMessage(e);
+                                                }
+                                            }}
+                                            style={{
+                                                border: '1px solid rgba(0,0,0,0.1)',
+                                                borderRadius: '25px',
+                                                padding: '12px 20px',
+                                                flex: '1',
+                                                width: '100%'
+                                            }}
+                                        />
+                                        <button
+                                            type="submit"
+                                            className="btn btn-primary"
+                                            onClick={handleSendMessage}
+                                            style={{
+                                                borderRadius: '50%',
+                                                width: '45px',
+                                                height: '45px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: '0'
+                                            }}
+                                        >
+                                            <i className="bi bi-send-fill"></i>
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
