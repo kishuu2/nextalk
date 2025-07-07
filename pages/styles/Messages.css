@@ -120,12 +120,14 @@
 @media (max-width: 1023px) {
   .chat-container {
     position: relative;
+    padding: 6px;
   }
 
   /* When no chat is selected, show only chat list */
   .chat-list {
     width: 100%;
     display: block;
+    padding: 6px;
   }
 
   .chat-panel {
@@ -147,6 +149,56 @@
     bottom: 0;
     background: inherit;
     z-index: 10;
+    padding: 6px;
+  }
+
+  /* Mobile chat input styling */
+  .chat-input-form {
+    padding: 10px 6px;
+    background: inherit;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .chat-input-form .input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .chat-input {
+    flex: 1;
+    border-radius: 20px !important;
+    padding: 10px 16px !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .chat-send-btn {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Mobile chat messages */
+  .chat-messages {
+    padding: 6px 10px !important;
+    height: calc(100vh - 200px) !important;
+  }
+
+  /* Mobile chat header */
+  .chat-header {
+    padding: 10px 6px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  /* Mobile user list items */
+  .chat-item {
+    padding: 12px 6px;
+    margin: 4px 0;
+    border-radius: 12px;
   }
 }
 

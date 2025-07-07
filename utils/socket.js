@@ -16,17 +16,27 @@ class SocketService {
     }
 
     this.userId = userId;
-    
+
     // Connect to the server
     const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
     console.log('🔗 Connecting to server:', serverUrl);
 
-    this.socket = io(serverUrl, {
-      transports: ['websocket', 'polling'],
-      withCredentials: true,
-      forceNew: true,
-      timeout: 20000
-    });
+    try {
+      this.socket = io(serverUrl, {
+        transports: ['polling'], // Start with polling only to avoid WebSocket errors
+        withCredentials: true,
+        forceNew: false,
+        timeout: 20000,
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
+      });
+    } catch (error) {
+      console.error('❌ Socket connection error:', error);
+      // Fallback to basic connection
+      this.socket = io(serverUrl);
+    }
 
     this.socket.on('connect', () => {
       console.log('✅ Connected to server with socket ID:', this.socket.id);
@@ -41,6 +51,19 @@ class SocketService {
 
     this.socket.on('connect_error', (error) => {
       console.error('❌ Connection error:', error);
+      // Try to reconnect with different transport
+      if (error.message.includes('websocket')) {
+        console.log('🔄 Retrying with polling transport...');
+        this.socket.io.opts.transports = ['polling'];
+      }
+    });
+
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log('🔄 Reconnected after', attemptNumber, 'attempts');
+    });
+
+    this.socket.on('reconnect_error', (error) => {
+      console.error('❌ Reconnection error:', error);
     });
 
     this.socket.on('disconnect', () => {

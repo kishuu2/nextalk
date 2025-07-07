@@ -711,20 +711,44 @@ export default function Messages() {
                                         )}
                                     </div>
                                     <form className="chat-input-form" onSubmit={handleSendMessage}>
-                                        <input
-                                            type="text"
-                                            className="chat-input"
-                                            placeholder="Type a message..."
-                                            value={newMessage}
-                                            onChange={(e) => handleTyping(e.target.value)}
-                                            style={{
-                                                background: currentThemeStyles.inputBg,
-                                                color: currentThemeStyles.inputColor
-                                            }}
-                                        />
-                                        <button type="submit" className="chat-send-btn">
-                                            <i className="bi bi-send-fill"></i>
-                                        </button>
+                                        <div className="input-group">
+                                            <input
+                                                type="text"
+                                                className="chat-input form-control"
+                                                placeholder="Type a message..."
+                                                value={newMessage}
+                                                onChange={(e) => handleTyping(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                                        e.preventDefault();
+                                                        handleSendMessage(e);
+                                                    }
+                                                }}
+                                                style={{
+                                                    background: currentThemeStyles.inputBg,
+                                                    color: currentThemeStyles.inputColor,
+                                                    border: 'none',
+                                                    borderRadius: '25px',
+                                                    padding: '12px 20px'
+                                                }}
+                                            />
+                                            <button
+                                                type="submit"
+                                                className="chat-send-btn btn btn-primary"
+                                                onClick={handleSendMessage}
+                                                style={{
+                                                    borderRadius: '50%',
+                                                    width: '45px',
+                                                    height: '45px',
+                                                    marginLeft: '10px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
+                                                }}
+                                            >
+                                                <i className="bi bi-send-fill"></i>
+                                            </button>
+                                        </div>
                                     </form>
                                 </div>
                             </div>
