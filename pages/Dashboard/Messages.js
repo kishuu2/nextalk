@@ -6,6 +6,9 @@ import DashboardLayout from '../Components/DashboardLayout';
 import { useRouter } from 'next/router';
 import { useTheme } from '../../context/ThemeContext';
 import socketService from '../../utils/socket';
+// Import the existing Chats.css styles
+import '../styles/Chats.css';
+import '../styles/Messages.css';
 
 export default function Messages() {
     const [users, setUsers] = useState([]);
@@ -157,14 +160,7 @@ export default function Messages() {
 
             try {
                 // Fetch all users
-                const response = await axios.post(
-                    'https://nextalk-u0y1.onrender.com/displayusersProfile',
-                    {},
-                    {
-                        headers: { 'Content-Type': 'application/json' },
-                        withCredentials: true,
-                    }
-                );
+                const response = await axios.post('/displayusersProfile');
 
                 const personally = response.data;
                 const filteredUsers = personally.filter(user => user._id !== sessionId);
@@ -172,8 +168,8 @@ export default function Messages() {
                 setSessionUser(sessionUser);
 
                 // Fetch follow status
-                const followRes = await fetch(`https://nextalk-u0y1.onrender.com/follow-status/${sessionId}`);
-                const followData = await followRes.json();
+                const followRes = await axios.get(`/follow-status/${sessionId}`);
+                const followData = followRes.data;
                 setFollowing(new Set(followData.following));
                 setAccepted(new Set(followData.accepted));
 
@@ -384,14 +380,7 @@ export default function Messages() {
             setSessionUserId(sessionId);
 
             try {
-                const response = await axios.post(
-                    "https://nextalk-u0y1.onrender.com/displayusersProfile",
-                    {},
-                    {
-                        headers: { 'Content-Type': 'application/json' },
-                        withCredentials: true
-                    }
-                );
+                const response = await axios.post("/displayusersProfile");
 
                 const allUsers = response.data.filter(user => user._id !== sessionId);
                 setUsers(allUsers);
@@ -1135,7 +1124,7 @@ export default function Messages() {
                                                             ? '#3b82f6'
                                                             : 'rgba(255, 255, 255, 0.9)',
                                                         color: msg.sender === "You" ? 'white' : '#333',
-                                                        Width: '100%',
+                                                        maxWidth: '70%',
                                                         wordWrap: 'break-word'
                                                     }}
                                                 >

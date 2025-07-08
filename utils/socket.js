@@ -17,9 +17,13 @@ class SocketService {
 
     this.userId = userId;
 
-    // Connect to the server
-    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
+    // Connect to the server - Use Render URL for production
+    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL ||
+                     (process.env.NODE_ENV === 'production'
+                       ? 'https://nextalk-u0y1.onrender.com'
+                       : 'http://localhost:5000');
     console.log('🔗 Connecting to server:', serverUrl);
+    console.log('🌍 Environment:', process.env.NODE_ENV);
 
     try {
       this.socket = io(serverUrl, {
