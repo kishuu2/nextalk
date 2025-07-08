@@ -1067,31 +1067,61 @@ export default function Messages() {
             >
                 <div className="modal-dialog modal-fullscreen">
                     <div className="modal-content" style={{ background: styles.background, color: styles.color }}>
-                        {/* Modal Header */}
-                        <div className="modal-header" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
-                            <div className="d-flex align-items-center gap-3">
-                                <Image
-                                    src={selectedUser?.image || predefine}
-                                    alt={selectedUser?.name || 'User'}
-                                    width={40}
-                                    height={40}
-                                    className="rounded-circle"
-                                />
-                                <div>
-                                    <h5 className="modal-title mb-0" id="mobileChatLabel">
-                                        {selectedUser?.name || 'User'}
-                                    </h5>
+                        {/* Instagram-Style Modal Header */}
+                        <div
+                            className="modal-header border-0 p-0"
+                            style={{
+                                height: '60px',
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: 'white'
+                            }}
+                        >
+                            <div className="d-flex align-items-center justify-content-between w-100 px-3">
+                                <div className="d-flex align-items-center gap-3">
+                                    <div className="position-relative">
+                                        <Image
+                                            src={selectedUser?.image || predefine}
+                                            alt={selectedUser?.name || 'User'}
+                                            width={45}
+                                            height={45}
+                                            className="rounded-circle"
+                                            style={{ border: '2px solid white' }}
+                                        />
+                                        {/* Online Status Indicator */}
+                                        <span
+                                            className="position-absolute"
+                                            style={{
+                                                bottom: '2px',
+                                                right: '2px',
+                                                width: '12px',
+                                                height: '12px',
+                                                backgroundColor: onlineUsers.has(selectedChat) ? '#10b981' : '#ef4444',
+                                                borderRadius: '50%',
+                                                border: '2px solid white'
+                                            }}
+                                        ></span>
+                                    </div>
+                                    <div>
+                                        <h6 className="mb-0 fw-bold text-white">
+                                            {selectedUser?.name || 'User'}
+                                        </h6>
+                                        <small className="text-white-50">
+                                            {onlineUsers.has(selectedChat) ? 'Active now' : 'Offline'}
+                                        </small>
+                                    </div>
                                 </div>
+                                <button
+                                    type="button"
+                                    className="btn btn-link text-white p-2"
+                                    onClick={handleBackToList}
+                                    style={{
+                                        fontSize: '1.5rem',
+                                        textDecoration: 'none'
+                                    }}
+                                >
+                                    <i className="bi bi-x-lg"></i>
+                                </button>
                             </div>
-                            <button
-                                type="button"
-                                className="btn-close"
-                                aria-label="Close"
-                                onClick={handleBackToList}
-                                style={{
-                                    filter: theme === 'dark' ? 'invert(1)' : 'none'
-                                }}
-                            ></button>
                         </div>
 
                         {/* Modal Body - Chat Messages */}
@@ -1108,28 +1138,48 @@ export default function Messages() {
                                         {chatMessages[selectedChat].map((msg) => (
                                             <div
                                                 key={msg.id}
-                                                className={`d-flex mb-3 ${msg.sender === "You" ? "justify-content-end" : "justify-content-start"}`}
+                                                className={`d-flex mb-2 ${msg.sender === "You" ? "justify-content-end" : "justify-content-start"}`}
                                             >
                                                 <div
-                                                    className={`px-3 py-2 rounded-3 ${
-                                                        msg.sender === "You"
-                                                            ? "bg-primary text-white"
-                                                            : ""
-                                                    }`}
+                                                    className="message-bubble"
                                                     style={{
                                                         backgroundColor: msg.sender === "You"
-                                                            ? '#3b82f6'
-                                                            : 'rgba(255, 255, 255, 0.9)',
+                                                            ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                                            : 'rgba(255, 255, 255, 0.95)',
                                                         color: msg.sender === "You" ? 'white' : '#333',
-                                                        maxWidth: '70%',
-                                                        wordWrap: 'break-word'
+                                                        maxWidth: '75%',
+                                                        padding: '12px 16px',
+                                                        borderRadius: msg.sender === "You"
+                                                            ? '20px 20px 5px 20px'
+                                                            : '20px 20px 20px 5px',
+                                                        wordWrap: 'break-word',
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                                        background: msg.sender === "You"
+                                                            ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                                            : 'rgba(255, 255, 255, 0.95)',
+                                                        position: 'relative'
                                                     }}
                                                 >
-                                                    <div className="message-text">{msg.text}</div>
-                                                    <div className="d-flex align-items-center justify-content-between mt-1">
-                                                        <small className="opacity-75">{msg.timestamp}</small>
+                                                    <div className="message-text" style={{
+                                                        fontSize: '15px',
+                                                        lineHeight: '1.4',
+                                                        marginBottom: '4px'
+                                                    }}>
+                                                        {msg.text}
+                                                    </div>
+                                                    <div className="d-flex align-items-center justify-content-between">
+                                                        <small style={{
+                                                            opacity: 0.7,
+                                                            fontSize: '12px'
+                                                        }}>
+                                                            {msg.timestamp}
+                                                        </small>
                                                         {msg.sender === "You" && (
-                                                            <small className="opacity-75 ms-2">
+                                                            <small style={{
+                                                                opacity: 0.7,
+                                                                fontSize: '12px',
+                                                                marginLeft: '8px'
+                                                            }}>
                                                                 {msg.delivered ? "Seen" : "Sent"}
                                                             </small>
                                                         )}
@@ -1138,22 +1188,34 @@ export default function Messages() {
                                             </div>
                                         ))}
 
-                                        {/* Typing Indicator */}
+                                        {/* Instagram-Style Typing Indicator */}
                                         {typingUsers.has(selectedChat) && (
-                                            <div className="d-flex mb-3 justify-content-start">
+                                            <div className="d-flex mb-2 justify-content-start">
                                                 <div
-                                                    className="px-3 py-2 rounded-3"
+                                                    className="message-bubble"
                                                     style={{
-                                                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                                                        color: '#333'
+                                                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                                        color: '#333',
+                                                        maxWidth: '75%',
+                                                        padding: '12px 16px',
+                                                        borderRadius: '20px 20px 20px 5px',
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                                                     }}
                                                 >
-                                                    <span className="typing-indicator">
-                                                        <span></span>
-                                                        <span></span>
-                                                        <span></span>
-                                                    </span>
-                                                    <small className="ms-2">typing...</small>
+                                                    <div className="d-flex align-items-center">
+                                                        <span className="typing-indicator me-2">
+                                                            <span></span>
+                                                            <span></span>
+                                                            <span></span>
+                                                        </span>
+                                                        <small style={{
+                                                            color: '#666',
+                                                            fontSize: '13px',
+                                                            fontStyle: 'italic'
+                                                        }}>
+                                                            typing...
+                                                        </small>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -1169,21 +1231,20 @@ export default function Messages() {
                                 )}
                             </div>
 
-                            {/* Chat Input - Full Width */}
+                            {/* Instagram-Style Chat Input */}
                             <div
-                                className="border-top"
                                 style={{
-                                    borderColor: 'rgba(0,0,0,0.1)',
-                                    padding: '8px',
-                                    width: '100%'
+                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                    padding: '12px 16px',
+                                    borderTop: '1px solid rgba(255,255,255,0.1)'
                                 }}
                             >
                                 <form onSubmit={handleSendMessage} style={{ width: '100%' }}>
-                                    <div className="d-flex align-items-center gap-2" style={{ width: '100%' }}>
+                                    <div className="d-flex align-items-center gap-3" style={{ width: '100%' }}>
                                         <input
                                             type="text"
                                             className="form-control"
-                                            placeholder="Type a message..."
+                                            placeholder="Message..."
                                             value={newMessage}
                                             onChange={(e) => handleTyping(e.target.value)}
                                             onKeyDown={(e) => {
@@ -1193,25 +1254,42 @@ export default function Messages() {
                                                 }
                                             }}
                                             style={{
-                                                border: '1px solid rgba(0,0,0,0.1)',
+                                                border: 'none',
                                                 borderRadius: '25px',
                                                 padding: '12px 20px',
                                                 flex: '1',
-                                                width: '100%'
+                                                backgroundColor: 'rgba(255,255,255,0.9)',
+                                                color: '#333',
+                                                fontSize: '15px',
+                                                outline: 'none',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                                             }}
                                         />
                                         <button
                                             type="submit"
-                                            className="btn btn-primary"
+                                            className="btn"
                                             onClick={handleSendMessage}
                                             style={{
                                                 borderRadius: '50%',
-                                                width: '45px',
-                                                height: '45px',
+                                                width: '48px',
+                                                height: '48px',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                flexShrink: '0'
+                                                flexShrink: '0',
+                                                background: 'rgba(255,255,255,0.2)',
+                                                border: '2px solid rgba(255,255,255,0.3)',
+                                                color: 'white',
+                                                fontSize: '16px',
+                                                transition: 'all 0.3s ease'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.target.style.background = 'rgba(255,255,255,0.3)';
+                                                e.target.style.transform = 'scale(1.05)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.target.style.background = 'rgba(255,255,255,0.2)';
+                                                e.target.style.transform = 'scale(1)';
                                             }}
                                         >
                                             <i className="bi bi-send-fill"></i>

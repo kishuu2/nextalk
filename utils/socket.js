@@ -17,13 +17,22 @@ class SocketService {
 
     this.userId = userId;
 
-    // Connect to the server - Use Render URL for production
-    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL ||
-                     (process.env.NODE_ENV === 'production'
-                       ? 'https://nextalk-u0y1.onrender.com'
-                       : 'http://localhost:5000');
+    // Connect to the server - Smart URL detection
+    let serverUrl;
+
+    // Check if we're on localhost
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      serverUrl = 'http://localhost:5000';
+    } else if (process.env.NEXT_PUBLIC_SERVER_URL) {
+      serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+    } else {
+      // Default to production server
+      serverUrl = 'https://nextalk-u0y1.onrender.com';
+    }
+
     console.log('🔗 Connecting to server:', serverUrl);
     console.log('🌍 Environment:', process.env.NODE_ENV);
+    console.log('🏠 Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server');
 
     try {
       this.socket = io(serverUrl, {

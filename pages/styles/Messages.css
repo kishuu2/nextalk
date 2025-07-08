@@ -271,3 +271,100 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Instagram-Style Typing Indicator Animation */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.typing-indicator span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #667eea;
+    animation: instagramTyping 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+.typing-indicator span:nth-child(3) {
+    animation-delay: 0s;
+}
+
+@keyframes instagramTyping {
+    0%, 80%, 100% {
+        transform: scale(0.6);
+        opacity: 0.4;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Instagram-Style Message Bubbles */
+.message-bubble {
+    position: relative;
+    animation: messageSlideIn 0.3s ease-out;
+}
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Instagram-Style Modal */
+.modal-fullscreen .modal-content {
+    border-radius: 0;
+    border: none;
+    overflow: hidden;
+}
+
+.modal-fullscreen .modal-header {
+    border: none;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.modal-fullscreen .modal-body {
+    padding: 0;
+    background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+/* Smooth Scrolling */
+.modal-body .overflow-auto {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+.modal-body .overflow-auto::-webkit-scrollbar {
+    width: 4px;
+}
+
+.modal-body .overflow-auto::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body .overflow-auto::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+}
+
+/* Input Focus Effects */
+.form-control:focus {
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
+    border-color: transparent !important;
+}
