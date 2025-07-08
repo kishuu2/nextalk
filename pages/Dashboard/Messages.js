@@ -241,6 +241,8 @@ export default function Messages() {
             // Listen for incoming messages
             const unsubscribeMessages = socketService.onMessage((data) => {
                 console.log('📨 Received message:', data);
+                console.log('🔍 Current sessionUserId:', sessionUserId);
+                console.log('🔍 Current selectedChat:', selectedChat);
                 const { senderId, receiverId, message, timestamp, messageId } = data;
 
                 // Add message to chat if it's for current user or current chat
@@ -458,8 +460,11 @@ export default function Messages() {
 
         if (newMessage.trim() && selectedChat && sessionUserId) {
             // Send message via Socket.IO for real-time delivery
+            console.log('📤 Sending message to:', selectedChat, 'from:', sessionUserId);
+            console.log('📤 Message content:', newMessage.trim());
             const success = socketService.sendMessage(selectedChat, newMessage.trim());
             console.log('📤 Socket send result:', success);
+            console.log('📤 Socket connection status:', socketService.getConnectionStatus());
 
             if (success) {
                 // Add message to local state immediately for instant UI update
@@ -1067,61 +1072,46 @@ export default function Messages() {
             >
                 <div className="modal-dialog modal-fullscreen">
                     <div className="modal-content" style={{ background: styles.background, color: styles.color }}>
-                        {/* Instagram-Style Modal Header */}
-                        <div
-                            className="modal-header border-0 p-0"
-                            style={{
-                                height: '60px',
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                color: 'white'
-                            }}
-                        >
-                            <div className="d-flex align-items-center justify-content-between w-100 px-3">
-                                <div className="d-flex align-items-center gap-3">
-                                    <div className="position-relative">
-                                        <Image
-                                            src={selectedUser?.image || predefine}
-                                            alt={selectedUser?.name || 'User'}
-                                            width={45}
-                                            height={45}
-                                            className="rounded-circle"
-                                            style={{ border: '2px solid white' }}
-                                        />
-                                        {/* Online Status Indicator */}
-                                        <span
-                                            className="position-absolute"
-                                            style={{
-                                                bottom: '2px',
-                                                right: '2px',
-                                                width: '12px',
-                                                height: '12px',
-                                                backgroundColor: onlineUsers.has(selectedChat) ? '#10b981' : '#ef4444',
-                                                borderRadius: '50%',
-                                                border: '2px solid white'
-                                            }}
-                                        ></span>
-                                    </div>
-                                    <div>
-                                        <h6 className="mb-0 fw-bold text-white">
-                                            {selectedUser?.name || 'User'}
-                                        </h6>
-                                        <small className="text-white-50">
-                                            {onlineUsers.has(selectedChat) ? 'Active now' : 'Offline'}
-                                        </small>
-                                    </div>
+                        {/* Modal Header - Default Styling */}
+                        <div className="modal-header border-bottom">
+                            <div className="d-flex align-items-center gap-3">
+                                <div className="position-relative">
+                                    <Image
+                                        src={selectedUser?.image || predefine}
+                                        alt={selectedUser?.name || 'User'}
+                                        width={40}
+                                        height={40}
+                                        className="rounded-circle"
+                                    />
+                                    {/* Online Status Indicator */}
+                                    <span
+                                        className="position-absolute"
+                                        style={{
+                                            bottom: '2px',
+                                            right: '2px',
+                                            width: '10px',
+                                            height: '10px',
+                                            backgroundColor: onlineUsers.has(selectedChat) ? '#10b981' : '#ef4444',
+                                            borderRadius: '50%',
+                                            border: '2px solid white'
+                                        }}
+                                    ></span>
                                 </div>
-                                <button
-                                    type="button"
-                                    className="btn btn-link text-white p-2"
-                                    onClick={handleBackToList}
-                                    style={{
-                                        fontSize: '1.5rem',
-                                        textDecoration: 'none'
-                                    }}
-                                >
-                                    <i className="bi bi-x-lg"></i>
-                                </button>
+                                <div>
+                                    <h6 className="mb-0 fw-bold">
+                                        {selectedUser?.name || 'User'}
+                                    </h6>
+                                    <small className="text-muted">
+                                        {onlineUsers.has(selectedChat) ? 'Online' : 'Offline'}
+                                    </small>
+                                </div>
                             </div>
+                            <button
+                                type="button"
+                                className="btn-close"
+                                onClick={handleBackToList}
+                                aria-label="Close"
+                            ></button>
                         </div>
 
                         {/* Modal Body - Chat Messages */}
@@ -1138,46 +1128,48 @@ export default function Messages() {
                                         {chatMessages[selectedChat].map((msg) => (
                                             <div
                                                 key={msg.id}
-                                                className={`d-flex mb-2 ${msg.sender === "You" ? "justify-content-end" : "justify-content-start"}`}
+                                                className={`d-flex mb-3 ${msg.sender === "You" ? "justify-content-end" : "justify-content-start"}`}
                                             >
                                                 <div
-                                                    className="message-bubble"
                                                     style={{
                                                         backgroundColor: msg.sender === "You"
-                                                            ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                                                            : 'rgba(255, 255, 255, 0.95)',
+                                                            ? '#007bff'
+                                                            : 'rgba(255, 255, 255, 0.9)',
                                                         color: msg.sender === "You" ? 'white' : '#333',
-                                                        maxWidth: '75%',
-                                                        padding: '12px 16px',
+                                                        maxWidth: '70%',
+                                                        padding: '10px 15px',
                                                         borderRadius: msg.sender === "You"
-                                                            ? '20px 20px 5px 20px'
-                                                            : '20px 20px 20px 5px',
+                                                            ? '18px 18px 4px 18px'
+                                                            : '18px 18px 18px 4px',
                                                         wordWrap: 'break-word',
-                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                                        background: msg.sender === "You"
-                                                            ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                                                            : 'rgba(255, 255, 255, 0.95)',
-                                                        position: 'relative'
+                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                                        textAlign: 'left'
                                                     }}
                                                 >
-                                                    <div className="message-text" style={{
-                                                        fontSize: '15px',
+                                                    <div style={{
+                                                        fontSize: '14px',
                                                         lineHeight: '1.4',
-                                                        marginBottom: '4px'
+                                                        marginBottom: '4px',
+                                                        textAlign: 'left'
                                                     }}>
                                                         {msg.text}
                                                     </div>
-                                                    <div className="d-flex align-items-center justify-content-between">
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        marginTop: '4px'
+                                                    }}>
                                                         <small style={{
                                                             opacity: 0.7,
-                                                            fontSize: '12px'
+                                                            fontSize: '11px'
                                                         }}>
                                                             {msg.timestamp}
                                                         </small>
                                                         {msg.sender === "You" && (
                                                             <small style={{
                                                                 opacity: 0.7,
-                                                                fontSize: '12px',
+                                                                fontSize: '11px',
                                                                 marginLeft: '8px'
                                                             }}>
                                                                 {msg.delivered ? "Seen" : "Sent"}
@@ -1188,18 +1180,18 @@ export default function Messages() {
                                             </div>
                                         ))}
 
-                                        {/* Instagram-Style Typing Indicator */}
+                                        {/* Typing Indicator */}
                                         {typingUsers.has(selectedChat) && (
-                                            <div className="d-flex mb-2 justify-content-start">
+                                            <div className="d-flex mb-3 justify-content-start">
                                                 <div
-                                                    className="message-bubble"
                                                     style={{
-                                                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
                                                         color: '#333',
-                                                        maxWidth: '75%',
-                                                        padding: '12px 16px',
-                                                        borderRadius: '20px 20px 20px 5px',
-                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                                        maxWidth: '70%',
+                                                        padding: '10px 15px',
+                                                        borderRadius: '18px 18px 18px 4px',
+                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                                        textAlign: 'left'
                                                     }}
                                                 >
                                                     <div className="d-flex align-items-center">
@@ -1210,7 +1202,7 @@ export default function Messages() {
                                                         </span>
                                                         <small style={{
                                                             color: '#666',
-                                                            fontSize: '13px',
+                                                            fontSize: '12px',
                                                             fontStyle: 'italic'
                                                         }}>
                                                             typing...
@@ -1231,16 +1223,10 @@ export default function Messages() {
                                 )}
                             </div>
 
-                            {/* Instagram-Style Chat Input */}
-                            <div
-                                style={{
-                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                    padding: '12px 16px',
-                                    borderTop: '1px solid rgba(255,255,255,0.1)'
-                                }}
-                            >
-                                <form onSubmit={handleSendMessage} style={{ width: '100%' }}>
-                                    <div className="d-flex align-items-center gap-3" style={{ width: '100%' }}>
+                            {/* Chat Input - Default Styling */}
+                            <div className="border-top p-3">
+                                <form onSubmit={handleSendMessage}>
+                                    <div className="d-flex align-items-center gap-2">
                                         <input
                                             type="text"
                                             className="form-control"
@@ -1254,42 +1240,24 @@ export default function Messages() {
                                                 }
                                             }}
                                             style={{
-                                                border: 'none',
-                                                borderRadius: '25px',
-                                                padding: '12px 20px',
-                                                flex: '1',
-                                                backgroundColor: 'rgba(255,255,255,0.9)',
-                                                color: '#333',
-                                                fontSize: '15px',
-                                                outline: 'none',
-                                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                                borderRadius: '20px',
+                                                padding: '10px 15px',
+                                                border: '1px solid #ddd',
+                                                fontSize: '14px'
                                             }}
                                         />
                                         <button
                                             type="submit"
-                                            className="btn"
+                                            className="btn btn-primary"
                                             onClick={handleSendMessage}
                                             style={{
                                                 borderRadius: '50%',
-                                                width: '48px',
-                                                height: '48px',
+                                                width: '40px',
+                                                height: '40px',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                flexShrink: '0',
-                                                background: 'rgba(255,255,255,0.2)',
-                                                border: '2px solid rgba(255,255,255,0.3)',
-                                                color: 'white',
-                                                fontSize: '16px',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.target.style.background = 'rgba(255,255,255,0.3)';
-                                                e.target.style.transform = 'scale(1.05)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.target.style.background = 'rgba(255,255,255,0.2)';
-                                                e.target.style.transform = 'scale(1)';
+                                                padding: '0'
                                             }}
                                         >
                                             <i className="bi bi-send-fill"></i>
