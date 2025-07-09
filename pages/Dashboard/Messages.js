@@ -1224,7 +1224,7 @@ export default function Messages() {
                             </div>
                             <button
                                 type="button"
-                                className="btn-close"
+                                className="btn btn-close bg-warning"
                                 onClick={handleBackToList}
                                 aria-label="Close"
                             ></button>
@@ -1333,7 +1333,7 @@ export default function Messages() {
                             </div>
 
                             {/* Chat Input - Full Width */}
-                            <div className="border-top" style={{ padding: '12px 16px', backgroundColor: '#fff' }}>
+                            <div className="w-100" style={{ padding: '12px 2px'}}>
                                 <form onSubmit={handleSendMessage}>
                                     <div className="d-flex align-items-center" style={{ gap: '8px' }}>
                                         <input
