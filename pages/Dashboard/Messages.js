@@ -7,9 +7,6 @@ import { useRouter } from 'next/router';
 import { useTheme } from '../../context/ThemeContext';
 import socketService from '../../utils/socket';
 import { debugServerConnection } from '../../utils/serverCheck';
-// Import the existing Chats.css styles
-import '../styles/Chats.css';
-import '../styles/Messages.css';
 
 export default function Messages() {
     const [users, setUsers] = useState([]);
