@@ -232,13 +232,27 @@
 .instruction-title {
   font-size: 1.5rem;
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  color: inherit;
 }
 
 .instruction-text {
   font-size: 1rem;
-  color: #ccc;
-  margin-bottom: 20px;
+  opacity: 0.7;
+  margin-bottom: 25px;
+  color: inherit;
+}
+
+.instruction-content {
+  padding: 40px 20px;
+}
+
+.instructions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
 }
 
 .send-button {
@@ -336,12 +350,10 @@
 
 .modal-fullscreen .modal-header {
     border: none;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .modal-fullscreen .modal-body {
     padding: 0;
-    background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
 }
 
 /* Smooth Scrolling */

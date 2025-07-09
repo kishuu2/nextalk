@@ -64,6 +64,14 @@ class SocketService {
 
     this.socket.on('connect_error', (error) => {
       console.error('❌ Connection error:', error);
+      console.error('🚨 Failed to connect to:', serverUrl);
+
+      // Check if it's a localhost connection issue
+      if (serverUrl.includes('localhost')) {
+        console.error('🔧 Make sure your backend server is running on http://localhost:5000');
+        console.error('💡 Try running: npm start or node server.js in your backend directory');
+      }
+
       // Try to reconnect with different transport
       if (error.message.includes('websocket')) {
         console.log('🔄 Retrying with polling transport...');

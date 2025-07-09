@@ -6,6 +6,10 @@ import DashboardLayout from '../Components/DashboardLayout';
 import { useRouter } from 'next/router';
 import { useTheme } from '../../context/ThemeContext';
 import socketService from '../../utils/socket';
+import { debugServerConnection } from '../../utils/serverCheck';
+// Import the existing Chats.css styles
+import '../styles/Chats.css';
+import '../styles/Messages.css';
 
 export default function Messages() {
     const [users, setUsers] = useState([]);
@@ -14,7 +18,6 @@ export default function Messages() {
     const [accepted, setAccepted] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
     const [selectedChat, setSelectedChat] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [displayCount, setDisplayCount] = useState(6);
@@ -156,7 +159,12 @@ export default function Messages() {
             }
 
             try {
+                // Check server connection first
+                console.log('🔍 Checking server connection...');
+                await debugServerConnection();
+
                 // Fetch all users
+                console.log('📡 Fetching users...');
                 const response = await axios.post('/displayusersProfile');
 
                 const personally = response.data;
@@ -186,7 +194,18 @@ export default function Messages() {
                 setLoading(false);
             } catch (err) {
                 console.error('❌ Error fetching data:', err);
-                setError('Failed to load data.');
+
+                if (err.message === 'Network Error' || err.code === 'ECONNREFUSED') {
+                    setError('Cannot connect to server. Please make sure your backend is running on http://localhost:5000');
+                    console.error('🚨 Backend server connection failed!');
+                    console.error('💡 Make sure to start your backend server:');
+                    console.error('   1. Navigate to your backend directory');
+                    console.error('   2. Run: npm start or node server.js');
+                    console.error('   3. Verify it\'s running on port 5000');
+                } else {
+                    setError('Failed to load data: ' + err.message);
+                }
+
                 setLoading(false);
             }
         };
@@ -379,6 +398,11 @@ export default function Messages() {
             setSessionUserId(sessionId);
 
             try {
+                // Check server connection first
+                console.log('🔍 Checking server connection for users...');
+                await debugServerConnection();
+
+                console.log('📡 Fetching users list...');
                 const response = await axios.post("/displayusersProfile");
 
                 const allUsers = response.data.filter(user => user._id !== sessionId);
@@ -386,7 +410,16 @@ export default function Messages() {
                 setVisibleUsers(allUsers.slice(0, 6)); // first 6
                 setTimeout(() => setLoading(false), 1000); // optional fake delay
             } catch (error) {
-                console.error("Error fetching users:", error);
+                console.error("❌ Error fetching users:", error);
+
+                if (error.message === 'Network Error' || error.code === 'ECONNREFUSED') {
+                    setError('Cannot connect to server. Please make sure your backend is running on http://localhost:5000');
+                    console.error('🚨 Backend server connection failed!');
+                } else {
+                    setError('Failed to load users: ' + error.message);
+                }
+
+                setLoading(false);
             }
         };
 
@@ -396,9 +429,13 @@ export default function Messages() {
     // Filter users based on search query and online status
     const filteredUsers = users
         .filter(user => accepted.has(user._id))
-        .filter(user =>
-            user.name.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        .filter(user => {
+            // Use searchTerm for consistency
+            const searchValue = searchTerm.toLowerCase();
+            return searchValue === '' ||
+                user.name.toLowerCase().includes(searchValue) ||
+                user.username.toLowerCase().includes(searchValue);
+        })
         .filter(user =>
             showOnlineOnly ? user.isOnline : true
         );
@@ -539,7 +576,7 @@ export default function Messages() {
             }, 2000);
         }
     }, [selectedChat, sessionUserId, isTyping]);
-    
+
     useEffect(() => {
         if (!profile || !Array.isArray(profile.followers)) return;
 
@@ -624,7 +661,78 @@ export default function Messages() {
             ) : error ? (
                 <div className="error">{error}</div>
             ) : filteredUsers.length === 0 ? (
-                <div className="no-friends">No friends to message.</div>
+                <div className="chat-container" style={{ background: styles.background, color: styles.color }}>
+                    {/* Left Sidebar - Empty State */}
+                    <div className="chat-list">
+                        {/* Session User Name - Hidden on mobile */}
+                        <h2 className="chat-title d-none d-md-block">
+                            {sessionUser?.name || sessionUser?.username || 'User'}
+                        </h2>
+
+                        {/* Search Input - Full width with Bootstrap 5 */}
+                        <div className="mb-3 px-3">
+                            <div className="position-relative">
+                                <input
+                                    type="text"
+                                    className="form-control ps-5"
+                                    placeholder="Search messages..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{
+                                        background: currentThemeStyles.inputBg,
+                                        color: currentThemeStyles.inputColor,
+                                        border: '1px solid rgba(0,0,0,0.1)',
+                                        borderRadius: '25px',
+                                        padding: '12px 20px 12px 45px'
+                                    }}
+                                />
+                                <i
+                                    className="bi bi-search position-absolute"
+                                    style={{
+                                        left: '15px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        color: currentThemeStyles.inputColor,
+                                        opacity: 0.6
+                                    }}
+                                ></i>
+                            </div>
+                        </div>
+
+                        {/* No Friends Message */}
+                        <div className="text-center py-5">
+                            <i className="bi bi-chat-dots" style={{ fontSize: '3rem', opacity: 0.5 }}></i>
+                            <h4 className="mt-3">No friends to message</h4>
+                            <p className="text-muted">Add friends to start chatting!</p>
+                        </div>
+                    </div>
+
+                    {/* Right Panel - Default Instructions */}
+                    <div className="chat-panel d-none d-lg-flex">
+                        <div className="instructions text-center">
+                            <div className="instruction-content">
+                                <i className="bi bi-chat-heart" style={{ fontSize: '4rem', opacity: 0.3, marginBottom: '20px' }}></i>
+                                <h3 className="instruction-title">Your messages</h3>
+                                <p className="instruction-text">Send a message to start a chat.</p>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => {
+                                        // You can add functionality to open friend list or search
+                                        console.log('Add friends button clicked');
+                                    }}
+                                    style={{
+                                        borderRadius: '25px',
+                                        padding: '10px 30px',
+                                        fontWeight: '500'
+                                    }}
+                                >
+                                    <i className="bi bi-person-plus me-2"></i>
+                                    Add Friends
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             ) : (
                 <div className="chat-container" style={{ background: styles.background, color: styles.color }}>
                     {/* Left Sidebar for Chat List */}
@@ -640,8 +748,8 @@ export default function Messages() {
                                 <input
                                     type="text"
                                     placeholder="Search messages..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
                                     className="form-control"
                                     style={{
                                         borderRadius: '25px',
@@ -919,14 +1027,25 @@ export default function Messages() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="instructions">
-                                <div className="text-center">
-                                    <div className="icon-container">
-                                        <span className="chat-icon"><i class="bi bi-chat-right-text"></i></span>
-                                    </div>
+                            <div className="instructions text-center">
+                                <div className="instruction-content">
+                                    <i className="bi bi-chat-heart" style={{ fontSize: '4rem', opacity: 0.3, marginBottom: '20px' }}></i>
                                     <h3 className="instruction-title">Your messages</h3>
                                     <p className="instruction-text">Send a message to start a chat.</p>
-                                    <button className="send-button" style={{ cursor: "pointer" }} data-bs-toggle="modal" data-bs-target="#followers">{profile.followersCount || "0"} Send message</button></div>
+                                    <button
+                                        className="btn btn-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#followers"
+                                        style={{
+                                            borderRadius: '25px',
+                                            padding: '10px 30px',
+                                            fontWeight: '500'
+                                        }}
+                                    >
+                                        <i className="bi bi-person-plus me-2"></i>
+                                        Send Message
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -1101,7 +1220,7 @@ export default function Messages() {
                                     <h6 className="mb-0 fw-bold">
                                         {selectedUser?.name || 'User'}
                                     </h6>
-                                    <small className="text-muted">
+                                    <small>
                                         {onlineUsers.has(selectedChat) ? 'Online' : 'Offline'}
                                     </small>
                                 </div>
@@ -1115,7 +1234,7 @@ export default function Messages() {
                         </div>
 
                         {/* Modal Body - Chat Messages */}
-                        <div className="modal-body p-0 d-flex flex-column" style={{ height: 'calc(100vh - 120px)' }}>
+                        <div className="modal-body">
                             <div
                                 className="flex-grow-1 overflow-auto"
                                 style={{
@@ -1126,87 +1245,82 @@ export default function Messages() {
                                 {selectedChat && chatMessages[selectedChat] && chatMessages[selectedChat].length > 0 ? (
                                     <>
                                         {chatMessages[selectedChat].map((msg) => (
-                                            <div
-                                                key={msg.id}
-                                                className={`d-flex mb-3 ${msg.sender === "You" ? "justify-content-end" : "justify-content-start"}`}
-                                            >
+                                            <div key={msg.id} className="mb-3">
+                                                {/* Simple alignment: Sender right, Receiver left */}
                                                 <div
-                                                    style={{
-                                                        backgroundColor: msg.sender === "You"
-                                                            ? '#007bff'
-                                                            : 'rgba(255, 255, 255, 0.9)',
-                                                        color: msg.sender === "You" ? 'white' : '#333',
-                                                        maxWidth: '70%',
-                                                        padding: '10px 15px',
-                                                        borderRadius: msg.sender === "You"
-                                                            ? '18px 18px 4px 18px'
-                                                            : '18px 18px 18px 4px',
-                                                        wordWrap: 'break-word',
-                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                                        textAlign: 'left'
-                                                    }}
+                                                    className={`d-flex ${msg.sender === "You" ? "justify-content-end" : "justify-content-start"}`}
                                                 >
-                                                    <div style={{
-                                                        fontSize: '14px',
-                                                        lineHeight: '1.4',
-                                                        marginBottom: '4px',
-                                                        textAlign: 'left'
-                                                    }}>
-                                                        {msg.text}
-                                                    </div>
-                                                    <div style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center',
-                                                        marginTop: '4px'
-                                                    }}>
-                                                        <small style={{
+                                                    <div
+                                                        style={{
+                                                            backgroundColor: msg.sender === "You"
+                                                                ? '#007bff'
+                                                                : 'rgba(255, 255, 255, 0.9)',
+                                                            color: msg.sender === "You" ? 'white' : '#333',
+                                                            padding: '8px 12px',
+                                                            borderRadius: '15px',
+                                                            maxWidth: '75%',
+                                                            minWidth: '60px',
+                                                            wordWrap: 'break-word',
+                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                                            textAlign: 'left',
+                                                            alignSelf: msg.sender === "You" ? 'flex-end' : 'flex-start'
+                                                        }}
+                                                    >
+                                                        <div style={{
+                                                            fontSize: '14px',
+                                                            lineHeight: '1.3',
+                                                            marginBottom: '2px'
+                                                        }}>
+                                                            {msg.text}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '11px',
                                                             opacity: 0.7,
-                                                            fontSize: '11px'
+                                                            textAlign: msg.sender === "You" ? 'right' : 'left',
+                                                            marginTop: '2px'
                                                         }}>
                                                             {msg.timestamp}
-                                                        </small>
-                                                        {msg.sender === "You" && (
-                                                            <small style={{
-                                                                opacity: 0.7,
-                                                                fontSize: '11px',
-                                                                marginLeft: '8px'
-                                                            }}>
-                                                                {msg.delivered ? "Seen" : "Sent"}
-                                                            </small>
-                                                        )}
+                                                            {msg.sender === "You" && (
+                                                                <span style={{ marginLeft: '5px' }}>
+                                                                    {msg.delivered ? "Seen" : "Sent"}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         ))}
 
-                                        {/* Typing Indicator */}
+                                        {/* Typing Indicator - Always on left */}
                                         {typingUsers.has(selectedChat) && (
-                                            <div className="d-flex mb-3 justify-content-start">
-                                                <div
-                                                    style={{
-                                                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                                                        color: '#333',
-                                                        maxWidth: '70%',
-                                                        padding: '10px 15px',
-                                                        borderRadius: '18px 18px 18px 4px',
-                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                                        textAlign: 'left'
-                                                    }}
-                                                >
-                                                    <div className="d-flex align-items-center">
-                                                        <span className="typing-indicator me-2">
-                                                            <span></span>
-                                                            <span></span>
-                                                            <span></span>
-                                                        </span>
-                                                        <small style={{
-                                                            color: '#666',
-                                                            fontSize: '12px',
-                                                            fontStyle: 'italic'
-                                                        }}>
-                                                            typing...
-                                                        </small>
+                                            <div className="mb-3">
+                                                <div className="d-flex justify-content-start">
+                                                    <div
+                                                        style={{
+                                                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                                            color: '#333',
+                                                            padding: '8px 12px',
+                                                            borderRadius: '15px',
+                                                            maxWidth: '75%',
+                                                            minWidth: '60px',
+                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                                            alignSelf: 'flex-start'
+                                                        }}
+                                                    >
+                                                        <div className="d-flex align-items-center">
+                                                            <span className="typing-indicator me-2">
+                                                                <span></span>
+                                                                <span></span>
+                                                                <span></span>
+                                                            </span>
+                                                            <small style={{
+                                                                color: '#666',
+                                                                fontSize: '12px',
+                                                                fontStyle: 'italic'
+                                                            }}>
+                                                                typing...
+                                                            </small>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
