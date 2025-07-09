@@ -380,3 +380,75 @@
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
     border-color: transparent !important;
 }
+
+/* Mobile Chat Modal Styles */
+.mobile-chat-modal .modal-dialog {
+    margin: 0;
+    max-width: 100%;
+    height: 100vh;
+}
+
+.mobile-chat-modal .modal-content {
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+}
+
+.mobile-chat-modal .modal-header {
+    border-bottom: 1px solid #e0e0e0;
+    padding: 12px 16px;
+    background: #fff;
+}
+
+.mobile-chat-modal .modal-body {
+    padding: 0 !important;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 120px);
+    background: #f8f9fa;
+}
+
+/* Remove any default Bootstrap gaps */
+.mobile-chat-modal .container-fluid,
+.mobile-chat-modal .row,
+.mobile-chat-modal .col {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Ensure full width for chat input */
+.mobile-chat-modal .form-control {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Mobile message alignment */
+@media (max-width: 768px) {
+    .mobile-chat-modal .d-flex {
+        width: 100% !important;
+    }
+
+    .mobile-chat-modal .justify-content-end {
+        padding-right: 0 !important;
+    }
+
+    .mobile-chat-modal .justify-content-start {
+        padding-left: 0 !important;
+    }
+
+    .chat-container {
+        padding: 0;
+    }
+
+    .user-list {
+        border-right: none;
+    }
+
+    .chat-area {
+        border-radius: 0;
+    }
+
+    .message-input {
+        padding: 8px;
+    }
+}

@@ -1231,49 +1231,49 @@ export default function Messages() {
                         </div>
 
                         {/* Modal Body - Chat Messages */}
-                        <div className="modal-body">
+                        <div className="modal-body p-0 d-flex flex-column" style={{ height: 'calc(100vh - 120px)' }}>
                             <div
                                 className="flex-grow-1 overflow-auto"
                                 style={{
                                     maxHeight: 'calc(100vh - 200px)',
-                                    padding: '8px'
+                                    padding: '12px 16px'
                                 }}
                             >
                                 {selectedChat && chatMessages[selectedChat] && chatMessages[selectedChat].length > 0 ? (
                                     <>
                                         {chatMessages[selectedChat].map((msg) => (
-                                            <div key={msg.id} className="mb-3">
-                                                {/* Simple alignment: Sender right, Receiver left */}
+                                            <div key={msg.id} className="mb-2">
                                                 <div
                                                     className={`d-flex ${msg.sender === "You" ? "justify-content-end" : "justify-content-start"}`}
+                                                    style={{ width: '100%' }}
                                                 >
                                                     <div
                                                         style={{
                                                             backgroundColor: msg.sender === "You"
                                                                 ? '#007bff'
-                                                                : 'rgba(255, 255, 255, 0.9)',
+                                                                : '#f1f1f1',
                                                             color: msg.sender === "You" ? 'white' : '#333',
-                                                            padding: '8px 12px',
-                                                            borderRadius: '15px',
-                                                            maxWidth: '75%',
-                                                            minWidth: '60px',
+                                                            padding: '10px 14px',
+                                                            borderRadius: msg.sender === "You"
+                                                                ? '18px 18px 4px 18px'
+                                                                : '18px 18px 18px 4px',
+                                                            maxWidth: '80%',
                                                             wordWrap: 'break-word',
                                                             boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                                            textAlign: 'left',
-                                                            alignSelf: msg.sender === "You" ? 'flex-end' : 'flex-start'
+                                                            position: 'relative'
                                                         }}
                                                     >
                                                         <div style={{
-                                                            fontSize: '14px',
-                                                            lineHeight: '1.3',
-                                                            marginBottom: '2px'
+                                                            fontSize: '15px',
+                                                            lineHeight: '1.4',
+                                                            marginBottom: '4px'
                                                         }}>
                                                             {msg.text}
                                                         </div>
                                                         <div style={{
                                                             fontSize: '11px',
                                                             opacity: 0.7,
-                                                            textAlign: msg.sender === "You" ? 'right' : 'left',
+                                                            textAlign: 'right',
                                                             marginTop: '2px'
                                                         }}>
                                                             {msg.timestamp}
@@ -1290,18 +1290,16 @@ export default function Messages() {
 
                                         {/* Typing Indicator - Always on left */}
                                         {typingUsers.has(selectedChat) && (
-                                            <div className="mb-3">
-                                                <div className="d-flex justify-content-start">
+                                            <div className="mb-2">
+                                                <div className="d-flex justify-content-start" style={{ width: '100%' }}>
                                                     <div
                                                         style={{
-                                                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                                            backgroundColor: '#f1f1f1',
                                                             color: '#333',
-                                                            padding: '8px 12px',
-                                                            borderRadius: '15px',
-                                                            maxWidth: '75%',
-                                                            minWidth: '60px',
-                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                                            alignSelf: 'flex-start'
+                                                            padding: '10px 14px',
+                                                            borderRadius: '18px 18px 18px 4px',
+                                                            maxWidth: '80%',
+                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                                                         }}
                                                     >
                                                         <div className="d-flex align-items-center">
@@ -1334,10 +1332,10 @@ export default function Messages() {
                                 )}
                             </div>
 
-                            {/* Chat Input - Default Styling */}
-                            <div className="border-top p-3">
+                            {/* Chat Input - Full Width */}
+                            <div className="border-top" style={{ padding: '12px 16px', backgroundColor: '#fff' }}>
                                 <form onSubmit={handleSendMessage}>
-                                    <div className="d-flex align-items-center gap-2">
+                                    <div className="d-flex align-items-center" style={{ gap: '8px' }}>
                                         <input
                                             type="text"
                                             className="form-control"
@@ -1351,10 +1349,12 @@ export default function Messages() {
                                                 }
                                             }}
                                             style={{
-                                                borderRadius: '20px',
-                                                padding: '10px 15px',
-                                                border: '1px solid #ddd',
-                                                fontSize: '14px'
+                                                borderRadius: '25px',
+                                                padding: '12px 16px',
+                                                border: '1px solid #e0e0e0',
+                                                fontSize: '15px',
+                                                backgroundColor: '#f8f9fa',
+                                                flex: '1'
                                             }}
                                         />
                                         <button
@@ -1363,15 +1363,17 @@ export default function Messages() {
                                             onClick={handleSendMessage}
                                             style={{
                                                 borderRadius: '50%',
-                                                width: '40px',
-                                                height: '40px',
+                                                width: '44px',
+                                                height: '44px',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                padding: '0'
+                                                padding: '0',
+                                                backgroundColor: '#007bff',
+                                                border: 'none'
                                             }}
                                         >
-                                            <i className="bi bi-send-fill"></i>
+                                            <i className="bi bi-send-fill" style={{ fontSize: '16px' }}></i>
                                         </button>
                                     </div>
                                 </form>
