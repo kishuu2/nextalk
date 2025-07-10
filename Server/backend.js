@@ -98,26 +98,38 @@ io.on('connection', (socket) => {
   console.log('🔗 New user connected with socket ID:', socket.id);
 
   // Handle user joining
-  socket.on('join', (userId) => {
+  socket.on('join', async (userId) => {
     console.log('🔗 User attempting to join:', userId);
     if (userId) {
       socket.userId = userId;
-      onlineUsers.set(userId, {
-        socketId: socket.id,
-        lastSeen: new Date(),
-        isOnline: true
-      });
 
-      // Broadcast user online status to all connected clients
-      socket.broadcast.emit('userOnline', userId);
+      try {
+        // Update user status in database
+        await Users.findByIdAndUpdate(userId, {
+          isOnline: true,
+          lastSeen: new Date(),
+          socketId: socket.id
+        });
 
-      // Send current online users to the newly connected user
-      const onlineUserIds = Array.from(onlineUsers.keys()).filter(id =>
-        onlineUsers.get(id).isOnline
-      );
-      socket.emit('onlineUsers', onlineUserIds);
+        onlineUsers.set(userId, {
+          socketId: socket.id,
+          lastSeen: new Date(),
+          isOnline: true
+        });
 
-      console.log(`✅ User ${userId} joined successfully. Online users: ${onlineUserIds.length}`);
+        // Broadcast user online status to all connected clients
+        socket.broadcast.emit('userOnline', userId);
+
+        // Send current online users to the newly connected user
+        const onlineUserIds = Array.from(onlineUsers.keys()).filter(id =>
+          onlineUsers.get(id).isOnline
+        );
+        socket.emit('onlineUsers', onlineUserIds);
+
+        console.log(`✅ User ${userId} joined successfully. Online users: ${onlineUserIds.length}`);
+      } catch (error) {
+        console.error('❌ Error updating user online status:', error);
+      }
     } else {
       console.log('❌ Join failed: No userId provided');
     }
@@ -255,30 +267,115 @@ io.on('connection', (socket) => {
   });
 
   // Handle disconnection
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     if (socket.userId) {
-      // Update user status to offline
-      const userInfo = onlineUsers.get(socket.userId);
-      if (userInfo) {
-        onlineUsers.set(socket.userId, {
-          ...userInfo,
+      try {
+        // Update user status in database
+        await Users.findByIdAndUpdate(socket.userId, {
           isOnline: false,
-          lastSeen: new Date()
+          lastSeen: new Date(),
+          socketId: null
         });
 
-        // Broadcast user offline status
-        socket.broadcast.emit('userOffline', socket.userId);
+        // Update user status to offline
+        const userInfo = onlineUsers.get(socket.userId);
+        if (userInfo) {
+          onlineUsers.set(socket.userId, {
+            ...userInfo,
+            isOnline: false,
+            lastSeen: new Date()
+          });
 
-        // Remove from online users after 30 seconds
-        setTimeout(() => {
-          onlineUsers.delete(socket.userId);
-        }, 30000);
+          // Broadcast user offline status
+          socket.broadcast.emit('userOffline', socket.userId);
+
+          // Remove from online users after 30 seconds
+          setTimeout(() => {
+            onlineUsers.delete(socket.userId);
+          }, 30000);
+        }
+
+        console.log(`User ${socket.userId} disconnected`);
+      } catch (error) {
+        console.error('❌ Error updating user offline status:', error);
       }
-
-      console.log(`User ${socket.userId} disconnected`);
     }
     console.log('User disconnected:', socket.id);
   });
+});
+
+// API endpoint to get chat details including size
+app.get("/chat/:userId1/:userId2", async (req, res) => {
+  try {
+    const { userId1, userId2 } = req.params;
+
+    const chat = await Chat.findChatBetweenUsers(userId1, userId2);
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+
+    // Calculate current size
+    chat.calculateChatSize();
+    await chat.save();
+
+    res.json({
+      chatId: chat._id,
+      messages: chat.messages,
+      sizeInBytes: chat.chatSizeInBytes,
+      sizeFormatted: chat.getChatSizeFormatted(),
+      exceedsLimit: chat.exceedsLimit(),
+      isDeleted: chat.isDeleted,
+      deletedAt: chat.deletedAt
+    });
+  } catch (error) {
+    console.error("Error fetching chat:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// API endpoint to delete chat
+app.delete("/chat/:chatId", async (req, res) => {
+  try {
+    const { chatId } = req.params;
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+
+    await chat.deleteChat();
+
+    res.json({
+      message: "Chat deleted successfully",
+      chatId: chat._id,
+      deletedAt: chat.deletedAt
+    });
+  } catch (error) {
+    console.error("Error deleting chat:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// API endpoint to restore chat
+app.post("/chat/:chatId/restore", async (req, res) => {
+  try {
+    const { chatId } = req.params;
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+
+    await chat.restoreChat();
+
+    res.json({
+      message: "Chat restored successfully",
+      chatId: chat._id
+    });
+  } catch (error) {
+    console.error("Error restoring chat:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 app.get("/", (req, resp) => {

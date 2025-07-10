@@ -54,7 +54,117 @@ export default function Messages() {
     const [unreadCounts, setUnreadCounts] = useState({});
     const [deliveredMessages, setDeliveredMessages] = useState(new Set());
     const [showMobileModal, setShowMobileModal] = useState(false);
+    const [chatSizes, setChatSizes] = useState({});
+    const [deletedChats, setDeletedChats] = useState(new Set());
+    const [userLastSeen, setUserLastSeen] = useState({});
     const typingTimeoutRef = useRef(null);
+
+    // Chat size and deletion functions
+    const checkChatSize = async (userId1, userId2) => {
+        try {
+            const response = await axios.get(`/chat/${userId1}/${userId2}`);
+            const chatData = response.data;
+
+            setChatSizes(prev => ({
+                ...prev,
+                [`${userId1}_${userId2}`]: {
+                    sizeInBytes: chatData.sizeInBytes,
+                    sizeFormatted: chatData.sizeFormatted,
+                    exceedsLimit: chatData.exceedsLimit,
+                    chatId: chatData.chatId
+                }
+            }));
+
+            if (chatData.isDeleted) {
+                setDeletedChats(prev => new Set([...prev, `${userId1}_${userId2}`]));
+            }
+
+            return chatData;
+        } catch (error) {
+            console.error('Error checking chat size:', error);
+            return null;
+        }
+    };
+
+    const deleteChat = async (chatId, userId1, userId2) => {
+        try {
+            await axios.delete(`/chat/${chatId}`);
+
+            // Mark chat as deleted
+            setDeletedChats(prev => new Set([...prev, `${userId1}_${userId2}`]));
+
+            // Clear local messages
+            setChatMessages(prev => ({
+                ...prev,
+                [`${userId1}_${userId2}`]: []
+            }));
+
+            // Clear local storage
+            localStorage.removeItem(`chat_${userId1}_${userId2}`);
+
+            console.log('✅ Chat deleted successfully');
+            return true;
+        } catch (error) {
+            console.error('❌ Error deleting chat:', error);
+            return false;
+        }
+    };
+
+    const restoreChat = async (chatId, userId1, userId2) => {
+        try {
+            await axios.post(`/chat/${chatId}/restore`);
+
+            // Remove from deleted chats
+            setDeletedChats(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(`${userId1}_${userId2}`);
+                return newSet;
+            });
+
+            console.log('✅ Chat restored successfully');
+            return true;
+        } catch (error) {
+            console.error('❌ Error restoring chat:', error);
+            return false;
+        }
+    };
+
+    // Format last seen time (12-hour format)
+    const formatLastSeen = (lastSeen, isOnline) => {
+        if (isOnline) return 'Online';
+
+        const now = new Date();
+        const lastSeenDate = new Date(lastSeen);
+        const diffInMinutes = Math.floor((now - lastSeenDate) / (1000 * 60));
+
+        if (diffInMinutes < 1) return 'Just now';
+        if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+
+        const diffInHours = Math.floor(diffInMinutes / 60);
+        if (diffInHours < 24) return `${diffInHours}h ago`;
+
+        // Format as 12-hour time with AM/PM
+        const options = {
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: true
+        };
+
+        const diffInDays = Math.floor(diffInHours / 24);
+        if (diffInDays === 1) {
+            return `Yesterday ${lastSeenDate.toLocaleTimeString('en-US', options)}`;
+        } else if (diffInDays < 7) {
+            return `${diffInDays}d ago`;
+        } else {
+            return lastSeenDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+                hour12: true
+            });
+        }
+    };
 
     // Enhanced Local Storage utility functions
     const getChatHistory = (userId) => {
@@ -238,6 +348,9 @@ export default function Messages() {
                     if (lastMsg) {
                         loadedLastMessages[user._id] = lastMsg;
                     }
+
+                    // Check chat size for each user
+                    checkChatSize(sessionUserId, user._id);
                 }
             });
 
@@ -817,7 +930,10 @@ export default function Messages() {
                                     <div className="chat-header">
                                         <span className="user-name">{user.name}</span>
                                         <span className="timestamp">
-                                            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {onlineUsers.has(user._id)
+                                                ? 'Online'
+                                                : formatLastSeen(user.lastSeen || new Date(), false)
+                                            }
                                         </span>
                                     </div>
                                     <p className="last-message">
@@ -1189,7 +1305,7 @@ export default function Messages() {
                 <div className="modal-dialog modal-fullscreen">
                     <div className="modal-content" style={{ background: styles.background, color: styles.color }}>
                         {/* Modal Header - Default Styling */}
-                        <div className="modal-header border-bottom">
+                        <div className="modal-header border-bottom d-flex justify-content-between">
                             <div className="d-flex align-items-center gap-3">
                                 <div className="position-relative">
                                     <Image
@@ -1203,13 +1319,13 @@ export default function Messages() {
                                     <span
                                         className="position-absolute"
                                         style={{
-                                            bottom: '2px',
-                                            right: '2px',
-                                            width: '10px',
-                                            height: '10px',
-                                            backgroundColor: onlineUsers.has(selectedChat) ? '#10b981' : '#ef4444',
+                                            bottom: '1px',
+                                            right: '1px',
+                                            width: '12px',
+                                            height: '12px',
+                                            backgroundColor: onlineUsers.has(selectedChat) ? '#E81C1C' : '#0FC953',
                                             borderRadius: '50%',
-                                            border: '2px solid white'
+                                            boxShadow: '0 2 0 2px rgba(9, 50, 11, 0.27)'
                                         }}
                                     ></span>
                                 </div>
@@ -1218,45 +1334,62 @@ export default function Messages() {
                                         {selectedUser?.name || 'User'}
                                     </h6>
                                     <small>
-                                        {onlineUsers.has(selectedChat) ? 'Online' : 'Offline'}
+                                        {onlineUsers.has(selectedChat)
+                                            ? 'Online'
+                                            : formatLastSeen(selectedUser?.lastSeen || new Date(), false)
+                                        }
                                     </small>
                                 </div>
                             </div>
-                            <button
-                                type="button"
-                                className="btn btn-close bg-warning"
-                                onClick={handleBackToList}
-                                aria-label="Close"
-                            ></button>
+                            <div className="d-flex align-items-center">
+                                {/* Chat Size Display Only */}
+                                {selectedUser && chatSizes[`${sessionUserId}_${selectedUser._id}`] && (
+                                    <div className="me-2 text-center">
+                                        <small style={{
+                                            fontSize: '11px',
+                                            color: chatSizes[`${sessionUserId}_${selectedUser._id}`]?.exceedsLimit ? '#dc3545' : '#6c757d'
+                                        }}>
+                                            {chatSizes[`${sessionUserId}_${selectedUser._id}`]?.sizeFormatted}
+                                        </small>
+                                    </div>
+                                )}
+                                <button
+                                    type="button"
+                                    className="btn btn-close bg-warning"
+                                    onClick={handleBackToList}
+                                    aria-label="Close"
+                                ></button>
+                            </div>
                         </div>
 
                         {/* Modal Body - Chat Messages */}
-                        <div className="modal-body p-0 d-flex flex-column" style={{ height: 'calc(100vh - 120px)' }}>
+                        <div className="modal-body d-flex flex-column" style={{ height: 'calc(100vh - 120px)' }}>
                             <div
                                 className="flex-grow-1 overflow-auto"
                                 style={{
                                     maxHeight: 'calc(100vh - 200px)',
-                                    padding: '12px 16px'
+                                    padding: '12px 6px'
                                 }}
                             >
                                 {selectedChat && chatMessages[selectedChat] && chatMessages[selectedChat].length > 0 ? (
                                     <>
                                         {chatMessages[selectedChat].map((msg) => (
                                             <div key={msg.id} className="mb-2">
+                                                {/* Swapped: Receiver RIGHT, Sender LEFT */}
                                                 <div
-                                                    className={`d-flex ${msg.sender === "You" ? "justify-content-end" : "justify-content-start"}`}
+                                                    className={`d-flex ${msg.sender === "You" ? "justify-content-start" : "justify-content-end"}`}
                                                     style={{ width: '100%' }}
                                                 >
                                                     <div
                                                         style={{
                                                             backgroundColor: msg.sender === "You"
-                                                                ? '#007bff'
-                                                                : '#f1f1f1',
-                                                            color: msg.sender === "You" ? 'white' : '#333',
+                                                                ? '#f1f1f1'
+                                                                : '#007bff',
+                                                            color: msg.sender === "You" ? '#333' : 'white',
                                                             padding: '10px 14px',
                                                             borderRadius: msg.sender === "You"
-                                                                ? '18px 18px 4px 18px'
-                                                                : '18px 18px 18px 4px',
+                                                                ? '18px 18px 18px 4px'
+                                                                : '18px 18px 4px 18px',
                                                             maxWidth: '80%',
                                                             wordWrap: 'break-word',
                                                             boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
@@ -1266,18 +1399,19 @@ export default function Messages() {
                                                         <div style={{
                                                             fontSize: '15px',
                                                             lineHeight: '1.4',
-                                                            marginBottom: '4px'
+                                                            marginBottom: '4px',
+                                                            textAlign: msg.sender === "You" ? 'left' : 'right'
                                                         }}>
                                                             {msg.text}
                                                         </div>
                                                         <div style={{
                                                             fontSize: '11px',
                                                             opacity: 0.7,
-                                                            textAlign: 'right',
+                                                            textAlign: msg.sender === "You" ? 'left' : 'right',
                                                             marginTop: '2px'
                                                         }}>
                                                             {msg.timestamp}
-                                                            {msg.sender === "You" && (
+                                                            {msg.sender !== "You" && (
                                                                 <span style={{ marginLeft: '5px' }}>
                                                                     {msg.delivered ? "Seen" : "Sent"}
                                                                 </span>
@@ -1288,33 +1422,71 @@ export default function Messages() {
                                             </div>
                                         ))}
 
-                                        {/* Typing Indicator - Always on left */}
-                                        {typingUsers.has(selectedChat) && (
-                                            <div className="mb-2">
-                                                <div className="d-flex justify-content-start" style={{ width: '100%' }}>
+                                        {/* Chat Size Warning and Delete Option */}
+                                        {selectedUser && chatSizes[`${sessionUserId}_${selectedUser._id}`] &&
+                                         chatSizes[`${sessionUserId}_${selectedUser._id}`]?.exceedsLimit && (
+                                            <div className="mb-3">
+                                                <div className="d-flex justify-content-center">
                                                     <div
                                                         style={{
-                                                            backgroundColor: '#f1f1f1',
-                                                            color: '#333',
+                                                            backgroundColor: '#fff3cd',
+                                                            color: '#856404',
+                                                            padding: '12px 6px',
+                                                            borderRadius: '15px',
+                                                            border: '1px solid #ffeaa7',
+                                                            textAlign: 'center',
+                                                            maxWidth: '90%'
+                                                        }}
+                                                    >
+                                                        <button
+                                                            className="btn btn-sm btn-danger"
+                                                            style={{
+                                                                fontSize: '12px',
+                                                                padding: '6px 12px',
+                                                                borderRadius: '20px'
+                                                            }}
+                                                            onClick={() => {
+                                                                const chatData = chatSizes[`${sessionUserId}_${selectedUser._id}`];
+                                                                if (confirm('⚠️ This will permanently delete all messages in this chat. Are you sure?')) {
+                                                                    deleteChat(chatData.chatId, sessionUserId, selectedUser._id);
+                                                                }
+                                                            }}
+                                                        >
+                                                            🗑️ Delete Chat
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Typing Indicator - Now on right (receiver side) */}
+                                        {typingUsers.has(selectedChat) && (
+                                            <div className="mb-2">
+                                                <div className="d-flex justify-content-end" style={{ width: '100%' }}>
+                                                    <div
+                                                        style={{
+                                                            backgroundColor: '#007bff',
+                                                            color: 'white',
                                                             padding: '10px 14px',
-                                                            borderRadius: '18px 18px 18px 4px',
+                                                            borderRadius: '18px 18px 4px 18px',
                                                             maxWidth: '80%',
                                                             boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                                                         }}
                                                     >
-                                                        <div className="d-flex align-items-center">
-                                                            <span className="typing-indicator me-2">
+                                                        <div className="d-flex align-items-center justify-content-end">
+                                                            <small style={{
+                                                                color: 'rgba(255,255,255,0.8)',
+                                                                fontSize: '12px',
+                                                                fontStyle: 'italic',
+                                                                marginRight: '8px'
+                                                            }}>
+                                                                typing...
+                                                            </small>
+                                                            <span className="typing-indicator">
                                                                 <span></span>
                                                                 <span></span>
                                                                 <span></span>
                                                             </span>
-                                                            <small style={{
-                                                                color: '#666',
-                                                                fontSize: '12px',
-                                                                fontStyle: 'italic'
-                                                            }}>
-                                                                typing...
-                                                            </small>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1334,49 +1506,66 @@ export default function Messages() {
 
                             {/* Chat Input - Full Width */}
                             <div className="w-100" style={{ padding: '12px 2px'}}>
-                                <form onSubmit={handleSendMessage}>
-                                    <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            placeholder="Message..."
-                                            value={newMessage}
-                                            onChange={(e) => handleTyping(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' && !e.shiftKey) {
-                                                    e.preventDefault();
-                                                    handleSendMessage(e);
+                                {deletedChats.has(`${sessionUserId}_${selectedUser?._id}`) ? (
+                                    <div className="text-center py-3">
+                                        <p className="text-muted mb-2">This chat has been deleted</p>
+                                        <button
+                                            className="btn btn-sm btn-outline-primary"
+                                            onClick={() => {
+                                                const chatData = chatSizes[`${sessionUserId}_${selectedUser._id}`];
+                                                if (chatData) {
+                                                    restoreChat(chatData.chatId, sessionUserId, selectedUser._id);
                                                 }
                                             }}
-                                            style={{
-                                                borderRadius: '25px',
-                                                padding: '12px 16px',
-                                                border: '1px solid #e0e0e0',
-                                                fontSize: '15px',
-                                                backgroundColor: '#f8f9fa',
-                                                flex: '1'
-                                            }}
-                                        />
-                                        <button
-                                            type="submit"
-                                            className="btn btn-primary"
-                                            onClick={handleSendMessage}
-                                            style={{
-                                                borderRadius: '50%',
-                                                width: '44px',
-                                                height: '44px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                padding: '0',
-                                                backgroundColor: '#007bff',
-                                                border: 'none'
-                                            }}
                                         >
-                                            <i className="bi bi-send-fill" style={{ fontSize: '16px' }}></i>
+                                            Restore Chat
                                         </button>
                                     </div>
-                                </form>
+                                ) : (
+                                    <form onSubmit={handleSendMessage}>
+                                        <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                placeholder="Message..."
+                                                value={newMessage}
+                                                onChange={(e) => handleTyping(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                                        e.preventDefault();
+                                                        handleSendMessage(e);
+                                                    }
+                                                }}
+                                                style={{
+                                                    borderRadius: '25px',
+                                                    padding: '12px 16px',
+                                                    border: '1px solid #e0e0e0',
+                                                    fontSize: '15px',
+                                                    backgroundColor: '#f8f9fa',
+                                                    flex: '1'
+                                                }}
+                                            />
+                                            <button
+                                                type="submit"
+                                                className="btn btn-primary"
+                                                onClick={handleSendMessage}
+                                                style={{
+                                                    borderRadius: '50%',
+                                                    width: '44px',
+                                                    height: '44px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    padding: '0',
+                                                    backgroundColor: '#007bff',
+                                                    border: 'none'
+                                                }}
+                                            >
+                                                <i className="bi bi-send-fill" style={{ fontSize: '16px' }}></i>
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
                             </div>
                         </div>
                     </div>
