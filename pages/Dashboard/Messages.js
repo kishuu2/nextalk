@@ -62,7 +62,9 @@ export default function Messages() {
     const [showMobileReactionPopup, setShowMobileReactionPopup] = useState(false);
     const [selectedMessageForReaction, setSelectedMessageForReaction] = useState(null);
     const [reactionPopupPosition, setReactionPopupPosition] = useState({ x: 0, y: 0 });
+    const [showScrollToBottom, setShowScrollToBottom] = useState(false);
     const typingTimeoutRef = useRef(null);
+    const chatContainerRef = useRef(null);
 
     // Chat size and deletion functions (using local storage)
 
@@ -176,26 +178,47 @@ export default function Messages() {
         );
     };
 
-    // Message Reactions Feature
+    // Message Reactions Feature - One reaction per user
     const addReaction = (messageId, emoji) => {
-        setMessageReactions(prev => ({
-            ...prev,
-            [messageId]: {
-                ...prev[messageId],
-                [emoji]: (prev[messageId]?.[emoji] || 0) + 1
+        const currentUserId = sessionUserId;
+
+        setMessageReactions(prev => {
+            const messageReactions = prev[messageId] || {};
+            const newReactions = { ...messageReactions };
+
+            // Remove user's previous reaction if exists
+            Object.keys(newReactions).forEach(existingEmoji => {
+                if (newReactions[existingEmoji] && newReactions[existingEmoji][currentUserId]) {
+                    delete newReactions[existingEmoji][currentUserId];
+                    // Remove emoji if no users left
+                    if (Object.keys(newReactions[existingEmoji]).length === 0) {
+                        delete newReactions[existingEmoji];
+                    }
+                }
+            });
+
+            // Add new reaction
+            if (!newReactions[emoji]) {
+                newReactions[emoji] = {};
             }
-        }));
+            newReactions[emoji][currentUserId] = {
+                userId: currentUserId,
+                userName: sessionUser?.name || 'You',
+                timestamp: new Date().toISOString()
+            };
+
+            return {
+                ...prev,
+                [messageId]: newReactions
+            };
+        });
 
         // Save to localStorage
         const reactionsKey = `reactions_${sessionUserId}_${selectedUser?._id}`;
-        const updatedReactions = {
-            ...messageReactions,
-            [messageId]: {
-                ...messageReactions[messageId],
-                [emoji]: (messageReactions[messageId]?.[emoji] || 0) + 1
-            }
-        };
-        localStorage.setItem(reactionsKey, JSON.stringify(updatedReactions));
+        setTimeout(() => {
+            const updatedReactions = messageReactions;
+            localStorage.setItem(reactionsKey, JSON.stringify(updatedReactions));
+        }, 100);
 
         // Close mobile popup after reaction
         setShowMobileReactionPopup(false);
@@ -217,6 +240,29 @@ export default function Messages() {
             navigator.vibrate(50);
         }
     };
+
+    // Scroll functions
+    const scrollToBottom = () => {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTo({
+                top: chatContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    const handleScroll = () => {
+        if (chatContainerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+            const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+            setShowScrollToBottom(!isNearBottom);
+        }
+    };
+
+    // Auto-scroll when new message is sent or received
+    useEffect(() => {
+        scrollToBottom();
+    }, [chatMessages, selectedChat]);
 
 
 
@@ -432,6 +478,21 @@ export default function Messages() {
                                 chatId: `local_${sessionUserId}_${user._id}`
                             }
                         }));
+                    }
+
+                    // Load reactions from localStorage
+                    const reactionsKey = `reactions_${sessionUserId}_${user._id}`;
+                    const savedReactions = localStorage.getItem(reactionsKey);
+                    if (savedReactions) {
+                        try {
+                            const reactions = JSON.parse(savedReactions);
+                            setMessageReactions(prev => ({
+                                ...prev,
+                                ...reactions
+                            }));
+                        } catch (error) {
+                            console.error('Error loading reactions:', error);
+                        }
                     }
                 }
             });
@@ -1447,11 +1508,13 @@ export default function Messages() {
                         {/* Modal Body - Chat Messages */}
                         <div className="modal-body d-flex flex-column" style={{ height: 'calc(100vh - 120px)' }}>
                             <div
-                                className="flex-grow-1 overflow-auto"
+                                ref={chatContainerRef}
+                                className="flex-grow-1 overflow-auto position-relative"
                                 style={{
                                     maxHeight: 'calc(100vh - 200px)',
                                     padding: '12px 6px'
                                 }}
+                                onScroll={handleScroll}
                             >
                                 {selectedChat && chatMessages[selectedChat] && chatMessages[selectedChat].length > 0 ? (
                                     <>
@@ -1478,13 +1541,11 @@ export default function Messages() {
                                                             position: 'relative'
                                                         }}
                                                         onTouchStart={(e) => {
-                                                            // Mobile: Start 2-second hold timer
-                                                            if (window.innerWidth <= 768) {
-                                                                const timer = setTimeout(() => {
-                                                                    handleMobileReactionPopup(msg.id, e.currentTarget);
-                                                                }, 2000);
-                                                                e.currentTarget.dataset.holdTimer = timer;
-                                                            }
+                                                            // Mobile: Start 2-second hold timer for both sender and receiver
+                                                            const timer = setTimeout(() => {
+                                                                handleMobileReactionPopup(msg.id, e.currentTarget);
+                                                            }, 2000);
+                                                            e.currentTarget.dataset.holdTimer = timer;
                                                         }}
                                                         onTouchEnd={(e) => {
                                                             // Clear timer if touch ends early
@@ -1493,6 +1554,7 @@ export default function Messages() {
                                                                 delete e.currentTarget.dataset.holdTimer;
                                                             }
                                                         }}
+                                                        className="d-md-none" // Only on mobile
                                                     >
                                                         <div style={{
                                                             fontSize: '15px',
@@ -1504,58 +1566,83 @@ export default function Messages() {
                                                         </div>
 
                                                         {/* Message Reactions Display */}
-                                                        {messageReactions[msg.id] && (
+                                                        {messageReactions[msg.id] && Object.keys(messageReactions[msg.id]).length > 0 && (
                                                             <div style={{
                                                                 fontSize: '12px',
                                                                 marginBottom: '4px',
                                                                 textAlign: msg.sender === "You" ? 'right' : 'left'
                                                             }}>
-                                                                {Object.entries(messageReactions[msg.id]).map(([emoji, count]) => (
-                                                                    <span key={emoji} style={{
-                                                                        marginRight: '4px',
-                                                                        backgroundColor: 'rgba(255,255,255,0.2)',
-                                                                        padding: '2px 6px',
-                                                                        borderRadius: '10px'
-                                                                    }}>
-                                                                        {emoji} {count}
-                                                                    </span>
-                                                                ))}
+                                                                {Object.entries(messageReactions[msg.id]).map(([emoji, users]) => {
+                                                                    const userCount = Object.keys(users).length;
+                                                                    const userNames = Object.values(users).map(u => u.userName).join(', ');
+
+                                                                    return (
+                                                                        <span
+                                                                            key={emoji}
+                                                                            style={{
+                                                                                marginRight: '4px',
+                                                                                backgroundColor: 'rgba(0,123,255,0.1)',
+                                                                                padding: '3px 8px',
+                                                                                borderRadius: '12px',
+                                                                                border: '1px solid rgba(0,123,255,0.2)',
+                                                                                cursor: 'pointer',
+                                                                                display: 'inline-block'
+                                                                            }}
+                                                                            title={`${userNames} reacted with ${emoji}`}
+                                                                            onClick={() => addReaction(msg.id, emoji)}
+                                                                        >
+                                                                            {emoji} {userCount}
+                                                                        </span>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         )}
 
-                                                        {/* Desktop: Always show reaction options */}
-                                                        {window.innerWidth > 768 && (
-                                                            <div style={{
-                                                                fontSize: '12px',
+                                                        {/* Desktop: Always show reaction options for both sender and receiver */}
+                                                        <div
+                                                            className="d-none d-md-block"
+                                                            style={{
+                                                                fontSize: '14px',
                                                                 marginBottom: '2px',
                                                                 textAlign: msg.sender === "You" ? 'right' : 'left',
-                                                                opacity: 0.6
+                                                                opacity: 0.7
+                                                            }}
+                                                        >
+                                                            <div style={{
+                                                                display: 'inline-block',
+                                                                backgroundColor: 'rgba(255,255,255,0.9)',
+                                                                padding: '4px 8px',
+                                                                borderRadius: '15px',
+                                                                border: '1px solid rgba(0,0,0,0.1)',
+                                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                                                             }}>
                                                                 {['❤️', '😂', '👍', '😮', '😢', '😡'].map(emoji => (
                                                                     <span
                                                                         key={emoji}
                                                                         style={{
                                                                             cursor: 'pointer',
-                                                                            marginRight: '4px',
-                                                                            padding: '2px',
-                                                                            borderRadius: '4px',
-                                                                            transition: 'all 0.2s'
+                                                                            marginRight: '6px',
+                                                                            padding: '4px',
+                                                                            borderRadius: '6px',
+                                                                            transition: 'all 0.2s',
+                                                                            display: 'inline-block'
                                                                         }}
                                                                         onClick={() => addReaction(msg.id, emoji)}
                                                                         onMouseEnter={(e) => {
-                                                                            e.target.style.opacity = 1;
-                                                                            e.target.style.backgroundColor = 'rgba(0,0,0,0.1)';
+                                                                            e.target.style.transform = 'scale(1.2)';
+                                                                            e.target.style.backgroundColor = 'rgba(0,123,255,0.1)';
                                                                         }}
                                                                         onMouseLeave={(e) => {
-                                                                            e.target.style.opacity = 0.6;
+                                                                            e.target.style.transform = 'scale(1)';
                                                                             e.target.style.backgroundColor = 'transparent';
                                                                         }}
+                                                                        title={`React with ${emoji}`}
                                                                     >
                                                                         {emoji}
                                                                     </span>
                                                                 ))}
                                                             </div>
-                                                        )}
+                                                        </div>
                                                         <div style={{
                                                             fontSize: '11px',
                                                             opacity: 0.7,
@@ -1611,37 +1698,79 @@ export default function Messages() {
                                             </div>
                                         )}
 
-                                        {/* Typing Indicator - Now on right (receiver side) */}
+                                        {/* Typing Indicator - Left side with light green background */}
                                         {typingUsers.has(selectedChat) && (
                                             <div className="mb-2">
-                                                <div className="d-flex justify-content-end" style={{ width: '100%' }}>
+                                                <div className="d-flex justify-content-start" style={{ width: '100%' }}>
                                                     <div
                                                         style={{
-                                                            backgroundColor: '#007bff',
-                                                            color: 'white',
+                                                            backgroundColor: '#d4edda',
+                                                            color: '#155724',
                                                             padding: '10px 14px',
-                                                            borderRadius: '18px 18px 4px 18px',
+                                                            borderRadius: '18px 18px 18px 4px',
                                                             maxWidth: '80%',
-                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                                            border: '1px solid #c3e6cb'
                                                         }}
                                                     >
-                                                        <div className="d-flex align-items-center justify-content-end">
+                                                        <div className="d-flex align-items-center">
+                                                            <span className="typing-indicator me-2">
+                                                                <span style={{ backgroundColor: '#28a745' }}></span>
+                                                                <span style={{ backgroundColor: '#28a745' }}></span>
+                                                                <span style={{ backgroundColor: '#28a745' }}></span>
+                                                            </span>
                                                             <small style={{
-                                                                color: 'rgba(255,255,255,0.8)',
+                                                                color: '#155724',
                                                                 fontSize: '12px',
-                                                                fontStyle: 'italic',
-                                                                marginRight: '8px'
+                                                                fontStyle: 'italic'
                                                             }}>
                                                                 typing...
                                                             </small>
-                                                            <span className="typing-indicator">
-                                                                <span></span>
-                                                                <span></span>
-                                                                <span></span>
-                                                            </span>
                                                         </div>
                                                     </div>
                                                 </div>
+                                            </div>
+                                        )}
+
+                                        {/* Scroll to Bottom Button */}
+                                        {showScrollToBottom && (
+                                            <div
+                                                style={{
+                                                    position: 'absolute',
+                                                    bottom: '20px',
+                                                    right: '20px',
+                                                    zIndex: 1000
+                                                }}
+                                            >
+                                                <button
+                                                    onClick={scrollToBottom}
+                                                    style={{
+                                                        width: '45px',
+                                                        height: '45px',
+                                                        borderRadius: '50%',
+                                                        backgroundColor: '#007bff',
+                                                        border: 'none',
+                                                        color: 'white',
+                                                        boxShadow: '0 4px 12px rgba(0,123,255,0.3)',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        transition: 'all 0.3s ease',
+                                                        fontSize: '18px'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.target.style.transform = 'scale(1.1)';
+                                                        e.target.style.backgroundColor = '#0056b3';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.target.style.transform = 'scale(1)';
+                                                        e.target.style.backgroundColor = '#007bff';
+                                                    }}
+                                                    title="Scroll to bottom"
+                                                >
+                                                    ↓
+                                                </button>
                                             </div>
                                         )}
 
@@ -1732,16 +1861,17 @@ export default function Messages() {
                 <div
                     style={{
                         position: 'fixed',
-                        left: reactionPopupPosition.x - 150,
-                        top: reactionPopupPosition.y,
+                        left: Math.max(10, Math.min(reactionPopupPosition.x - 150, window.innerWidth - 320)),
+                        top: Math.max(10, reactionPopupPosition.y - 10),
                         zIndex: 9999,
                         backgroundColor: 'white',
-                        borderRadius: '25px',
-                        padding: '8px 12px',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                        borderRadius: '30px',
+                        padding: '12px 16px',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
                         display: 'flex',
-                        gap: '8px',
-                        border: '1px solid #e0e0e0'
+                        gap: '12px',
+                        border: '1px solid #e0e0e0',
+                        animation: 'fadeInUp 0.3s ease-out'
                     }}
                     onClick={(e) => e.stopPropagation()}
                 >
@@ -1749,18 +1879,25 @@ export default function Messages() {
                         <span
                             key={emoji}
                             style={{
-                                fontSize: '24px',
+                                fontSize: '28px',
                                 cursor: 'pointer',
-                                padding: '4px',
+                                padding: '8px',
                                 borderRadius: '50%',
-                                transition: 'transform 0.2s'
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '44px',
+                                height: '44px'
                             }}
                             onClick={() => addReaction(selectedMessageForReaction, emoji)}
                             onTouchStart={(e) => {
-                                e.currentTarget.style.transform = 'scale(1.2)';
+                                e.currentTarget.style.transform = 'scale(1.3)';
+                                e.currentTarget.style.backgroundColor = 'rgba(0,123,255,0.1)';
                             }}
                             onTouchEnd={(e) => {
                                 e.currentTarget.style.transform = 'scale(1)';
+                                e.currentTarget.style.backgroundColor = 'transparent';
                             }}
                         >
                             {emoji}
