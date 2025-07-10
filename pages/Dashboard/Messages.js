@@ -202,7 +202,7 @@ export default function Messages() {
 
 
     // Enhanced Local Storage utility functions
-    const getChatHistory = (userId) => {
+    const getChatHistory = useCallback((userId) => {
         try {
             if (!sessionUserId || !userId) return [];
             const chatKey = `chat_${sessionUserId}_${userId}`;
@@ -212,7 +212,7 @@ export default function Messages() {
             console.error('Error loading chat history:', error);
             return [];
         }
-    };
+    }, [sessionUserId]);
 
     const saveChatHistory = (userId, messages) => {
         try {
@@ -225,7 +225,7 @@ export default function Messages() {
         }
     };
 
-    const getUnreadCount = (userId) => {
+    const getUnreadCount = useCallback((userId) => {
         try {
             if (!sessionUserId || !userId) return 0;
             const unreadKey = `unread_${sessionUserId}_${userId}`;
@@ -235,9 +235,9 @@ export default function Messages() {
             console.error('Error loading unread count:', error);
             return 0;
         }
-    };
+    }, [sessionUserId]);
 
-    const saveUnreadCount = (userId, count) => {
+    const saveUnreadCount = useCallback((userId, count) => {
         try {
             if (!sessionUserId || !userId) return;
             const unreadKey = `unread_${sessionUserId}_${userId}`;
@@ -249,9 +249,9 @@ export default function Messages() {
         } catch (error) {
             console.error('Error saving unread count:', error);
         }
-    };
+    }, [sessionUserId]);
 
-    const getLastMessage = (userId) => {
+    const getLastMessage = useCallback((userId) => {
         try {
             if (!sessionUserId || !userId) return '';
             const lastMsgKey = `lastmsg_${sessionUserId}_${userId}`;
@@ -260,9 +260,9 @@ export default function Messages() {
             console.error('Error loading last message:', error);
             return '';
         }
-    };
+    }, [sessionUserId]);
 
-    const saveLastMessage = (userId, message) => {
+    const saveLastMessage = useCallback((userId, message) => {
         try {
             if (!sessionUserId || !userId) return;
             const lastMsgKey = `lastmsg_${sessionUserId}_${userId}`;
@@ -275,7 +275,7 @@ export default function Messages() {
         } catch (error) {
             console.error('Error saving last message:', error);
         }
-    };
+    }, [sessionUserId]);
 
     // Handle back to chat list on mobile
     const handleBackToList = () => {
@@ -374,7 +374,7 @@ export default function Messages() {
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [users, onlineUsers]);
+    }, [users, onlineUsers, updateLastSeenTimes]);
 
     // Load chat history and unread counts when users are loaded
     useEffect(() => {
@@ -431,7 +431,7 @@ export default function Messages() {
             setLastMessages(loadedLastMessages);
             console.log('✅ All chat data loaded from cache');
         }
-    }, [users, sessionUserId, accepted]);
+    }, [users, sessionUserId, accepted, getChatHistory, getLastMessage, getUnreadCount]);
 
     // Socket.IO connection and real-time functionality
     useEffect(() => {
@@ -576,7 +576,7 @@ export default function Messages() {
                 }
             }
         }
-    }, [router.isReady, users, accepted, selectedChat, sessionUserId]);
+    }, [router.isReady, router.query, users, accepted, selectedChat, sessionUserId, getChatHistory]);
 
     // Auto-scroll to bottom when new messages are added
     useEffect(() => {
