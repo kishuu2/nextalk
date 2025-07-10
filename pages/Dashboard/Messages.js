@@ -355,12 +355,19 @@ export default function Messages() {
         fetchData();
     }, []);
 
-    // Real-time last seen updates
+    // Real-time last seen updates and online status refresh
     useEffect(() => {
         // Update last seen times every minute
         const interval = setInterval(() => {
             updateLastSeenTimes();
-        }, 60000); // Update every 1 minute
+
+            // Also refresh online status periodically
+            if (socketService.getConnectionStatus().isConnected) {
+                console.log('🔄 Refreshing online status...');
+                // Request fresh online users list
+                socketService.socket?.emit('getOnlineUsers');
+            }
+        }, 30000); // Update every 30 seconds for better real-time feel
 
         setLastSeenUpdateInterval(interval);
 
@@ -429,8 +436,14 @@ export default function Messages() {
     // Socket.IO connection and real-time functionality
     useEffect(() => {
         if (sessionUserId) {
-            // Connect to Socket.IO
-            socketService.connect(sessionUserId);
+            // Connect to Socket.IO with deployment-ready error handling
+            try {
+                socketService.connect(sessionUserId);
+                console.log('🔗 Socket connection initiated for user:', sessionUserId);
+            } catch (error) {
+                console.error('❌ Socket connection failed:', error);
+                // Continue without socket for basic functionality
+            }
 
             // Listen for incoming messages
             const unsubscribeMessages = socketService.onMessage((data) => {
@@ -482,20 +495,26 @@ export default function Messages() {
                 }
             });
 
-            // Listen for online status updates
+            // Listen for online status updates with better handling
             const unsubscribeOnlineStatus = socketService.onOnlineStatus((data) => {
                 console.log('👥 Online status update:', data);
                 if (data.type === 'initial') {
                     console.log('📋 Setting initial online users:', data.userIds);
-                    setOnlineUsers(new Set(data.userIds));
+                    setOnlineUsers(new Set(data.userIds || []));
                 } else if (data.type === 'online') {
                     console.log('🟢 User came online:', data.userId);
-                    setOnlineUsers(prev => new Set([...prev, data.userId]));
+                    setOnlineUsers(prev => {
+                        const newSet = new Set(prev);
+                        newSet.add(data.userId);
+                        console.log('Updated online users:', Array.from(newSet));
+                        return newSet;
+                    });
                 } else if (data.type === 'offline') {
                     console.log('🔴 User went offline:', data.userId);
                     setOnlineUsers(prev => {
                         const newSet = new Set(prev);
                         newSet.delete(data.userId);
+                        console.log('Updated online users:', Array.from(newSet));
                         return newSet;
                     });
                 }
@@ -716,10 +735,43 @@ export default function Messages() {
                 // Stop typing indicator
                 if (isTyping) {
                     setIsTyping(false);
-                    socketService.sendTypingIndicator(selectedChat, false);
+                    try {
+                        socketService.sendTypingIndicator(selectedChat, false);
+                    } catch (error) {
+                        console.warn('⚠️ Typing indicator failed:', error);
+                    }
                 }
             } else {
-                console.error('Failed to send message - Socket not connected');
+                console.error('❌ Failed to send message - Socket not connected');
+                // Still add message locally for offline functionality
+                const offlineMsg = {
+                    id: Date.now(),
+                    sender: "You",
+                    text: newMessage.trim(),
+                    timestamp: new Date().toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    }),
+                    delivered: false,
+                    read: false,
+                    offline: true
+                };
+
+                const currentMessages = chatMessages[selectedChat] || [];
+                const updatedMessages = [...currentMessages, offlineMsg];
+
+                setChatMessages(prev => {
+                    const updated = {
+                        ...prev,
+                        [selectedChat]: updatedMessages
+                    };
+                    saveChatHistory(selectedChat, updatedMessages);
+                    return updated;
+                });
+
+                saveLastMessage(selectedChat, offlineMsg.text);
+                setNewMessage("");
             }
         }
     };
@@ -731,10 +783,18 @@ export default function Messages() {
         if (selectedChat && sessionUserId) {
             if (value.trim() && !isTyping) {
                 setIsTyping(true);
-                socketService.sendTypingIndicator(selectedChat, true);
+                try {
+                    socketService.sendTypingIndicator(selectedChat, true);
+                } catch (error) {
+                    console.warn('⚠️ Typing indicator start failed:', error);
+                }
             } else if (!value.trim() && isTyping) {
                 setIsTyping(false);
-                socketService.sendTypingIndicator(selectedChat, false);
+                try {
+                    socketService.sendTypingIndicator(selectedChat, false);
+                } catch (error) {
+                    console.warn('⚠️ Typing indicator stop failed:', error);
+                }
             }
 
             // Clear typing timeout
@@ -746,7 +806,11 @@ export default function Messages() {
             typingTimeoutRef.current = setTimeout(() => {
                 if (isTyping) {
                     setIsTyping(false);
-                    socketService.sendTypingIndicator(selectedChat, false);
+                    try {
+                        socketService.sendTypingIndicator(selectedChat, false);
+                    } catch (error) {
+                        console.warn('⚠️ Typing indicator timeout failed:', error);
+                    }
                 }
             }, 2000);
         }
@@ -1387,9 +1451,9 @@ export default function Messages() {
                 </div>
             </div>
 
-            {/* Bootstrap 5 Modal for Mobile Chat */}
+            {/* Bootstrap 5 Modal for Mobile Chat - Fixed Layout */}
             <div
-                className={`modal fade ${showMobileModal ? 'show' : ''}`}
+                className={`modal fade mobile-chat-modal ${showMobileModal ? 'show' : ''}`}
                 id="mobileChat"
                 tabIndex="-1"
                 aria-labelledby="mobileChatLabel"
@@ -1400,10 +1464,31 @@ export default function Messages() {
                 }}
             >
                 <div className="modal-dialog modal-fullscreen">
-                    <div className="modal-content" style={{ background: styles.background, color: styles.color }}>
+                    <div className="modal-content" style={{
+                        background: styles.background,
+                        color: styles.color,
+                        height: '100vh',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
                         {/* Modal Header - Default Styling */}
-                        <div className="modal-header border-bottom d-flex justify-content-between">
+                        <div className="modal-header border-bottom d-flex justify-content-between" style={{
+                            padding: '12px 16px',
+                            backgroundColor: '#fff',
+                            flexShrink: 0
+                        }}>
                             <div className="d-flex align-items-center gap-3">
+                                <button
+                                    className="btn me-2"
+                                    onClick={handleBackToList}
+                                    style={{
+                                        padding: '4px 8px',
+                                        border: 'none',
+                                        background: 'transparent'
+                                    }}
+                                >
+                                    <i className="bi bi-arrow-left" style={{ fontSize: '18px', color: '#333' }}></i>
+                                </button>
                                 <div className="position-relative">
                                     <Image
                                         src={selectedUser?.image || predefine}
@@ -1430,11 +1515,18 @@ export default function Messages() {
                                     <h6 className="mb-0 fw-bold">
                                         {selectedUser?.name || 'User'}
                                     </h6>
-                                    <small>
-                                        {onlineUsers.has(selectedUser?._id)
-                                            ? 'Online'
-                                            : formatLastSeen(selectedUser?.lastSeen || new Date(), false)
-                                        }
+                                    <small style={{ color: '#666', fontSize: '12px' }}>
+                                        {(() => {
+                                            const isOnline = onlineUsers.has(selectedUser?._id);
+                                            console.log('Mobile header status check:', {
+                                                userId: selectedUser?._id,
+                                                isOnline,
+                                                onlineUsers: Array.from(onlineUsers)
+                                            });
+                                            return isOnline
+                                                ? 'Online'
+                                                : formatLastSeen(selectedUser?.lastSeen || new Date(), false);
+                                        })()}
                                     </small>
                                 </div>
                             </div>
@@ -1459,13 +1551,22 @@ export default function Messages() {
                             </div>
                         </div>
 
-                        {/* Modal Body - Chat Messages */}
-                        <div className="modal-body d-flex flex-column" style={{ height: 'calc(100vh - 120px)' }}>
+                        {/* Mobile Modal Body - Fixed Layout */}
+                        <div className="modal-body d-flex flex-column" style={{
+                            height: 'calc(100vh - 120px)',
+                            padding: '0',
+                            backgroundColor: '#f8f9fa',
+                            flex: 1
+                        }}>
                             <div
+                                ref={chatContainerRef}
                                 className="flex-grow-1 overflow-auto position-relative"
                                 style={{
-                                    maxHeight: 'calc(100vh - 200px)',
-                                    padding: '12px 6px'
+                                    padding: '16px',
+                                    backgroundColor: '#f8f9fa',
+                                    flex: 1,
+                                    display: 'flex',
+                                    flexDirection: 'column'
                                 }}
                                 onScroll={handleScroll}
                             >
@@ -1607,8 +1708,13 @@ export default function Messages() {
                                 )}
                             </div>
 
-                            {/* Chat Input - Full Width */}
-                            <div className="w-100" style={{ padding: '12px 2px'}}>
+                            {/* Mobile Chat Input - Fixed Layout */}
+                            <div className="w-100" style={{
+                                padding: '16px',
+                                backgroundColor: '#fff',
+                                borderTop: '1px solid #e0e0e0',
+                                flexShrink: 0
+                            }}>
                                 {deletedChats.has(`${sessionUserId}_${selectedUser?._id}`) ? (
                                     <div className="text-center py-3">
                                         <p className="text-muted mb-2">This chat has been deleted</p>
@@ -1626,35 +1732,7 @@ export default function Messages() {
                                     </div>
                                 ) : (
                                     <form onSubmit={handleSendMessage}>
-                                         {/* Mobile Scroll to Bottom Button - Fixed at bottom-right */}
-                                        {showScrollToBottom && (
-                                            <button
-                                                onClick={scrollToBottom}
-                                                style={{
-                                                    position: 'absolute',
-                                                    bottom: '16px',
-                                                    right: '16px',
-                                                    width: '50px',
-                                                    height: '50px',
-                                                    borderRadius: '50%',
-                                                    backgroundColor: 'rgba(236, 17, 17, 0.93)',
-                                                    border: 'none',
-                                                    color: 'white',
-                                                    boxShadow: '0 4px 16px rgba(213,28,28,0.4)',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    transition: 'all 0.3s ease',
-                                                    fontSize: '20px',
-                                                    fontWeight: 'bold',
-                                                    zIndex: 1000
-                                                }}
-                                            >
-                                                ↓
-                                            </button>
-                                        )}
-                                        <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                                        <div className="d-flex align-items-center" style={{ gap: '12px' }}>
                                             <input
                                                 type="text"
                                                 className="form-control"
@@ -1671,42 +1749,165 @@ export default function Messages() {
                                                     borderRadius: '25px',
                                                     padding: '12px 16px',
                                                     border: '1px solid #e0e0e0',
-                                                    fontSize: '15px',
+                                                    fontSize: '16px',
                                                     backgroundColor: '#f8f9fa',
-                                                    flex: '1'
+                                                    flex: '1',
+                                                    outline: 'none',
+                                                    boxShadow: 'none'
                                                 }}
                                             />
 
                                             <button
                                                 type="submit"
                                                 className="btn btn-primary"
-                                                onClick={handleSendMessage}
                                                 disabled={!newMessage.trim()}
                                                 style={{
                                                     borderRadius: '50%',
-                                                    width: '44px',
-                                                    height: '44px',
+                                                    width: '48px',
+                                                    height: '48px',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                     padding: '0',
                                                     backgroundColor: '#007bff',
                                                     border: 'none',
-                                                    opacity: !newMessage.trim() ? 0.5 : 1
+                                                    opacity: !newMessage.trim() ? 0.5 : 1,
+                                                    flexShrink: 0
                                                 }}
                                             >
-                                                <i className="bi bi-send-fill" style={{ fontSize: '16px' }}></i>
+                                                <i className="bi bi-send-fill" style={{ fontSize: '18px' }}></i>
                                             </button>
                                         </div>
                                     </form>
                                 )}
                             </div>
+
+                            {/* Mobile Scroll to Bottom Button - Fixed at bottom-right */}
+                            {showScrollToBottom && (
+                                <button
+                                    onClick={scrollToBottom}
+                                    style={{
+                                        position: 'absolute',
+                                        bottom: '80px',
+                                        right: '20px',
+                                        width: '50px',
+                                        height: '50px',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#007bff',
+                                        border: 'none',
+                                        color: 'white',
+                                        boxShadow: '0 4px 16px rgba(0,123,255,0.4)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'all 0.3s ease',
+                                        fontSize: '20px',
+                                        fontWeight: 'bold',
+                                        zIndex: 1000
+                                    }}
+                                    onTouchStart={(e) => {
+                                        e.target.style.transform = 'scale(1.1)';
+                                        e.target.style.backgroundColor = '#0056b3';
+                                    }}
+                                    onTouchEnd={(e) => {
+                                        e.target.style.transform = 'scale(1)';
+                                        e.target.style.backgroundColor = '#007bff';
+                                    }}
+                                    title="Scroll to bottom"
+                                >
+                                    ↓
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
 
+            <style jsx>{`
+                .typing-indicator {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 2px;
+                }
+
+                .typing-indicator span {
+                    width: 4px;
+                    height: 4px;
+                    border-radius: 50%;
+                    background-color: #007bff;
+                    animation: typing 1.4s infinite ease-in-out;
+                }
+
+                .typing-indicator span:nth-child(1) {
+                    animation-delay: -0.32s;
+                }
+
+                .typing-indicator span:nth-child(2) {
+                    animation-delay: -0.16s;
+                }
+
+                @keyframes typing {
+                    0%, 80%, 100% {
+                        transform: scale(0.8);
+                        opacity: 0.5;
+                    }
+                    40% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                }
+
+                /* Mobile Chat Modal Improvements */
+                .mobile-chat-modal .modal-content {
+                    border-radius: 0;
+                    border: none;
+                }
+
+                .mobile-chat-modal .modal-header {
+                    border-bottom: 1px solid #e0e0e0;
+                    background-color: #fff;
+                    position: sticky;
+                    top: 0;
+                    z-index: 1020;
+                }
+
+                .mobile-chat-modal .modal-body {
+                    padding: 0;
+                    overflow: hidden;
+                }
+
+                /* Better mobile input styling */
+                @media (max-width: 768px) {
+                    .mobile-chat-modal .form-control {
+                        font-size: 16px !important;
+                        -webkit-appearance: none;
+                        border-radius: 25px;
+                    }
+
+                    .mobile-chat-modal .btn {
+                        -webkit-tap-highlight-color: transparent;
+                    }
+                }
+
+                /* Online status indicator animation */
+                .online-indicator {
+                    animation: pulse 2s infinite;
+                }
+
+                @keyframes pulse {
+                    0% {
+                        box-shadow: 0 0 0 0 rgba(15, 201, 83, 0.7);
+                    }
+                    70% {
+                        box-shadow: 0 0 0 10px rgba(15, 201, 83, 0);
+                    }
+                    100% {
+                        box-shadow: 0 0 0 0 rgba(15, 201, 83, 0);
+                    }
+                }
+            `}</style>
         </DashboardLayout>
     );
 }
