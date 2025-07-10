@@ -57,39 +57,18 @@ export default function Messages() {
     const [chatSizes, setChatSizes] = useState({});
     const [deletedChats, setDeletedChats] = useState(new Set());
     const [userLastSeen, setUserLastSeen] = useState({});
+    const [lastSeenUpdateInterval, setLastSeenUpdateInterval] = useState(null);
+    const [messageReactions, setMessageReactions] = useState({});
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingTime, setRecordingTime] = useState(0);
+    const [mediaRecorder, setMediaRecorder] = useState(null);
     const typingTimeoutRef = useRef(null);
+    const recordingIntervalRef = useRef(null);
 
-    // Chat size and deletion functions
-    const checkChatSize = async (userId1, userId2) => {
+    // Chat size and deletion functions (using local storage)
+
+    const deleteChat = (chatId, userId1, userId2) => {
         try {
-            const response = await axios.get(`/chat/${userId1}/${userId2}`);
-            const chatData = response.data;
-
-            setChatSizes(prev => ({
-                ...prev,
-                [`${userId1}_${userId2}`]: {
-                    sizeInBytes: chatData.sizeInBytes,
-                    sizeFormatted: chatData.sizeFormatted,
-                    exceedsLimit: chatData.exceedsLimit,
-                    chatId: chatData.chatId
-                }
-            }));
-
-            if (chatData.isDeleted) {
-                setDeletedChats(prev => new Set([...prev, `${userId1}_${userId2}`]));
-            }
-
-            return chatData;
-        } catch (error) {
-            console.error('Error checking chat size:', error);
-            return null;
-        }
-    };
-
-    const deleteChat = async (chatId, userId1, userId2) => {
-        try {
-            await axios.delete(`/chat/${chatId}`);
-
             // Mark chat as deleted
             setDeletedChats(prev => new Set([...prev, `${userId1}_${userId2}`]));
 
@@ -101,6 +80,19 @@ export default function Messages() {
 
             // Clear local storage
             localStorage.removeItem(`chat_${userId1}_${userId2}`);
+            localStorage.removeItem(`unread_${userId1}_${userId2}`);
+            localStorage.removeItem(`lastmsg_${userId1}_${userId2}`);
+
+            // Reset chat size
+            setChatSizes(prev => ({
+                ...prev,
+                [`${userId1}_${userId2}`]: {
+                    sizeInBytes: 0,
+                    sizeFormatted: '0 Bytes',
+                    exceedsLimit: false,
+                    chatId: `local_${userId1}_${userId2}`
+                }
+            }));
 
             console.log('✅ Chat deleted successfully');
             return true;
@@ -110,10 +102,8 @@ export default function Messages() {
         }
     };
 
-    const restoreChat = async (chatId, userId1, userId2) => {
+    const restoreChat = (chatId, userId1, userId2) => {
         try {
-            await axios.post(`/chat/${chatId}/restore`);
-
             // Remove from deleted chats
             setDeletedChats(prev => {
                 const newSet = new Set(prev);
@@ -129,7 +119,18 @@ export default function Messages() {
         }
     };
 
-    // Format last seen time (12-hour format)
+
+
+    // Helper function to format bytes
+    const formatBytes = (bytes) => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
+    // Format last seen time (12-hour format) - Real-time updates
     const formatLastSeen = (lastSeen, isOnline) => {
         if (isOnline) return 'Online';
 
@@ -163,6 +164,107 @@ export default function Messages() {
                 minute: 'numeric',
                 hour12: true
             });
+        }
+    };
+
+    // Update last seen times in real-time
+    const updateLastSeenTimes = () => {
+        setUsers(prevUsers =>
+            prevUsers.map(user => ({
+                ...user,
+                lastSeenFormatted: formatLastSeen(user.lastSeen, onlineUsers.has(user._id))
+            }))
+        );
+    };
+
+    // Message Reactions Feature
+    const addReaction = (messageId, emoji) => {
+        setMessageReactions(prev => ({
+            ...prev,
+            [messageId]: {
+                ...prev[messageId],
+                [emoji]: (prev[messageId]?.[emoji] || 0) + 1
+            }
+        }));
+
+        // Save to localStorage
+        const reactionsKey = `reactions_${sessionUserId}_${selectedUser?._id}`;
+        const updatedReactions = {
+            ...messageReactions,
+            [messageId]: {
+                ...messageReactions[messageId],
+                [emoji]: (messageReactions[messageId]?.[emoji] || 0) + 1
+            }
+        };
+        localStorage.setItem(reactionsKey, JSON.stringify(updatedReactions));
+    };
+
+    // Voice Message Feature
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream);
+            const audioChunks = [];
+
+            recorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+
+            recorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+
+                // Send voice message
+                const voiceMessage = {
+                    id: Date.now(),
+                    sender: "You",
+                    text: `🎤 Voice message (${recordingTime}s)`,
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    delivered: true,
+                    isRead: false,
+                    type: 'voice',
+                    audioUrl: audioUrl,
+                    duration: recordingTime
+                };
+
+                // Add to chat
+                const chatKey = selectedUser?._id;
+                setChatMessages(prev => ({
+                    ...prev,
+                    [chatKey]: [...(prev[chatKey] || []), voiceMessage]
+                }));
+
+                // Save to localStorage
+                saveChatHistory(chatKey, [...(chatMessages[chatKey] || []), voiceMessage]);
+
+                // Send via socket
+                socketService.sendMessage(sessionUserId, selectedUser?._id, voiceMessage.text);
+
+                // Stop all tracks
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            setMediaRecorder(recorder);
+            recorder.start();
+            setIsRecording(true);
+            setRecordingTime(0);
+
+            // Start recording timer
+            recordingIntervalRef.current = setInterval(() => {
+                setRecordingTime(prev => prev + 1);
+            }, 1000);
+
+        } catch (error) {
+            console.error('Error starting recording:', error);
+            alert('Microphone access denied or not available');
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
+            setIsRecording(false);
+            clearInterval(recordingIntervalRef.current);
         }
     };
 
@@ -270,7 +372,7 @@ export default function Messages() {
                 console.log('🔍 Checking server connection...');
                 await debugServerConnection();
 
-                // Fetch all users
+                // Fetch all users (using existing endpoint)
                 console.log('📡 Fetching users...');
                 const response = await axios.post('/displayusersProfile');
 
@@ -320,6 +422,20 @@ export default function Messages() {
         fetchData();
     }, []);
 
+    // Real-time last seen updates
+    useEffect(() => {
+        // Update last seen times every minute
+        const interval = setInterval(() => {
+            updateLastSeenTimes();
+        }, 60000); // Update every 1 minute
+
+        setLastSeenUpdateInterval(interval);
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [users, onlineUsers]);
+
     // Load chat history and unread counts when users are loaded
     useEffect(() => {
         if (users.length > 0 && sessionUserId) {
@@ -349,8 +465,22 @@ export default function Messages() {
                         loadedLastMessages[user._id] = lastMsg;
                     }
 
-                    // Check chat size for each user
-                    checkChatSize(sessionUserId, user._id);
+                    // Calculate chat size from loaded history
+                    if (history.length > 0) {
+                        const totalSize = history.reduce((size, msg) => {
+                            return size + (msg.text ? msg.text.length * 2 : 0) + 200;
+                        }, 0);
+
+                        setChatSizes(prev => ({
+                            ...prev,
+                            [`${sessionUserId}_${user._id}`]: {
+                                sizeInBytes: totalSize,
+                                sizeFormatted: formatBytes(totalSize),
+                                exceedsLimit: totalSize >= (10 * 1024 * 1024),
+                                chatId: `local_${sessionUserId}_${user._id}`
+                            }
+                        }));
+                    }
                 }
             });
 
@@ -1315,7 +1445,7 @@ export default function Messages() {
                                         height={40}
                                         className="rounded-circle"
                                     />
-                                    {/* Online Status Indicator */}
+                                    {/* Online Status Indicator - Fixed */}
                                     <span
                                         className="position-absolute"
                                         style={{
@@ -1323,9 +1453,9 @@ export default function Messages() {
                                             right: '1px',
                                             width: '12px',
                                             height: '12px',
-                                            backgroundColor: onlineUsers.has(selectedChat) ? '#E81C1C' : '#0FC953',
+                                            backgroundColor: onlineUsers.has(selectedUser?._id) ? '#0FC953' : '#E81C1C',
                                             borderRadius: '50%',
-                                            boxShadow: '0 2 0 2px rgba(9, 50, 11, 0.27)'
+                                            boxShadow: '0 2px 0 2px rgba(9, 50, 11, 0.27)'
                                         }}
                                     ></span>
                                 </div>
@@ -1334,7 +1464,7 @@ export default function Messages() {
                                         {selectedUser?.name || 'User'}
                                     </h6>
                                     <small>
-                                        {onlineUsers.has(selectedChat)
+                                        {onlineUsers.has(selectedUser?._id)
                                             ? 'Online'
                                             : formatLastSeen(selectedUser?.lastSeen || new Date(), false)
                                         }
@@ -1402,7 +1532,60 @@ export default function Messages() {
                                                             marginBottom: '4px',
                                                             textAlign: msg.sender === "You" ? 'left' : 'right'
                                                         }}>
-                                                            {msg.text}
+                                                            {msg.type === 'voice' ? (
+                                                                <div className="d-flex align-items-center">
+                                                                    <audio controls style={{ maxWidth: '200px' }}>
+                                                                        <source src={msg.audioUrl} type="audio/wav" />
+                                                                    </audio>
+                                                                    <small className="ms-2">{msg.duration}s</small>
+                                                                </div>
+                                                            ) : (
+                                                                msg.text
+                                                            )}
+                                                        </div>
+
+                                                        {/* Message Reactions */}
+                                                        {messageReactions[msg.id] && (
+                                                            <div style={{
+                                                                fontSize: '12px',
+                                                                marginBottom: '4px',
+                                                                textAlign: msg.sender === "You" ? 'left' : 'right'
+                                                            }}>
+                                                                {Object.entries(messageReactions[msg.id]).map(([emoji, count]) => (
+                                                                    <span key={emoji} style={{
+                                                                        marginRight: '4px',
+                                                                        backgroundColor: 'rgba(255,255,255,0.2)',
+                                                                        padding: '2px 6px',
+                                                                        borderRadius: '10px'
+                                                                    }}>
+                                                                        {emoji} {count}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Quick Reactions */}
+                                                        <div style={{
+                                                            fontSize: '12px',
+                                                            marginBottom: '2px',
+                                                            textAlign: msg.sender === "You" ? 'left' : 'right'
+                                                        }}>
+                                                            {['❤️', '😂', '👍', '😮', '😢'].map(emoji => (
+                                                                <span
+                                                                    key={emoji}
+                                                                    style={{
+                                                                        cursor: 'pointer',
+                                                                        marginRight: '4px',
+                                                                        opacity: 0.6,
+                                                                        transition: 'opacity 0.2s'
+                                                                    }}
+                                                                    onClick={() => addReaction(msg.id, emoji)}
+                                                                    onMouseEnter={(e) => e.target.style.opacity = 1}
+                                                                    onMouseLeave={(e) => e.target.style.opacity = 0.6}
+                                                                >
+                                                                    {emoji}
+                                                                </span>
+                                                            ))}
                                                         </div>
                                                         <div style={{
                                                             fontSize: '11px',
@@ -1524,12 +1707,33 @@ export default function Messages() {
                                 ) : (
                                     <form onSubmit={handleSendMessage}>
                                         <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                                            {/* Voice Message Button */}
+                                            <button
+                                                type="button"
+                                                className={`btn ${isRecording ? 'btn-danger' : 'btn-outline-secondary'}`}
+                                                onClick={isRecording ? stopRecording : startRecording}
+                                                style={{
+                                                    borderRadius: '50%',
+                                                    width: '44px',
+                                                    height: '44px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    padding: '0'
+                                                }}
+                                                title={isRecording ? `Recording... ${recordingTime}s` : 'Voice Message'}
+                                            >
+                                                <i className={`bi ${isRecording ? 'bi-stop-fill' : 'bi-mic-fill'}`}
+                                                   style={{ fontSize: '16px' }}></i>
+                                            </button>
+
                                             <input
                                                 type="text"
                                                 className="form-control"
-                                                placeholder="Message..."
+                                                placeholder={isRecording ? `Recording... ${recordingTime}s` : "Message..."}
                                                 value={newMessage}
                                                 onChange={(e) => handleTyping(e.target.value)}
+                                                disabled={isRecording}
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter' && !e.shiftKey) {
                                                         e.preventDefault();
@@ -1541,14 +1745,16 @@ export default function Messages() {
                                                     padding: '12px 16px',
                                                     border: '1px solid #e0e0e0',
                                                     fontSize: '15px',
-                                                    backgroundColor: '#f8f9fa',
+                                                    backgroundColor: isRecording ? '#ffe6e6' : '#f8f9fa',
                                                     flex: '1'
                                                 }}
                                             />
+
                                             <button
                                                 type="submit"
                                                 className="btn btn-primary"
                                                 onClick={handleSendMessage}
+                                                disabled={isRecording || !newMessage.trim()}
                                                 style={{
                                                     borderRadius: '50%',
                                                     width: '44px',
@@ -1558,7 +1764,8 @@ export default function Messages() {
                                                     justifyContent: 'center',
                                                     padding: '0',
                                                     backgroundColor: '#007bff',
-                                                    border: 'none'
+                                                    border: 'none',
+                                                    opacity: (isRecording || !newMessage.trim()) ? 0.5 : 1
                                                 }}
                                             >
                                                 <i className="bi bi-send-fill" style={{ fontSize: '16px' }}></i>

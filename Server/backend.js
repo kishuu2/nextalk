@@ -378,6 +378,91 @@ app.post("/chat/:chatId/restore", async (req, res) => {
   }
 });
 
+// API endpoint to get all chats for a user (for new device sync)
+app.get("/user/:userId/chats", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const chats = await Chat.find({
+      participants: userId,
+      isDeleted: false
+    }).populate('participants', 'name username image isOnline lastSeen');
+
+    const chatData = chats.map(chat => {
+      const otherUser = chat.participants.find(p => p._id.toString() !== userId);
+      return {
+        chatId: chat._id,
+        otherUser: otherUser,
+        messages: chat.messages,
+        lastMessage: chat.lastMessage,
+        lastMessageTime: chat.lastMessageTime,
+        sizeInBytes: chat.chatSizeInBytes,
+        sizeFormatted: chat.getChatSizeFormatted(),
+        exceedsLimit: chat.exceedsLimit()
+      };
+    });
+
+    res.json(chatData);
+  } catch (error) {
+    console.error("Error fetching user chats:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// API endpoint to get users with last seen info
+app.get("/users/with-status", async (req, res) => {
+  try {
+    const users = await Users.find({}, '-password').lean();
+
+    // Add formatted last seen to each user
+    const usersWithStatus = users.map(user => ({
+      ...user,
+      lastSeenFormatted: formatLastSeen(user.lastSeen, user.isOnline)
+    }));
+
+    res.json(usersWithStatus);
+  } catch (error) {
+    console.error("Error fetching users with status:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Helper function to format last seen
+function formatLastSeen(lastSeen, isOnline) {
+  if (isOnline) return 'Online';
+
+  const now = new Date();
+  const lastSeenDate = new Date(lastSeen);
+  const diffInMinutes = Math.floor((now - lastSeenDate) / (1000 * 60));
+
+  if (diffInMinutes < 1) return 'Just now';
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+
+  const options = {
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: true
+  };
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays === 1) {
+    return `Yesterday ${lastSeenDate.toLocaleTimeString('en-US', options)}`;
+  } else if (diffInDays < 7) {
+    return `${diffInDays}d ago`;
+  } else {
+    return lastSeenDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    });
+  }
+}
+
 app.get("/", (req, resp) => {
   resp.send("App is Working");
 });
