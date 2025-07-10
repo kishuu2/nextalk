@@ -58,10 +58,6 @@ export default function Messages() {
     const [deletedChats, setDeletedChats] = useState(new Set());
     const [userLastSeen, setUserLastSeen] = useState({});
     const [lastSeenUpdateInterval, setLastSeenUpdateInterval] = useState(null);
-    const [messageReactions, setMessageReactions] = useState({});
-    const [showMobileReactionPopup, setShowMobileReactionPopup] = useState(false);
-    const [selectedMessageForReaction, setSelectedMessageForReaction] = useState(null);
-    const [reactionPopupPosition, setReactionPopupPosition] = useState({ x: 0, y: 0 });
     const [showScrollToBottom, setShowScrollToBottom] = useState(false);
     const typingTimeoutRef = useRef(null);
     const chatContainerRef = useRef(null);
@@ -178,68 +174,7 @@ export default function Messages() {
         );
     };
 
-    // Message Reactions Feature - One reaction per user
-    const addReaction = (messageId, emoji) => {
-        const currentUserId = sessionUserId;
 
-        setMessageReactions(prev => {
-            const messageReactions = prev[messageId] || {};
-            const newReactions = { ...messageReactions };
-
-            // Remove user's previous reaction if exists
-            Object.keys(newReactions).forEach(existingEmoji => {
-                if (newReactions[existingEmoji] && newReactions[existingEmoji][currentUserId]) {
-                    delete newReactions[existingEmoji][currentUserId];
-                    // Remove emoji if no users left
-                    if (Object.keys(newReactions[existingEmoji]).length === 0) {
-                        delete newReactions[existingEmoji];
-                    }
-                }
-            });
-
-            // Add new reaction
-            if (!newReactions[emoji]) {
-                newReactions[emoji] = {};
-            }
-            newReactions[emoji][currentUserId] = {
-                userId: currentUserId,
-                userName: sessionUser?.name || 'You',
-                timestamp: new Date().toISOString()
-            };
-
-            return {
-                ...prev,
-                [messageId]: newReactions
-            };
-        });
-
-        // Save to localStorage
-        const reactionsKey = `reactions_${sessionUserId}_${selectedUser?._id}`;
-        setTimeout(() => {
-            const updatedReactions = messageReactions;
-            localStorage.setItem(reactionsKey, JSON.stringify(updatedReactions));
-        }, 100);
-
-        // Close mobile popup after reaction
-        setShowMobileReactionPopup(false);
-        setSelectedMessageForReaction(null);
-    };
-
-    // Mobile reaction popup handler
-    const handleMobileReactionPopup = (messageId, element) => {
-        const rect = element.getBoundingClientRect();
-        setReactionPopupPosition({
-            x: rect.left + rect.width / 2,
-            y: rect.top - 60
-        });
-        setSelectedMessageForReaction(messageId);
-        setShowMobileReactionPopup(true);
-
-        // Vibrate if supported
-        if (navigator.vibrate) {
-            navigator.vibrate(50);
-        }
-    };
 
     // Scroll functions
     const scrollToBottom = () => {
@@ -480,20 +415,7 @@ export default function Messages() {
                         }));
                     }
 
-                    // Load reactions from localStorage
-                    const reactionsKey = `reactions_${sessionUserId}_${user._id}`;
-                    const savedReactions = localStorage.getItem(reactionsKey);
-                    if (savedReactions) {
-                        try {
-                            const reactions = JSON.parse(savedReactions);
-                            setMessageReactions(prev => ({
-                                ...prev,
-                                ...reactions
-                            }));
-                        } catch (error) {
-                            console.error('Error loading reactions:', error);
-                        }
-                    }
+
                 }
             });
 
@@ -1161,7 +1083,8 @@ export default function Messages() {
                                 >
                                     {/* Chat Messages Container with Fixed Height and Scrolling */}
                                     <div
-                                        className="chat-messages"
+                                        ref={chatContainerRef}
+                                        className="chat-messages position-relative"
                                         style={{
                                             height: 'calc(100vh - 300px)',
                                             overflowY: 'auto',
@@ -1170,6 +1093,7 @@ export default function Messages() {
                                             flexDirection: 'column',
                                             gap: '10px'
                                         }}
+                                        onScroll={handleScroll}
                                     >
                                         {chatMessages[selectedChat] && chatMessages[selectedChat].length > 0 ? (
                                             <>
@@ -1239,8 +1163,38 @@ export default function Messages() {
                                                 <p className="">Start the conversation by sending a message!</p>
                                             </div>
                                         )}
+
+                                        {/* Desktop Scroll to Bottom Button - Fixed at bottom-right */}
+                                        
                                     </div>
                                     <form className="chat-input-form" onSubmit={handleSendMessage}>
+                                        {showScrollToBottom && (
+                                            <button
+                                                onClick={scrollToBottom}
+                                                style={{
+                                                    position: 'absolute',
+                                                    bottom: '16px',
+                                                    right: '16px',
+                                                    width: '50px',
+                                                    height: '50px',
+                                                    borderRadius: '50%',
+                                                    backgroundColor: 'rgb(213, 28, 28)',
+                                                    border: 'none',
+                                                    color: 'white',
+                                                    boxShadow: '0 4px 16px rgba(255, 221, 0, 0.4)',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    transition: 'all 0.3s ease',
+                                                    fontSize: '20px',
+                                                    fontWeight: 'bold',
+                                                    zIndex: 9000
+                                                }}
+                                            >
+                                                ↓
+                                            </button>
+                                        )}
                                         <div className="input-group">
                                             <input
                                                 type="text"
@@ -1508,7 +1462,6 @@ export default function Messages() {
                         {/* Modal Body - Chat Messages */}
                         <div className="modal-body d-flex flex-column" style={{ height: 'calc(100vh - 120px)' }}>
                             <div
-                                ref={chatContainerRef}
                                 className="flex-grow-1 overflow-auto position-relative"
                                 style={{
                                     maxHeight: 'calc(100vh - 200px)',
@@ -1540,21 +1493,7 @@ export default function Messages() {
                                                             boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
                                                             position: 'relative'
                                                         }}
-                                                        onTouchStart={(e) => {
-                                                            // Mobile: Start 2-second hold timer for both sender and receiver
-                                                            const timer = setTimeout(() => {
-                                                                handleMobileReactionPopup(msg.id, e.currentTarget);
-                                                            }, 2000);
-                                                            e.currentTarget.dataset.holdTimer = timer;
-                                                        }}
-                                                        onTouchEnd={(e) => {
-                                                            // Clear timer if touch ends early
-                                                            if (e.currentTarget.dataset.holdTimer) {
-                                                                clearTimeout(e.currentTarget.dataset.holdTimer);
-                                                                delete e.currentTarget.dataset.holdTimer;
-                                                            }
-                                                        }}
-                                                        className="d-md-none" // Only on mobile
+
                                                     >
                                                         <div style={{
                                                             fontSize: '15px',
@@ -1565,84 +1504,7 @@ export default function Messages() {
                                                             {msg.text}
                                                         </div>
 
-                                                        {/* Message Reactions Display */}
-                                                        {messageReactions[msg.id] && Object.keys(messageReactions[msg.id]).length > 0 && (
-                                                            <div style={{
-                                                                fontSize: '12px',
-                                                                marginBottom: '4px',
-                                                                textAlign: msg.sender === "You" ? 'right' : 'left'
-                                                            }}>
-                                                                {Object.entries(messageReactions[msg.id]).map(([emoji, users]) => {
-                                                                    const userCount = Object.keys(users).length;
-                                                                    const userNames = Object.values(users).map(u => u.userName).join(', ');
 
-                                                                    return (
-                                                                        <span
-                                                                            key={emoji}
-                                                                            style={{
-                                                                                marginRight: '4px',
-                                                                                backgroundColor: 'rgba(0,123,255,0.1)',
-                                                                                padding: '3px 8px',
-                                                                                borderRadius: '12px',
-                                                                                border: '1px solid rgba(0,123,255,0.2)',
-                                                                                cursor: 'pointer',
-                                                                                display: 'inline-block'
-                                                                            }}
-                                                                            title={`${userNames} reacted with ${emoji}`}
-                                                                            onClick={() => addReaction(msg.id, emoji)}
-                                                                        >
-                                                                            {emoji} {userCount}
-                                                                        </span>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        )}
-
-                                                        {/* Desktop: Always show reaction options for both sender and receiver */}
-                                                        <div
-                                                            className="d-none d-md-block"
-                                                            style={{
-                                                                fontSize: '14px',
-                                                                marginBottom: '2px',
-                                                                textAlign: msg.sender === "You" ? 'right' : 'left',
-                                                                opacity: 0.7
-                                                            }}
-                                                        >
-                                                            <div style={{
-                                                                display: 'inline-block',
-                                                                backgroundColor: 'rgba(255,255,255,0.9)',
-                                                                padding: '4px 8px',
-                                                                borderRadius: '15px',
-                                                                border: '1px solid rgba(0,0,0,0.1)',
-                                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                                            }}>
-                                                                {['❤️', '😂', '👍', '😮', '😢', '😡'].map(emoji => (
-                                                                    <span
-                                                                        key={emoji}
-                                                                        style={{
-                                                                            cursor: 'pointer',
-                                                                            marginRight: '6px',
-                                                                            padding: '4px',
-                                                                            borderRadius: '6px',
-                                                                            transition: 'all 0.2s',
-                                                                            display: 'inline-block'
-                                                                        }}
-                                                                        onClick={() => addReaction(msg.id, emoji)}
-                                                                        onMouseEnter={(e) => {
-                                                                            e.target.style.transform = 'scale(1.2)';
-                                                                            e.target.style.backgroundColor = 'rgba(0,123,255,0.1)';
-                                                                        }}
-                                                                        onMouseLeave={(e) => {
-                                                                            e.target.style.transform = 'scale(1)';
-                                                                            e.target.style.backgroundColor = 'transparent';
-                                                                        }}
-                                                                        title={`React with ${emoji}`}
-                                                                    >
-                                                                        {emoji}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        </div>
                                                         <div style={{
                                                             fontSize: '11px',
                                                             opacity: 0.7,
@@ -1732,47 +1594,7 @@ export default function Messages() {
                                             </div>
                                         )}
 
-                                        {/* Scroll to Bottom Button */}
-                                        {showScrollToBottom && (
-                                            <div
-                                                style={{
-                                                    position: 'absolute',
-                                                    bottom: '20px',
-                                                    right: '20px',
-                                                    zIndex: 1000
-                                                }}
-                                            >
-                                                <button
-                                                    onClick={scrollToBottom}
-                                                    style={{
-                                                        width: '45px',
-                                                        height: '45px',
-                                                        borderRadius: '50%',
-                                                        backgroundColor: '#007bff',
-                                                        border: 'none',
-                                                        color: 'white',
-                                                        boxShadow: '0 4px 12px rgba(0,123,255,0.3)',
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        transition: 'all 0.3s ease',
-                                                        fontSize: '18px'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.target.style.transform = 'scale(1.1)';
-                                                        e.target.style.backgroundColor = '#0056b3';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.target.style.transform = 'scale(1)';
-                                                        e.target.style.backgroundColor = '#007bff';
-                                                    }}
-                                                    title="Scroll to bottom"
-                                                >
-                                                    ↓
-                                                </button>
-                                            </div>
-                                        )}
+                                       
 
                                         <div ref={messagesEndRef} />
                                     </>
@@ -1804,6 +1626,34 @@ export default function Messages() {
                                     </div>
                                 ) : (
                                     <form onSubmit={handleSendMessage}>
+                                         {/* Mobile Scroll to Bottom Button - Fixed at bottom-right */}
+                                        {showScrollToBottom && (
+                                            <button
+                                                onClick={scrollToBottom}
+                                                style={{
+                                                    position: 'absolute',
+                                                    bottom: '16px',
+                                                    right: '16px',
+                                                    width: '50px',
+                                                    height: '50px',
+                                                    borderRadius: '50%',
+                                                    backgroundColor: 'rgba(236, 17, 17, 0.93)',
+                                                    border: 'none',
+                                                    color: 'white',
+                                                    boxShadow: '0 4px 16px rgba(213,28,28,0.4)',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    transition: 'all 0.3s ease',
+                                                    fontSize: '20px',
+                                                    fontWeight: 'bold',
+                                                    zIndex: 1000
+                                                }}
+                                            >
+                                                ↓
+                                            </button>
+                                        )}
                                         <div className="d-flex align-items-center" style={{ gap: '8px' }}>
                                             <input
                                                 type="text"
@@ -1856,74 +1706,7 @@ export default function Messages() {
                 </div>
             </div>
 
-            {/* Mobile Reaction Popup */}
-            {showMobileReactionPopup && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        left: Math.max(10, Math.min(reactionPopupPosition.x - 150, window.innerWidth - 320)),
-                        top: Math.max(10, reactionPopupPosition.y - 10),
-                        zIndex: 9999,
-                        backgroundColor: 'white',
-                        borderRadius: '30px',
-                        padding: '12px 16px',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                        display: 'flex',
-                        gap: '12px',
-                        border: '1px solid #e0e0e0',
-                        animation: 'fadeInUp 0.3s ease-out'
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    {['❤️', '😂', '👍', '😮', '😢', '😡'].map(emoji => (
-                        <span
-                            key={emoji}
-                            style={{
-                                fontSize: '28px',
-                                cursor: 'pointer',
-                                padding: '8px',
-                                borderRadius: '50%',
-                                transition: 'all 0.2s',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '44px',
-                                height: '44px'
-                            }}
-                            onClick={() => addReaction(selectedMessageForReaction, emoji)}
-                            onTouchStart={(e) => {
-                                e.currentTarget.style.transform = 'scale(1.3)';
-                                e.currentTarget.style.backgroundColor = 'rgba(0,123,255,0.1)';
-                            }}
-                            onTouchEnd={(e) => {
-                                e.currentTarget.style.transform = 'scale(1)';
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                            }}
-                        >
-                            {emoji}
-                        </span>
-                    ))}
-                </div>
-            )}
 
-            {/* Mobile Reaction Popup Overlay */}
-            {showMobileReactionPopup && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        zIndex: 9998,
-                        backgroundColor: 'transparent'
-                    }}
-                    onClick={() => {
-                        setShowMobileReactionPopup(false);
-                        setSelectedMessageForReaction(null);
-                    }}
-                />
-            )}
         </DashboardLayout>
     );
 }
