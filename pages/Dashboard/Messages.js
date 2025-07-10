@@ -59,11 +59,10 @@ export default function Messages() {
     const [userLastSeen, setUserLastSeen] = useState({});
     const [lastSeenUpdateInterval, setLastSeenUpdateInterval] = useState(null);
     const [messageReactions, setMessageReactions] = useState({});
-    const [isRecording, setIsRecording] = useState(false);
-    const [recordingTime, setRecordingTime] = useState(0);
-    const [mediaRecorder, setMediaRecorder] = useState(null);
+    const [showMobileReactionPopup, setShowMobileReactionPopup] = useState(false);
+    const [selectedMessageForReaction, setSelectedMessageForReaction] = useState(null);
+    const [reactionPopupPosition, setReactionPopupPosition] = useState({ x: 0, y: 0 });
     const typingTimeoutRef = useRef(null);
-    const recordingIntervalRef = useRef(null);
 
     // Chat size and deletion functions (using local storage)
 
@@ -197,76 +196,29 @@ export default function Messages() {
             }
         };
         localStorage.setItem(reactionsKey, JSON.stringify(updatedReactions));
+
+        // Close mobile popup after reaction
+        setShowMobileReactionPopup(false);
+        setSelectedMessageForReaction(null);
     };
 
-    // Voice Message Feature
-    const startRecording = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
-            const audioChunks = [];
+    // Mobile reaction popup handler
+    const handleMobileReactionPopup = (messageId, element) => {
+        const rect = element.getBoundingClientRect();
+        setReactionPopupPosition({
+            x: rect.left + rect.width / 2,
+            y: rect.top - 60
+        });
+        setSelectedMessageForReaction(messageId);
+        setShowMobileReactionPopup(true);
 
-            recorder.ondataavailable = (event) => {
-                audioChunks.push(event.data);
-            };
-
-            recorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                const audioUrl = URL.createObjectURL(audioBlob);
-
-                // Send voice message
-                const voiceMessage = {
-                    id: Date.now(),
-                    sender: "You",
-                    text: `🎤 Voice message (${recordingTime}s)`,
-                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    delivered: true,
-                    isRead: false,
-                    type: 'voice',
-                    audioUrl: audioUrl,
-                    duration: recordingTime
-                };
-
-                // Add to chat
-                const chatKey = selectedUser?._id;
-                setChatMessages(prev => ({
-                    ...prev,
-                    [chatKey]: [...(prev[chatKey] || []), voiceMessage]
-                }));
-
-                // Save to localStorage
-                saveChatHistory(chatKey, [...(chatMessages[chatKey] || []), voiceMessage]);
-
-                // Send via socket
-                socketService.sendMessage(sessionUserId, selectedUser?._id, voiceMessage.text);
-
-                // Stop all tracks
-                stream.getTracks().forEach(track => track.stop());
-            };
-
-            setMediaRecorder(recorder);
-            recorder.start();
-            setIsRecording(true);
-            setRecordingTime(0);
-
-            // Start recording timer
-            recordingIntervalRef.current = setInterval(() => {
-                setRecordingTime(prev => prev + 1);
-            }, 1000);
-
-        } catch (error) {
-            console.error('Error starting recording:', error);
-            alert('Microphone access denied or not available');
+        // Vibrate if supported
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
         }
     };
 
-    const stopRecording = () => {
-        if (mediaRecorder && isRecording) {
-            mediaRecorder.stop();
-            setIsRecording(false);
-            clearInterval(recordingIntervalRef.current);
-        }
-    };
+
 
     // Enhanced Local Storage utility functions
     const getChatHistory = (userId) => {
@@ -1505,51 +1457,58 @@ export default function Messages() {
                                     <>
                                         {chatMessages[selectedChat].map((msg) => (
                                             <div key={msg.id} className="mb-2">
-                                                {/* Swapped: Receiver RIGHT, Sender LEFT */}
+                                                {/* Fixed: Sender RIGHT, Receiver LEFT */}
                                                 <div
-                                                    className={`d-flex ${msg.sender === "You" ? "justify-content-start" : "justify-content-end"}`}
+                                                    className={`d-flex ${msg.sender === "You" ? "justify-content-end" : "justify-content-start"}`}
                                                     style={{ width: '100%' }}
                                                 >
                                                     <div
                                                         style={{
                                                             backgroundColor: msg.sender === "You"
-                                                                ? '#f1f1f1'
-                                                                : '#007bff',
-                                                            color: msg.sender === "You" ? '#333' : 'white',
+                                                                ? '#007bff'
+                                                                : '#f1f1f1',
+                                                            color: msg.sender === "You" ? 'white' : '#333',
                                                             padding: '10px 14px',
                                                             borderRadius: msg.sender === "You"
-                                                                ? '18px 18px 18px 4px'
-                                                                : '18px 18px 4px 18px',
+                                                                ? '18px 18px 4px 18px'
+                                                                : '18px 18px 18px 4px',
                                                             maxWidth: '80%',
                                                             wordWrap: 'break-word',
                                                             boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
                                                             position: 'relative'
+                                                        }}
+                                                        onTouchStart={(e) => {
+                                                            // Mobile: Start 2-second hold timer
+                                                            if (window.innerWidth <= 768) {
+                                                                const timer = setTimeout(() => {
+                                                                    handleMobileReactionPopup(msg.id, e.currentTarget);
+                                                                }, 2000);
+                                                                e.currentTarget.dataset.holdTimer = timer;
+                                                            }
+                                                        }}
+                                                        onTouchEnd={(e) => {
+                                                            // Clear timer if touch ends early
+                                                            if (e.currentTarget.dataset.holdTimer) {
+                                                                clearTimeout(e.currentTarget.dataset.holdTimer);
+                                                                delete e.currentTarget.dataset.holdTimer;
+                                                            }
                                                         }}
                                                     >
                                                         <div style={{
                                                             fontSize: '15px',
                                                             lineHeight: '1.4',
                                                             marginBottom: '4px',
-                                                            textAlign: msg.sender === "You" ? 'left' : 'right'
+                                                            textAlign: msg.sender === "You" ? 'right' : 'left'
                                                         }}>
-                                                            {msg.type === 'voice' ? (
-                                                                <div className="d-flex align-items-center">
-                                                                    <audio controls style={{ maxWidth: '200px' }}>
-                                                                        <source src={msg.audioUrl} type="audio/wav" />
-                                                                    </audio>
-                                                                    <small className="ms-2">{msg.duration}s</small>
-                                                                </div>
-                                                            ) : (
-                                                                msg.text
-                                                            )}
+                                                            {msg.text}
                                                         </div>
 
-                                                        {/* Message Reactions */}
+                                                        {/* Message Reactions Display */}
                                                         {messageReactions[msg.id] && (
                                                             <div style={{
                                                                 fontSize: '12px',
                                                                 marginBottom: '4px',
-                                                                textAlign: msg.sender === "You" ? 'left' : 'right'
+                                                                textAlign: msg.sender === "You" ? 'right' : 'left'
                                                             }}>
                                                                 {Object.entries(messageReactions[msg.id]).map(([emoji, count]) => (
                                                                     <span key={emoji} style={{
@@ -1564,37 +1523,47 @@ export default function Messages() {
                                                             </div>
                                                         )}
 
-                                                        {/* Quick Reactions */}
-                                                        <div style={{
-                                                            fontSize: '12px',
-                                                            marginBottom: '2px',
-                                                            textAlign: msg.sender === "You" ? 'left' : 'right'
-                                                        }}>
-                                                            {['❤️', '😂', '👍', '😮', '😢'].map(emoji => (
-                                                                <span
-                                                                    key={emoji}
-                                                                    style={{
-                                                                        cursor: 'pointer',
-                                                                        marginRight: '4px',
-                                                                        opacity: 0.6,
-                                                                        transition: 'opacity 0.2s'
-                                                                    }}
-                                                                    onClick={() => addReaction(msg.id, emoji)}
-                                                                    onMouseEnter={(e) => e.target.style.opacity = 1}
-                                                                    onMouseLeave={(e) => e.target.style.opacity = 0.6}
-                                                                >
-                                                                    {emoji}
-                                                                </span>
-                                                            ))}
-                                                        </div>
+                                                        {/* Desktop: Always show reaction options */}
+                                                        {window.innerWidth > 768 && (
+                                                            <div style={{
+                                                                fontSize: '12px',
+                                                                marginBottom: '2px',
+                                                                textAlign: msg.sender === "You" ? 'right' : 'left',
+                                                                opacity: 0.6
+                                                            }}>
+                                                                {['❤️', '😂', '👍', '😮', '😢', '😡'].map(emoji => (
+                                                                    <span
+                                                                        key={emoji}
+                                                                        style={{
+                                                                            cursor: 'pointer',
+                                                                            marginRight: '4px',
+                                                                            padding: '2px',
+                                                                            borderRadius: '4px',
+                                                                            transition: 'all 0.2s'
+                                                                        }}
+                                                                        onClick={() => addReaction(msg.id, emoji)}
+                                                                        onMouseEnter={(e) => {
+                                                                            e.target.style.opacity = 1;
+                                                                            e.target.style.backgroundColor = 'rgba(0,0,0,0.1)';
+                                                                        }}
+                                                                        onMouseLeave={(e) => {
+                                                                            e.target.style.opacity = 0.6;
+                                                                            e.target.style.backgroundColor = 'transparent';
+                                                                        }}
+                                                                    >
+                                                                        {emoji}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                         <div style={{
                                                             fontSize: '11px',
                                                             opacity: 0.7,
-                                                            textAlign: msg.sender === "You" ? 'left' : 'right',
+                                                            textAlign: msg.sender === "You" ? 'right' : 'left',
                                                             marginTop: '2px'
                                                         }}>
                                                             {msg.timestamp}
-                                                            {msg.sender !== "You" && (
+                                                            {msg.sender === "You" && (
                                                                 <span style={{ marginLeft: '5px' }}>
                                                                     {msg.delivered ? "Seen" : "Sent"}
                                                                 </span>
@@ -1707,33 +1676,12 @@ export default function Messages() {
                                 ) : (
                                     <form onSubmit={handleSendMessage}>
                                         <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                                            {/* Voice Message Button */}
-                                            <button
-                                                type="button"
-                                                className={`btn ${isRecording ? 'btn-danger' : 'btn-outline-secondary'}`}
-                                                onClick={isRecording ? stopRecording : startRecording}
-                                                style={{
-                                                    borderRadius: '50%',
-                                                    width: '44px',
-                                                    height: '44px',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    padding: '0'
-                                                }}
-                                                title={isRecording ? `Recording... ${recordingTime}s` : 'Voice Message'}
-                                            >
-                                                <i className={`bi ${isRecording ? 'bi-stop-fill' : 'bi-mic-fill'}`}
-                                                   style={{ fontSize: '16px' }}></i>
-                                            </button>
-
                                             <input
                                                 type="text"
                                                 className="form-control"
-                                                placeholder={isRecording ? `Recording... ${recordingTime}s` : "Message..."}
+                                                placeholder="Message..."
                                                 value={newMessage}
                                                 onChange={(e) => handleTyping(e.target.value)}
-                                                disabled={isRecording}
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter' && !e.shiftKey) {
                                                         e.preventDefault();
@@ -1745,7 +1693,7 @@ export default function Messages() {
                                                     padding: '12px 16px',
                                                     border: '1px solid #e0e0e0',
                                                     fontSize: '15px',
-                                                    backgroundColor: isRecording ? '#ffe6e6' : '#f8f9fa',
+                                                    backgroundColor: '#f8f9fa',
                                                     flex: '1'
                                                 }}
                                             />
@@ -1754,7 +1702,7 @@ export default function Messages() {
                                                 type="submit"
                                                 className="btn btn-primary"
                                                 onClick={handleSendMessage}
-                                                disabled={isRecording || !newMessage.trim()}
+                                                disabled={!newMessage.trim()}
                                                 style={{
                                                     borderRadius: '50%',
                                                     width: '44px',
@@ -1765,7 +1713,7 @@ export default function Messages() {
                                                     padding: '0',
                                                     backgroundColor: '#007bff',
                                                     border: 'none',
-                                                    opacity: (isRecording || !newMessage.trim()) ? 0.5 : 1
+                                                    opacity: !newMessage.trim() ? 0.5 : 1
                                                 }}
                                             >
                                                 <i className="bi bi-send-fill" style={{ fontSize: '16px' }}></i>
@@ -1778,6 +1726,67 @@ export default function Messages() {
                     </div>
                 </div>
             </div>
+
+            {/* Mobile Reaction Popup */}
+            {showMobileReactionPopup && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        left: reactionPopupPosition.x - 150,
+                        top: reactionPopupPosition.y,
+                        zIndex: 9999,
+                        backgroundColor: 'white',
+                        borderRadius: '25px',
+                        padding: '8px 12px',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                        display: 'flex',
+                        gap: '8px',
+                        border: '1px solid #e0e0e0'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {['❤️', '😂', '👍', '😮', '😢', '😡'].map(emoji => (
+                        <span
+                            key={emoji}
+                            style={{
+                                fontSize: '24px',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                borderRadius: '50%',
+                                transition: 'transform 0.2s'
+                            }}
+                            onClick={() => addReaction(selectedMessageForReaction, emoji)}
+                            onTouchStart={(e) => {
+                                e.currentTarget.style.transform = 'scale(1.2)';
+                            }}
+                            onTouchEnd={(e) => {
+                                e.currentTarget.style.transform = 'scale(1)';
+                            }}
+                        >
+                            {emoji}
+                        </span>
+                    ))}
+                </div>
+            )}
+
+            {/* Mobile Reaction Popup Overlay */}
+            {showMobileReactionPopup && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        zIndex: 9998,
+                        backgroundColor: 'transparent'
+                    }}
+                    onClick={() => {
+                        setShowMobileReactionPopup(false);
+                        setSelectedMessageForReaction(null);
+                    }}
+                />
+            )}
         </DashboardLayout>
     );
 }
