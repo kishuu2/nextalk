@@ -99,7 +99,7 @@ const MobileChatView = ({
         height: '12px',
         borderRadius: '50%',
         border: '2px solid #fff',
-        backgroundColor: onlineUsers.has(selectedUser?._id) ? '#28a745' : '#dc3545'
+        backgroundColor: onlineUsers?.has?.(selectedUser?._id) ? '#28a745' : '#dc3545'
     };
 
     const userNameStyle = {
