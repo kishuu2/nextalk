@@ -3,7 +3,7 @@ import axios from '../../utils/axiosConfig';
 import Image from "next/image";
 import predefine from "../../public/Images/predefine.webp";
 import DashboardLayout from '../Components/DashboardLayout';
-import MobileChatView from '../Components/MobileChatView';
+import MobileChatView from '../../components/MobileChatView';
 import { useRouter } from 'next/router';
 import { useTheme } from '../../context/ThemeContext';
 import socketService from '../../utils/socket';
