@@ -3,10 +3,10 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import predefine from '../../public/Images/predefine.webp';
 
-const MobileChatView = ({ 
-    selectedUser, 
-    selectedChat, 
-    chatMessages, 
+const MobileChatView = ({
+    selectedUser,
+    selectedChat,
+    chatMessages,
     sessionUserId,
     onlineUsers,
     typingUsers,
@@ -297,14 +297,14 @@ const MobileChatView = ({
             {/* Mobile Chat Header */}
             <div style={headerStyle}>
                 <div style={headerContentStyle}>
-                    <button 
+                    <button
                         style={backButtonStyle}
                         onClick={onBack}
                         aria-label="Back to chat list"
                     >
                         <i className="bi bi-arrow-left"></i>
                     </button>
-                    
+
                     <div style={userInfoStyle}>
                         <div style={avatarContainerStyle}>
                             <Image
@@ -316,15 +316,19 @@ const MobileChatView = ({
                             />
                             <span style={statusDotStyle}></span>
                         </div>
-                        
+
                         <div style={{ flex: 1 }}>
                             <h6 style={userNameStyle}>{selectedUser?.name || 'User'}</h6>
                             <small style={userStatusStyle}>
-                                {formatLastSeen(selectedUser?.lastSeen || new Date(), onlineUsers.has(selectedUser?._id))}
+                                {formatLastSeen(
+                                    new Date(selectedUser?.lastSeen || Date.now()),
+                                    onlineUsers?.has?.(selectedUser?._id) || false
+                                )}
+
                             </small>
                         </div>
                     </div>
-                    
+
                     {/* Chat Size Display */}
                     {selectedUser && chatSizes[`${sessionUserId}_${selectedUser._id}`] && (
                         <div style={{ fontSize: '10px' }}>
@@ -340,7 +344,7 @@ const MobileChatView = ({
 
             {/* Mobile Chat Messages */}
             <div style={chatBodyStyle}>
-                <div 
+                <div
                     ref={chatContainerRef}
                     style={messagesContainerStyle}
                     onScroll={handleScroll}
@@ -348,7 +352,7 @@ const MobileChatView = ({
                     {/* Mobile Restore Chat Button - Top Position */}
                     {selectedChat && selectedUser && deletedChats.has(`${sessionUserId}_${selectedChat}`) && (
                         <div style={restoreTopSectionStyle}>
-                            <button 
+                            <button
                                 style={restoreTopBtnStyle}
                                 onClick={() => handleRestoreChatClick(selectedUser._id, selectedUser.name)}
                             >
@@ -440,7 +444,7 @@ const MobileChatView = ({
                             }}
                             disabled={deletedChats.has(`${sessionUserId}_${selectedUser?._id}`)}
                         />
-                        
+
                         <button
                             type="submit"
                             style={{
