@@ -1878,7 +1878,7 @@ export default function Messages() {
                                 Do you want to restore your chat with <strong>{chatToDelete?.userName}</strong>?
                             </p>
                             <p className="delete-warning">
-                                This will bring back your chat history if the other person hasn't deleted it yet.
+                                This will bring back your chat history if the other person has not deleted it yet.
                             </p>
                         </div>
 
