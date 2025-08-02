@@ -99,6 +99,38 @@ const onlineUsers = new Map();
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
+  // Handle loading chat history between two users
+  socket.on('loadMessageHistory', async ({ userId, chatPartnerId }) => {
+    try {
+      if (!userId || !chatPartnerId) {
+        socket.emit('messageHistory', []);
+        return;
+      }
+      // Find chat between users
+      const chat = await Chat.findOne({
+        participants: { $all: [userId, chatPartnerId] }
+      });
+      if (!chat || !chat.messages) {
+        socket.emit('messageHistory', []);
+        return;
+      }
+      // Map messages to expected frontend format
+      const formattedMessages = chat.messages.map(msg => ({
+        id: msg._id?.toString?.() || undefined,
+        text: msg.message, // frontend expects 'text'
+        senderId: msg.senderId?.toString?.(),
+        receiverId: msg.receiverId?.toString?.(),
+        timestamp: msg.timestamp,
+        delivered: msg.isDelivered ?? false,
+        isRead: msg.isRead ?? false,
+        messageType: msg.messageType ?? 'text'
+      }));
+      socket.emit('messageHistory', formattedMessages);
+    } catch (err) {
+      console.error('Error loading message history:', err);
+      socket.emit('messageHistory', []);
+    }
+  });
   console.log('🔗 New user connected with socket ID:', socket.id);
 
   // Handle user joining

@@ -457,7 +457,17 @@ export default function Messages() {
 
             if (result.success && result.restored) {
                 console.log('✅ Chat restored successfully');
-                // Could show success toast here
+                // Emit socket event to re-fetch messages in real time after restore
+                if (window.socket && window.socket.emit) {
+                    window.socket.emit('refetchMessages', {
+                        userId1: sessionUserId,
+                        userId2: userId
+                    });
+                }
+                // Force local fetch of messages for this chat
+                if (typeof getChatHistory === 'function') {
+                    getChatHistory(userId);
+                }
             } else {
                 console.log('❌ Cannot restore chat:', result.message);
                 // Could show error toast here
@@ -1892,7 +1902,7 @@ export default function Messages() {
                             </button>
                             <button
                                 onClick={handleConfirmRestoreChat}
-                                className="btn-confirm-restore"
+                                className="btn-confirm-restore stylish-restore-btn"
                                 disabled={isRestoring}
                             >
                                 {isRestoring ? (
@@ -2330,6 +2340,31 @@ export default function Messages() {
                     .btn-cancel-delete, .btn-confirm-delete {
                         width: 100%;
                     }
+                }
+                .stylish-restore-btn {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    color: #fff;
+                    border: none;
+                    padding: 14px 32px;
+                    border-radius: 16px;
+                    font-size: 18px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    box-shadow: 0 6px 24px rgba(16, 185, 129, 0.25);
+                    transition: all 0.2s cubic-bezier(.4,0,.2,1);
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin: 0 auto;
+                    letter-spacing: 0.5px;
+                }
+                .stylish-restore-btn:hover:not(:disabled) {
+                    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+                    transform: translateY(-2px) scale(1.04);
+                    box-shadow: 0 10px 32px rgba(16, 185, 129, 0.35);
+                }
+                .stylish-restore-btn:active {
+                    transform: scale(0.98);
                 }
             `}</style>
         </DashboardLayout>

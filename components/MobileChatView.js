@@ -192,7 +192,17 @@ const MobileChatView = ({
     const messageTextStyle = {
         fontSize: '16px',
         lineHeight: 1.4,
-        marginBottom: '6px'
+        marginBottom: '6px',
+        wordBreak: 'break-word',
+        // Make emojis larger
+        display: 'inline-block',
+    };
+
+    // Style for larger emojis
+    const emojiStyle = {
+        fontSize: '2em',
+        verticalAlign: 'middle',
+        lineHeight: 1.1
     };
 
     const messageMetaStyle = {
@@ -349,7 +359,7 @@ const MobileChatView = ({
                     style={messagesContainerStyle}
                     onScroll={handleScroll}
                 >
-                    {/* Mobile Restore Chat Button - Top Position */}
+                    {/* Always show Restore Chat Button at the top if deleted */}
                     {selectedChat && selectedUser && deletedChats.has(`${sessionUserId}_${selectedChat}`) && (
                         <div style={restoreTopSectionStyle}>
                             <button
@@ -362,32 +372,76 @@ const MobileChatView = ({
                         </div>
                     )}
 
-                    {selectedChat && chatMessages[selectedChat] && chatMessages[selectedChat].length > 0 && !deletedChats.has(`${sessionUserId}_${selectedChat}`) ? (
+                    {/* Always render chat history if chat exists in database (including if deletedBy is empty) */}
+                    {selectedChat && chatMessages[selectedChat] && chatMessages[selectedChat].length > 0 && (
                         <>
-                            {chatMessages[selectedChat].map((msg) => (
-                                <div key={msg.id} style={messageWrapperStyle}>
-                                    <div style={msg.sender === "You" ? messageSentStyle : messageReceivedStyle}>
-                                        <div style={msg.sender === "You" ? messageBubbleSentStyle : messageBubbleReceivedStyle}>
-                                            <div style={messageTextStyle}>{msg.text}</div>
-                                            <div style={{
-                                                ...messageMetaStyle,
-                                                justifyContent: msg.sender === "You" ? 'flex-end' : 'flex-start'
-                                            }}>
-                                                <span>{msg.timestamp}</span>
-                                                {msg.sender === "You" && (
-                                                    <span style={{
-                                                        color: msg.delivered ? '#28a745' : '#6c757d'
-                                                    }}>
-                                                        {msg.delivered ? '✓✓' : '✓'}
-                                                    </span>
-                                                )}
+                            {/* Separate restored and normal messages visually */}
+                            {(() => {
+                                const messages = [...chatMessages[selectedChat]].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                                // Find the first restored message index
+                                const firstRestoredIdx = messages.findIndex(m => m.restored === true);
+                                let restoredSeparatorShown = false;
+                                return messages.map((msg, idx) => {
+                                    const isSent = msg.senderId === sessionUserId;
+                                    const messageText = msg.text || msg.message || '';
+                                    // Format timestamp to 12-hour format
+                                    let formattedTime = '';
+                                    if (msg.timestamp) {
+                                        const dateObj = new Date(msg.timestamp);
+                                        let hours = dateObj.getHours();
+                                        const minutes = dateObj.getMinutes();
+                                        const ampm = hours >= 12 ? 'PM' : 'AM';
+                                        hours = hours % 12;
+                                        hours = hours ? hours : 12;
+                                        const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+                                        formattedTime = `${hours}:${minutesStr} ${ampm}`;
+                                    }
+                                    const isRestored = msg.restored === true;
+                                    // Show a separator above the first restored message
+                                    let separator = null;
+                                    if (isRestored && !restoredSeparatorShown) {
+                                        separator = (
+                                            <div key="restored-separator" style={{textAlign:'center',margin:'18px 0 8px 0'}}>
+                                                <span style={{background:'#10b981',color:'#fff',padding:'3px 14px',borderRadius:'16px',fontSize:'13px',fontWeight:600,letterSpacing:'1px'}}>Restored Chat</span>
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                                        );
+                                        restoredSeparatorShown = true;
+                                    }
+                                    return (
+                                        <>
+                                            {separator}
+                                            <div key={msg.id || idx} style={messageWrapperStyle}>
+                                                <div style={isSent ? messageSentStyle : messageReceivedStyle}>
+                                                    <div style={isSent ? messageBubbleSentStyle : messageBubbleReceivedStyle}>
+                                                        <div style={messageTextStyle}>
+                                                            {messageText.split(/(\p{Emoji_Presentation}|\p{Extended_Pictographic})/gu).map((part, i) =>
+                                                                /\p{Emoji_Presentation}|\p{Extended_Pictographic}/u.test(part)
+                                                                    ? <span key={i} style={emojiStyle}>{part}</span>
+                                                                    : part
+                                                            )}
+                                                        </div>
+                                                        <div style={{
+                                                            ...messageMetaStyle,
+                                                            justifyContent: isSent ? 'flex-end' : 'flex-start'
+                                                        }}>
+                                                            <span>{formattedTime}</span>
+                                                            {isSent && (
+                                                                <span style={{
+                                                                    color: msg.delivered ? '#28a745' : '#6c757d'
+                                                                }}>
+                                                                    {msg.delivered ? '✓✓' : '✓'}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    );
+                                });
+                            })()}
 
-                            {/* Delete Chat Option - Only show delete button at bottom */}
+                            {/* Delete Chat Option - Only show delete button at bottom if not deleted */}
                             {selectedChat && selectedUser && chatMessages[selectedChat] && chatMessages[selectedChat].length > 0 && !deletedChats.has(`${sessionUserId}_${selectedChat}`) && (
                                 <div style={deleteActionStyle}>
                                     <button
@@ -400,7 +454,9 @@ const MobileChatView = ({
                                 </div>
                             )}
                         </>
-                    ) : (
+                    )}
+                    {/* Show empty state if no messages */}
+                    {selectedChat && (!chatMessages[selectedChat] || chatMessages[selectedChat].length === 0) && (
                         <div style={emptyStateStyle}>
                             <div>
                                 <i className="bi bi-chat-dots" style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}></i>
@@ -429,11 +485,8 @@ const MobileChatView = ({
                     <div style={inputContainerStyle}>
                         <input
                             type="text"
-                            style={{
-                                ...messageInputStyle,
-                                opacity: deletedChats.has(`${sessionUserId}_${selectedUser?._id}`) ? 0.6 : 1
-                            }}
-                            placeholder={deletedChats.has(`${sessionUserId}_${selectedUser?._id}`) ? "Chat deleted - restore from top to send messages" : "Message..."}
+                            style={messageInputStyle}
+                            placeholder="Message..."
                             value={newMessage}
                             onChange={(e) => handleTyping(e.target.value)}
                             onKeyDown={(e) => {
@@ -442,17 +495,12 @@ const MobileChatView = ({
                                     handleSendMessage(e);
                                 }
                             }}
-                            disabled={deletedChats.has(`${sessionUserId}_${selectedUser?._id}`)}
                         />
 
                         <button
                             type="submit"
-                            style={{
-                                ...sendButtonStyle,
-                                opacity: (!newMessage.trim() || deletedChats.has(`${sessionUserId}_${selectedUser?._id}`)) ? 0.6 : 1,
-                                cursor: (!newMessage.trim() || deletedChats.has(`${sessionUserId}_${selectedUser?._id}`)) ? 'not-allowed' : 'pointer'
-                            }}
-                            disabled={!newMessage.trim() || deletedChats.has(`${sessionUserId}_${selectedUser?._id}`)}
+                            style={sendButtonStyle}
+                            disabled={!newMessage.trim()}
                         >
                             <i className="bi bi-send-fill"></i>
                         </button>
