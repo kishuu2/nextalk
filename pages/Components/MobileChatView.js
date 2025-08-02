@@ -320,11 +320,12 @@ const MobileChatView = ({
                         <div style={{ flex: 1 }}>
                             <h6 style={userNameStyle}>{selectedUser?.name || 'User'}</h6>
                             <small style={userStatusStyle}>
-                                {formatLastSeen(
-                                    new Date(selectedUser?.lastSeen || Date.now()),
-                                    onlineUsers?.has?.(selectedUser?._id) || false
-                                )}
-
+                                {typeof formatLastSeen === 'function' &&
+                                    formatLastSeen(
+                                        new Date(selectedUser?.lastSeen || Date.now()),
+                                        onlineUsers?.has?.(selectedUser?._id) || false
+                                    )
+                                }
                             </small>
                         </div>
                     </div>
