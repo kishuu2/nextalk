@@ -20,12 +20,16 @@ const Users = require('./Models/Users');
 const Chat = require('./Models/Chat');
 
 
+console.log('🔄 Attempting to connect to MongoDB...');
+console.log('📍 MongoDB URI:', url ? 'URI found' : 'URI missing');
+
 mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
-    console.log('MongoDB Atlas connected successfully');
+    console.log('✅ MongoDB Atlas connected successfully');
   })
   .catch(err => {
-    console.error('Error connecting to MongoDB Atlas:', err);
+    console.error('❌ Error connecting to MongoDB Atlas:', err);
+    console.error('💡 Please check your MongoDB URI and network connection');
   });
 
 const app = express();
@@ -356,7 +360,172 @@ app.delete("/chat/:chatId", async (req, res) => {
   }
 });
 
-// API endpoint to restore chat
+// Delete chat endpoint - proper implementation
+app.post("/delete-chat", async (req, res) => {
+  try {
+    const { userId1, userId2 } = req.body;
+    console.log('🗑️ Delete chat request:', { userId1, userId2 });
+
+    if (!userId1 || !userId2) {
+      return res.status(400).json({
+        success: false,
+        message: "Both user IDs are required"
+      });
+    }
+
+    // Find or create chat between users
+    let chat = await Chat.findOne({
+      participants: { $all: [userId1, userId2] }
+    });
+
+    if (!chat) {
+      // If no chat exists, create one for tracking deletion
+      chat = new Chat({
+        participants: [userId1, userId2],
+        messages: [],
+        deletedBy: [userId1]
+      });
+      await chat.save();
+
+      return res.json({
+        success: true,
+        message: "Chat marked for deletion",
+        permanentlyDeleted: false,
+        chatId: chat._id
+      });
+    }
+
+    // Initialize deletedBy if not exists
+    if (!chat.deletedBy) {
+      chat.deletedBy = [];
+    }
+
+    // Add user to deletedBy if not already added
+    if (!chat.deletedBy.includes(userId1)) {
+      chat.deletedBy.push(userId1);
+    }
+
+    // Check if both users have deleted
+    const allParticipantsDeleted = chat.participants.every(participantId =>
+      chat.deletedBy.some(deletedId => deletedId.toString() === participantId.toString())
+    );
+
+    if (allParticipantsDeleted) {
+      // Both users deleted - remove from database permanently
+      await Chat.findByIdAndDelete(chat._id);
+      console.log('✅ Chat permanently deleted from database');
+
+      return res.json({
+        success: true,
+        message: "Chat permanently deleted from database",
+        permanentlyDeleted: true,
+        chatId: chat._id
+      });
+    } else {
+      // Only one user deleted - save and wait for other
+      await chat.save();
+      console.log('⏳ Chat marked for deletion, waiting for other user');
+
+      return res.json({
+        success: true,
+        message: "Chat marked for deletion, waiting for other user",
+        permanentlyDeleted: false,
+        chatId: chat._id,
+        deletedBy: chat.deletedBy.length
+      });
+    }
+
+  } catch (error) {
+    console.error("❌ Error in delete-chat:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+});
+
+// Restore chat endpoint - only if other user hasn't deleted
+app.post("/restore-chat", async (req, res) => {
+  try {
+    const { userId1, userId2 } = req.body;
+    console.log('🔄 Restore chat request:', { userId1, userId2 });
+
+    if (!userId1 || !userId2) {
+      return res.status(400).json({
+        success: false,
+        message: "Both user IDs are required"
+      });
+    }
+
+    // Find chat between users
+    const chat = await Chat.findOne({
+      participants: { $all: [userId1, userId2] }
+    });
+
+    if (!chat) {
+      return res.json({
+        success: false,
+        canRestore: false,
+        message: "No chat found to restore"
+      });
+    }
+
+    // Check if chat has deletedBy array
+    if (!chat.deletedBy || chat.deletedBy.length === 0) {
+      return res.json({
+        success: false,
+        canRestore: false,
+        message: "Chat was never deleted"
+      });
+    }
+
+    // Check if both users have deleted (permanently deleted)
+    const bothUsersDeleted = chat.participants.every(participantId =>
+      chat.deletedBy.some(deletedId => deletedId.toString() === participantId.toString())
+    );
+
+    if (bothUsersDeleted) {
+      return res.json({
+        success: false,
+        canRestore: false,
+        message: "Chat permanently deleted - cannot restore"
+      });
+    }
+
+    // Check if current user had deleted it
+    const userHadDeleted = chat.deletedBy.some(deletedId => deletedId.toString() === userId1.toString());
+
+    if (userHadDeleted) {
+      // Remove user from deletedBy array
+      chat.deletedBy = chat.deletedBy.filter(deletedId => deletedId.toString() !== userId1.toString());
+      await chat.save();
+
+      return res.json({
+        success: true,
+        canRestore: true,
+        message: "Chat restored successfully",
+        chatId: chat._id
+      });
+    } else {
+      return res.json({
+        success: false,
+        canRestore: false,
+        message: "Chat was not deleted by this user"
+      });
+    }
+
+  } catch (error) {
+    console.error("❌ Error in restore-chat:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+});
+
+// API endpoint to restore chat (old endpoint - keeping for compatibility)
 app.post("/chat/:chatId/restore", async (req, res) => {
   try {
     const { chatId } = req.params;
@@ -1118,6 +1287,10 @@ app.post('/chat/mark-read', async (req, res) => {
   }
 });
 
+console.log('🚀 Starting server on port 5000...');
+
 server.listen(5000, () => {
-  console.log("Server is Running now with Socket.IO support")
+  console.log("✅ Server is Running now with Socket.IO support");
+  console.log("🌐 Server URL: http://localhost:5000");
+  console.log("📡 Socket.IO enabled for real-time communication");
 });

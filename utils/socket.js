@@ -55,10 +55,17 @@ class SocketService {
       console.log('✅ Connected to server with socket ID:', this.socket.id);
       this.isConnected = true;
 
-      // Join with user ID
+      // Join with user ID and update online status in database
       if (this.userId) {
         console.log('🔗 Joining with user ID:', this.userId);
         this.socket.emit('join', this.userId);
+
+        // Update user's online status in database
+        this.socket.emit('updateOnlineStatus', {
+          userId: this.userId,
+          isOnline: true,
+          lastSeen: new Date().toISOString()
+        });
       }
     });
 
@@ -88,8 +95,17 @@ class SocketService {
     });
 
     this.socket.on('disconnect', () => {
-      console.log('Disconnected from server');
+      console.log('🔴 Disconnected from server');
       this.isConnected = false;
+
+      // Update user's offline status in database before disconnect
+      if (this.userId) {
+        this.socket.emit('updateOnlineStatus', {
+          userId: this.userId,
+          isOnline: false,
+          lastSeen: new Date().toISOString()
+        });
+      }
     });
 
     // Handle incoming messages
@@ -167,13 +183,82 @@ class SocketService {
       senderId: this.userId,
       receiverId,
       message,
-      messageType
+      messageType,
+      timestamp: new Date().toISOString(),
+      delivered: false,
+      read: false
     };
 
-    console.log('📤 Sending message:', messageData);
+    console.log('📤 Sending message to database:', messageData);
     this.socket.emit('sendMessage', messageData);
 
     return true;
+  }
+
+  // Load message history from database
+  loadMessageHistory(userId, callback) {
+    if (!this.socket || !this.isConnected) {
+      console.error('❌ Socket not connected');
+      return false;
+    }
+
+    console.log('📚 Loading message history for user:', userId);
+    this.socket.emit('loadMessageHistory', {
+      userId: this.userId,
+      chatPartnerId: userId
+    });
+
+    // Listen for message history response
+    this.socket.once('messageHistory', callback);
+    return true;
+  }
+
+  // Get user's real-time online status from database
+  getUserOnlineStatus(userIds, callback) {
+    if (!this.socket || !this.isConnected) {
+      console.error('❌ Socket not connected');
+      return false;
+    }
+
+    console.log('👥 Getting online status for users:', userIds);
+    this.socket.emit('getUserOnlineStatus', { userIds });
+
+    // Listen for online status response
+    this.socket.once('userOnlineStatusResponse', callback);
+    return true;
+  }
+
+  // Update user's online status manually
+  updateUserOnlineStatus(userId, isOnline) {
+    if (!this.socket) {
+      console.warn('⚠️ Socket not initialized, cannot update online status');
+      return false;
+    }
+
+    if (!this.isConnected) {
+      console.warn('⚠️ Socket not connected, cannot update online status');
+      return false;
+    }
+
+    if (!userId) {
+      console.warn('⚠️ No userId provided for online status update');
+      return false;
+    }
+
+    try {
+      console.log(`${isOnline ? '🟢' : '🔴'} Updating online status for user ${userId}:`, isOnline);
+
+      this.socket.emit('updateOnlineStatus', {
+        userId: userId,
+        isOnline: isOnline,
+        lastSeen: new Date().toISOString()
+      });
+
+      return true;
+    } catch (error) {
+      console.error('❌ Error updating online status:', error);
+      return false;
+    }
   }
 
   sendTypingIndicator(receiverId, isTyping) {

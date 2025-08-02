@@ -3,6 +3,7 @@ import axios from '../../utils/axiosConfig';
 import Image from "next/image";
 import predefine from "../../public/Images/predefine.webp";
 import DashboardLayout from '../Components/DashboardLayout';
+import MobileChatView from '../Components/MobileChatView';
 import { useRouter } from 'next/router';
 import { useTheme } from '../../context/ThemeContext';
 import socketService from '../../utils/socket';
@@ -53,66 +54,109 @@ export default function Messages() {
     const [isTyping, setIsTyping] = useState(false);
     const [unreadCounts, setUnreadCounts] = useState({});
     const [deliveredMessages, setDeliveredMessages] = useState(new Set());
-    const [showMobileModal, setShowMobileModal] = useState(false);
+    const [showMobileChat, setShowMobileChat] = useState(false);
     const [chatSizes, setChatSizes] = useState({});
     const [deletedChats, setDeletedChats] = useState(new Set());
     const [userLastSeen, setUserLastSeen] = useState({});
     const [lastSeenUpdateInterval, setLastSeenUpdateInterval] = useState(null);
     const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
+    // Delete Chat Modal State
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [chatToDelete, setChatToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // Restore Chat Modal State
+    const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+    const [isRestoring, setIsRestoring] = useState(false);
     const typingTimeoutRef = useRef(null);
     const chatContainerRef = useRef(null);
 
     // Chat size and deletion functions (using local storage)
 
-    const deleteChat = (chatId, userId1, userId2) => {
+    // Proper delete chat function
+    const deleteChatFromDatabase = async (currentUserId, otherUserId) => {
         try {
-            // Mark chat as deleted
-            setDeletedChats(prev => new Set([...prev, `${userId1}_${userId2}`]));
+            console.log('🗑️ Deleting chat:', { currentUserId, otherUserId });
 
-            // Clear local messages
-            setChatMessages(prev => ({
-                ...prev,
-                [`${userId1}_${userId2}`]: []
-            }));
+            const response = await axios.post('/delete-chat', {
+                userId1: currentUserId,
+                userId2: otherUserId
+            });
 
-            // Clear local storage
-            localStorage.removeItem(`chat_${userId1}_${userId2}`);
-            localStorage.removeItem(`unread_${userId1}_${userId2}`);
-            localStorage.removeItem(`lastmsg_${userId1}_${userId2}`);
-
-            // Reset chat size
-            setChatSizes(prev => ({
-                ...prev,
-                [`${userId1}_${userId2}`]: {
-                    sizeInBytes: 0,
-                    sizeFormatted: '0 Bytes',
-                    exceedsLimit: false,
-                    chatId: `local_${userId1}_${userId2}`
+            if (response.data.success) {
+                if (response.data.permanentlyDeleted) {
+                    console.log('✅ Chat permanently deleted from database');
+                    return { success: true, permanent: true };
+                } else {
+                    console.log('⏳ Chat marked for deletion, waiting for other user');
+                    return { success: true, permanent: false };
                 }
-            }));
+            }
 
-            console.log('✅ Chat deleted successfully');
-            return true;
+            return { success: false, permanent: false };
         } catch (error) {
             console.error('❌ Error deleting chat:', error);
-            return false;
+            return { success: false, permanent: false };
         }
     };
 
-    const restoreChat = (chatId, userId1, userId2) => {
+    // Restore chat function - only if other user hasn't deleted
+    const restoreChat = async (currentUserId, otherUserId) => {
         try {
-            // Remove from deleted chats
-            setDeletedChats(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(`${userId1}_${userId2}`);
-                return newSet;
+            console.log('🔄 Attempting to restore chat:', { currentUserId, otherUserId });
+
+            const response = await axios.post('/restore-chat', {
+                userId1: currentUserId,
+                userId2: otherUserId
             });
 
-            console.log('✅ Chat restored successfully');
-            return true;
+            if (response.data.success) {
+                if (response.data.canRestore) {
+                    // Remove from deleted chats locally
+                    setDeletedChats(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(`${currentUserId}_${otherUserId}`);
+                        return newSet;
+                    });
+
+                    console.log('✅ Chat restored successfully');
+                    return { success: true, restored: true };
+                } else {
+                    console.log('❌ Cannot restore - other user has also deleted');
+                    return { success: false, restored: false, message: 'Cannot restore - chat permanently deleted' };
+                }
+            }
+
+            return { success: false, restored: false };
         } catch (error) {
             console.error('❌ Error restoring chat:', error);
-            return false;
+
+            if (error.response) {
+                // Server responded with error status
+                console.error('Server error:', error.response.status, error.response.data);
+                return {
+                    success: false,
+                    restored: false,
+                    message: error.response.data?.message || 'Server error occurred'
+                };
+            } else if (error.request) {
+                // Request was made but no response received
+                console.error('Network error:', error.request);
+                return {
+                    success: false,
+                    restored: false,
+                    message: 'Network error - please check your connection'
+                };
+            } else {
+                // Something else happened
+                console.error('Unexpected error:', error.message);
+                return {
+                    success: false,
+                    restored: false,
+                    message: 'Unexpected error occurred'
+                };
+            }
         }
     };
 
@@ -127,14 +171,18 @@ export default function Messages() {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-    // Format last seen time (12-hour format) - Real-time updates
+    // Format last seen time (12-hour format) - Real-time updates with database
     const formatLastSeen = (lastSeen, isOnline) => {
+        // Show "Online" for currently online users
         if (isOnline) return 'Online';
+
+        if (!lastSeen) return 'Unknown';
 
         const now = new Date();
         const lastSeenDate = new Date(lastSeen);
         const diffInMinutes = Math.floor((now - lastSeenDate) / (1000 * 60));
 
+        // Show "Just now" only if user went offline within 1 minute
         if (diffInMinutes < 1) return 'Just now';
         if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
 
@@ -201,13 +249,34 @@ export default function Messages() {
 
 
 
-    // Enhanced Local Storage utility functions
+    // Database and Local Storage utility functions
     const getChatHistory = useCallback((userId) => {
         try {
             if (!sessionUserId || !userId) return [];
+
+            // First try to get from localStorage as cache
             const chatKey = `chat_${sessionUserId}_${userId}`;
             const stored = localStorage.getItem(chatKey);
-            return stored ? JSON.parse(stored) : [];
+            const localHistory = stored ? JSON.parse(stored) : [];
+
+            // Load fresh data from database via socket
+            if (socketService.getConnectionStatus().isConnected) {
+                socketService.loadMessageHistory(userId, (dbHistory) => {
+                    console.log('📚 Received message history from database:', dbHistory);
+                    if (dbHistory && dbHistory.length > 0) {
+                        // Update local storage with database data
+                        localStorage.setItem(chatKey, JSON.stringify(dbHistory));
+
+                        // Update state with database data
+                        setChatMessages(prev => ({
+                            ...prev,
+                            [userId]: dbHistory
+                        }));
+                    }
+                });
+            }
+
+            return localHistory;
         } catch (error) {
             console.error('Error loading chat history:', error);
             return [];
@@ -277,12 +346,143 @@ export default function Messages() {
         }
     }, [sessionUserId]);
 
+    // Delete Chat Functions
+    const handleDeleteChatClick = (userId, userName) => {
+        setChatToDelete({ userId, userName });
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDeleteChat = async () => {
+        if (!chatToDelete || !sessionUserId || isDeleting) return;
+
+        const { userId, userName } = chatToDelete;
+        setIsDeleting(true);
+
+        try {
+            console.log('🗑️ Starting chat deletion process...');
+
+            // Call backend to delete/mark chat
+            const result = await deleteChatFromDatabase(sessionUserId, userId);
+
+            if (result.success) {
+                // Always clear local data immediately for current user
+                console.log('🧹 Clearing local chat data...');
+
+                // Clear chat messages
+                setChatMessages(prev => {
+                    const updated = { ...prev };
+                    delete updated[userId];
+                    return updated;
+                });
+
+                // Clear last messages
+                setLastMessages(prev => {
+                    const updated = { ...prev };
+                    delete updated[userId];
+                    return updated;
+                });
+
+                // Clear unread counts
+                setUnreadCounts(prev => {
+                    const updated = { ...prev };
+                    delete updated[userId];
+                    return updated;
+                });
+
+                // Clear localStorage
+                const chatKey = `chat_${sessionUserId}_${userId}`;
+                const lastMsgKey = `lastmsg_${sessionUserId}_${userId}`;
+                const unreadKey = `unread_${sessionUserId}_${userId}`;
+
+                localStorage.removeItem(chatKey);
+                localStorage.removeItem(lastMsgKey);
+                localStorage.removeItem(unreadKey);
+
+                // Mark chat as deleted but keep user in list
+                setDeletedChats(prev => new Set([...prev, `${sessionUserId}_${userId}`]));
+
+                // Clear selection if this was selected chat and show empty state
+                if (selectedChat === userId) {
+                    // Keep the user selected but clear the chat
+                    // This will show "No messages yet" state
+                    setShowMobileChat(false);
+                }
+
+                // Show appropriate message
+                if (result.permanent) {
+                    console.log('✅ Chat permanently deleted from database');
+                    // Could show success toast here
+                } else {
+                    console.log('✅ Chat deleted for you, waiting for other user');
+                    // Could show info toast here
+                }
+
+            } else {
+                console.error('❌ Failed to delete chat');
+                // Could show error toast here
+            }
+
+        } catch (error) {
+            console.error('❌ Error in delete process:', error);
+            // Could show error toast here
+        } finally {
+            setIsDeleting(false);
+            // Close modal
+            setShowDeleteConfirm(false);
+            setChatToDelete(null);
+        }
+    };
+
+    const handleCancelDeleteChat = () => {
+        setShowDeleteConfirm(false);
+        setChatToDelete(null);
+    };
+
+    // Restore Chat Functions
+    const handleRestoreChatClick = (userId, userName) => {
+        setChatToDelete({ userId, userName });
+        setShowRestoreConfirm(true);
+    };
+
+    const handleConfirmRestoreChat = async () => {
+        if (!chatToDelete || !sessionUserId || isRestoring) return;
+
+        const { userId, userName } = chatToDelete;
+        setIsRestoring(true);
+
+        try {
+            console.log('🔄 Starting chat restore process...');
+
+            const result = await restoreChat(sessionUserId, userId);
+
+            if (result.success && result.restored) {
+                console.log('✅ Chat restored successfully');
+                // Could show success toast here
+            } else {
+                console.log('❌ Cannot restore chat:', result.message);
+                // Could show error toast here
+            }
+
+        } catch (error) {
+            console.error('❌ Error in restore process:', error);
+        } finally {
+            setIsRestoring(false);
+            setShowRestoreConfirm(false);
+            setChatToDelete(null);
+        }
+    };
+
+    const handleCancelRestoreChat = () => {
+        setShowRestoreConfirm(false);
+        setChatToDelete(null);
+    };
+
     // Handle back to chat list on mobile
     const handleBackToList = () => {
         console.log('🔙 Going back to chat list');
         setSelectedChat(null);
         setSelectedUser(null);
-        setShowMobileModal(false);
+        setShowMobileChat(false);
         // Update URL only on desktop
         if (window.innerWidth >= 1024) {
             router.replace('/Dashboard/Messages', undefined, { shallow: true });
@@ -355,19 +555,30 @@ export default function Messages() {
         fetchData();
     }, []);
 
-    // Real-time last seen updates and online status refresh
+    // Real-time last seen updates and database online status refresh
     useEffect(() => {
-        // Update last seen times every minute
+        // Update last seen times and get real-time status from database
         const interval = setInterval(() => {
             updateLastSeenTimes();
 
-            // Also refresh online status periodically
-            if (socketService.getConnectionStatus().isConnected) {
-                console.log('🔄 Refreshing online status...');
-                // Request fresh online users list
-                socketService.socket?.emit('getOnlineUsers');
+            // Get real-time online status from database
+            if (socketService.getConnectionStatus().isConnected && users.length > 0) {
+                console.log('🔄 Refreshing online status from database...');
+                const userIds = users.map(user => user._id);
+
+                socketService.getUserOnlineStatus(userIds, (statusData) => {
+                    console.log('👥 Received online status from database:', statusData);
+                    if (statusData && statusData.onlineUsers) {
+                        setOnlineUsers(new Set(statusData.onlineUsers));
+
+                        // Update last seen times from database
+                        if (statusData.lastSeenData) {
+                            setUserLastSeen(statusData.lastSeenData);
+                        }
+                    }
+                });
             }
-        }, 30000); // Update every 30 seconds for better real-time feel
+        }, 15000); // Update every 15 seconds for real-time feel
 
         setLastSeenUpdateInterval(interval);
 
@@ -440,6 +651,21 @@ export default function Messages() {
             try {
                 socketService.connect(sessionUserId);
                 console.log('🔗 Socket connection initiated for user:', sessionUserId);
+
+                // Mark user as online when connecting (using existing socket emit)
+                try {
+                    // Use the existing socket emit method that's already working
+                    if (socketService.socket && socketService.isConnected) {
+                        socketService.socket.emit('updateOnlineStatus', {
+                            userId: sessionUserId,
+                            isOnline: true,
+                            lastSeen: new Date().toISOString()
+                        });
+                        console.log('✅ User marked as online:', sessionUserId);
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Could not update online status:', error);
+                }
             } catch (error) {
                 console.error('❌ Socket connection failed:', error);
                 // Continue without socket for basic functionality
@@ -550,12 +776,95 @@ export default function Messages() {
 
             // Cleanup on unmount
             return () => {
+                // Mark user as offline when disconnecting
+                if (sessionUserId) {
+                    try {
+                        if (socketService.socket && socketService.isConnected) {
+                            socketService.socket.emit('updateOnlineStatus', {
+                                userId: sessionUserId,
+                                isOnline: false,
+                                lastSeen: new Date().toISOString()
+                            });
+                            console.log('🔴 User marked as offline:', sessionUserId);
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Could not update offline status:', error);
+                    }
+                }
+
                 unsubscribeMessages();
                 unsubscribeOnlineStatus();
                 unsubscribeTyping();
                 socketService.disconnect();
             };
         }
+    }, [sessionUserId]);
+
+    // Handle page visibility change for online/offline status
+    useEffect(() => {
+        if (!sessionUserId) return;
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                // Page is hidden - mark as offline after delay
+                setTimeout(() => {
+                    if (document.hidden && sessionUserId) {
+                        try {
+                            if (socketService.socket && socketService.isConnected) {
+                                socketService.socket.emit('updateOnlineStatus', {
+                                    userId: sessionUserId,
+                                    isOnline: false,
+                                    lastSeen: new Date().toISOString()
+                                });
+                                console.log('🔴 User marked as offline (page hidden):', sessionUserId);
+                            }
+                        } catch (error) {
+                            console.warn('⚠️ Could not update offline status (page hidden):', error);
+                        }
+                    }
+                }, 60000); // 1 minute delay
+            } else {
+                // Page is visible - mark as online
+                try {
+                    if (socketService.socket && socketService.isConnected) {
+                        socketService.socket.emit('updateOnlineStatus', {
+                            userId: sessionUserId,
+                            isOnline: true,
+                            lastSeen: new Date().toISOString()
+                        });
+                        console.log('🟢 User marked as online (page visible):', sessionUserId);
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Could not update online status (page visible):', error);
+                }
+            }
+        };
+
+        const handleBeforeUnload = () => {
+            // Mark as offline when leaving page
+            if (sessionUserId) {
+                try {
+                    if (socketService.socket && socketService.isConnected) {
+                        socketService.socket.emit('updateOnlineStatus', {
+                            userId: sessionUserId,
+                            isOnline: false,
+                            lastSeen: new Date().toISOString()
+                        });
+                        console.log('🔴 User marked as offline (page unload):', sessionUserId);
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Could not update offline status (page unload):', error);
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
     }, [sessionUserId]);
 
     // Handle direct URL access
@@ -620,7 +929,7 @@ export default function Messages() {
         fetchUsers();
     }, []);
 
-    // Filter users based on search query and online status
+    // Filter users based on search query and online status (don't exclude deleted chats)
     const filteredUsers = users
         .filter(user => accepted.has(user._id))
         .filter(user => {
@@ -690,10 +999,10 @@ export default function Messages() {
         });
 
         if (newMessage.trim() && selectedChat && sessionUserId) {
-            // Send message via Socket.IO for real-time delivery
-            console.log('📤 Sending message to:', selectedChat, 'from:', sessionUserId);
+            // Send message via Socket.IO for real-time delivery and database storage
+            console.log('📤 Sending message to database:', selectedChat, 'from:', sessionUserId);
             console.log('📤 Message content:', newMessage.trim());
-            const success = socketService.sendMessage(selectedChat, newMessage.trim());
+            const success = socketService.sendMessage(selectedChat, newMessage.trim(), 'text');
             console.log('📤 Socket send result:', success);
             console.log('📤 Socket connection status:', socketService.getConnectionStatus());
 
@@ -1024,8 +1333,8 @@ export default function Messages() {
                                     const isMobile = window.innerWidth < 1024;
 
                                     if (isMobile) {
-                                        // Open modal on mobile
-                                        setShowMobileModal(true);
+                                        // Show mobile chat component
+                                        setShowMobileChat(true);
                                     } else {
                                         // Update URL on desktop
                                         router.replace(`/Dashboard/Messages?userId=${user._id}`, undefined, { shallow: true });
@@ -1059,10 +1368,7 @@ export default function Messages() {
                                     <div className="chat-header">
                                         <span className="user-name">{user.name}</span>
                                         <span className="timestamp">
-                                            {onlineUsers.has(user._id)
-                                                ? 'Online'
-                                                : formatLastSeen(user.lastSeen || new Date(), false)
-                                            }
+                                            {formatLastSeen(user.lastSeen || new Date(), onlineUsers.has(user._id))}
                                         </span>
                                     </div>
                                     <p className="last-message">
@@ -1075,6 +1381,8 @@ export default function Messages() {
                                                 </span>
                                                 typing...
                                             </span>
+                                        ) : deletedChats.has(`${sessionUserId}_${user._id}`) ? (
+                                            'No messages yet'
                                         ) : (
                                             lastMessages[user._id] || 'No messages yet'
                                         )}
@@ -1082,7 +1390,7 @@ export default function Messages() {
                                 </div>
 
                                 {/* Unread Message Count Badge */}
-                                {unreadCounts[user._id] > 0 && (
+                                {unreadCounts[user._id] > 0 && !deletedChats.has(`${sessionUserId}_${user._id}`) && (
                                     <div className="unread-badge">
                                         {unreadCounts[user._id] > 4 ? '4+' : unreadCounts[user._id]}
                                     </div>
@@ -1159,7 +1467,20 @@ export default function Messages() {
                                         }}
                                         onScroll={handleScroll}
                                     >
-                                        {chatMessages[selectedChat] && chatMessages[selectedChat].length > 0 ? (
+                                        {/* Desktop Restore Chat Button - Top Position */}
+                                        {selectedChat && selectedUser && deletedChats.has(`${sessionUserId}_${selectedChat}`) && (
+                                            <div className="desktop-restore-top-section">
+                                                <button
+                                                    onClick={() => handleRestoreChatClick(selectedUser._id, selectedUser.name)}
+                                                    className="desktop-restore-top-btn"
+                                                >
+                                                    <i className="bi bi-arrow-clockwise"></i>
+                                                    Restore Chat
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {chatMessages[selectedChat] && chatMessages[selectedChat].length > 0 && !deletedChats.has(`${sessionUserId}_${selectedChat}`) ? (
                                             <>
                                                 {chatMessages[selectedChat].map((msg) => (
                                                     <div
@@ -1228,8 +1549,21 @@ export default function Messages() {
                                             </div>
                                         )}
 
+                                        {/* Desktop Delete Chat Button - Only show delete button at bottom */}
+                                        {selectedChat && selectedUser && chatMessages[selectedChat] && chatMessages[selectedChat].length > 0 && !deletedChats.has(`${sessionUserId}_${selectedChat}`) && (
+                                            <div className="desktop-action-section">
+                                                <button
+                                                    onClick={() => handleDeleteChatClick(selectedUser._id, selectedUser.name)}
+                                                    className="desktop-delete-btn"
+                                                >
+                                                    <i className="bi bi-trash3"></i>
+                                                    Delete Chat
+                                                </button>
+                                            </div>
+                                        )}
+
                                         {/* Desktop Scroll to Bottom Button - Fixed at bottom-right */}
-                                        
+
                                     </div>
                                     <form className="chat-input-form" onSubmit={handleSendMessage}>
                                         {showScrollToBottom && (
@@ -1451,378 +1785,136 @@ export default function Messages() {
                 </div>
             </div>
 
-            {/* Bootstrap 5 Modal for Mobile Chat - Fixed Layout */}
-            <div
-                className={`modal fade mobile-chat-modal ${showMobileModal ? 'show' : ''}`}
-                id="mobileChat"
-                tabIndex="-1"
-                aria-labelledby="mobileChatLabel"
-                aria-hidden={!showMobileModal}
-                style={{
-                    display: showMobileModal ? 'block' : 'none',
-                    backgroundColor: showMobileModal ? 'rgba(0,0,0,0.5)' : 'transparent'
-                }}
-            >
-                <div className="modal-dialog modal-fullscreen">
-                    <div className="modal-content" style={{
-                        background: styles.background,
-                        color: styles.color,
-                        height: '100vh',
-                        display: 'flex',
-                        flexDirection: 'column'
-                    }}>
-                        {/* Modal Header - Default Styling */}
-                        <div className="modal-header border-bottom d-flex justify-content-between" style={{
-                            padding: '12px 16px',
-                            backgroundColor: '#fff',
-                            flexShrink: 0
-                        }}>
-                            <div className="d-flex align-items-center gap-3">
-                                <button
-                                    className="btn me-2"
-                                    onClick={handleBackToList}
-                                    style={{
-                                        padding: '4px 8px',
-                                        border: 'none',
-                                        background: 'transparent'
-                                    }}
-                                >
-                                    <i className="bi bi-arrow-left" style={{ fontSize: '18px', color: '#333' }}></i>
-                                </button>
-                                <div className="position-relative">
-                                    <Image
-                                        src={selectedUser?.image || predefine}
-                                        alt={selectedUser?.name || 'User'}
-                                        width={40}
-                                        height={40}
-                                        className="rounded-circle"
-                                    />
-                                    {/* Online Status Indicator - Fixed */}
-                                    <span
-                                        className="position-absolute"
-                                        style={{
-                                            bottom: '1px',
-                                            right: '1px',
-                                            width: '12px',
-                                            height: '12px',
-                                            backgroundColor: onlineUsers.has(selectedUser?._id) ? '#0FC953' : '#E81C1C',
-                                            borderRadius: '50%',
-                                            boxShadow: '0 2px 0 2px rgba(9, 50, 11, 0.27)'
-                                        }}
-                                    ></span>
-                                </div>
-                                <div>
-                                    <h6 className="mb-0 fw-bold">
-                                        {selectedUser?.name || 'User'}
-                                    </h6>
-                                    <small style={{ color: '#666', fontSize: '12px' }}>
-                                        {(() => {
-                                            const isOnline = onlineUsers.has(selectedUser?._id);
-                                            console.log('Mobile header status check:', {
-                                                userId: selectedUser?._id,
-                                                isOnline,
-                                                onlineUsers: Array.from(onlineUsers)
-                                            });
-                                            return isOnline
-                                                ? 'Online'
-                                                : formatLastSeen(selectedUser?.lastSeen || new Date(), false);
-                                        })()}
-                                    </small>
-                                </div>
+            {/* Mobile Chat Component */}
+            {showMobileChat && selectedUser && (
+                <MobileChatView
+                    selectedUser={selectedUser}
+                    selectedChat={selectedChat}
+                    chatMessages={chatMessages}
+                    sessionUserId={sessionUserId}
+                    onlineUsers={onlineUsers}
+                    typingUsers={typingUsers}
+                    newMessage={newMessage}
+                    setNewMessage={setNewMessage}
+                    handleSendMessage={handleSendMessage}
+                    handleTyping={handleTyping}
+                    onBack={handleBackToList}
+                    formatLastSeen={formatLastSeen}
+                    chatSizes={chatSizes}
+                    deletedChats={deletedChats}
+                    restoreChat={restoreChat}
+                    showScrollToBottom={showScrollToBottom}
+                    scrollToBottom={scrollToBottom}
+                    handleScroll={handleScroll}
+                    chatContainerRef={chatContainerRef}
+                    handleDeleteChatClick={handleDeleteChatClick}
+                    handleRestoreChatClick={handleRestoreChatClick}
+                />
+            )}
+
+            {/* Delete Chat Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="delete-modal-overlay">
+                    <div className="delete-modal-content">
+                        <div className="delete-modal-header">
+                            <div className="warning-icon">
+                                <i className="bi bi-exclamation-triangle-fill"></i>
                             </div>
-                            <div className="d-flex align-items-center">
-                                {/* Chat Size Display Only */}
-                                {selectedUser && chatSizes[`${sessionUserId}_${selectedUser._id}`] && (
-                                    <div className="me-2 text-center">
-                                        <small style={{
-                                            fontSize: '11px',
-                                            color: chatSizes[`${sessionUserId}_${selectedUser._id}`]?.exceedsLimit ? '#dc3545' : '#6c757d'
-                                        }}>
-                                            {chatSizes[`${sessionUserId}_${selectedUser._id}`]?.sizeFormatted}
-                                        </small>
-                                    </div>
-                                )}
-                                <button
-                                    type="button"
-                                    className="btn btn-close bg-warning"
-                                    onClick={handleBackToList}
-                                    aria-label="Close"
-                                ></button>
-                            </div>
+                            <h4>Delete Chat?</h4>
                         </div>
 
-                        {/* Mobile Modal Body - Fixed Layout */}
-                        <div className="modal-body d-flex flex-column" style={{
-                            height: 'calc(100vh - 120px)',
-                            padding: '0',
-                            backgroundColor: '#f8f9fa',
-                            flex: 1
-                        }}>
-                            <div
-                                ref={chatContainerRef}
-                                className="flex-grow-1 overflow-auto position-relative"
-                                style={{
-                                    padding: '16px',
-                                    backgroundColor: '#f8f9fa',
-                                    flex: 1,
-                                    display: 'flex',
-                                    flexDirection: 'column'
-                                }}
-                                onScroll={handleScroll}
+                        <div className="delete-modal-body">
+                            <p className="delete-message">
+                                Are you sure you want to delete your chat with <strong>{chatToDelete?.userName}</strong>?
+                            </p>
+                            <p className="delete-warning">
+                                This will remove the chat from your message list. If the other person also deletes this chat, it will be permanently removed from our servers.
+                            </p>
+                        </div>
+
+                        <div className="delete-modal-actions">
+                            <button
+                                onClick={handleCancelDeleteChat}
+                                className="btn-cancel-delete"
+                                disabled={isDeleting}
                             >
-                                {selectedChat && chatMessages[selectedChat] && chatMessages[selectedChat].length > 0 ? (
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmDeleteChat}
+                                className="btn-confirm-delete"
+                                disabled={isDeleting}
+                            >
+                                {isDeleting ? (
                                     <>
-                                        {chatMessages[selectedChat].map((msg) => (
-                                            <div key={msg.id} className="mb-2">
-                                                {/* Fixed: Sender RIGHT, Receiver LEFT */}
-                                                <div
-                                                    className={`d-flex ${msg.sender === "You" ? "justify-content-end" : "justify-content-start"}`}
-                                                    style={{ width: '100%' }}
-                                                >
-                                                    <div
-                                                        style={{
-                                                            backgroundColor: msg.sender === "You"
-                                                                ? '#007bff'
-                                                                : '#f1f1f1',
-                                                            color: msg.sender === "You" ? 'white' : '#333',
-                                                            padding: '10px 14px',
-                                                            borderRadius: msg.sender === "You"
-                                                                ? '18px 18px 4px 18px'
-                                                                : '18px 18px 18px 4px',
-                                                            maxWidth: '80%',
-                                                            wordWrap: 'break-word',
-                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                                            position: 'relative'
-                                                        }}
-
-                                                    >
-                                                        <div style={{
-                                                            fontSize: '15px',
-                                                            lineHeight: '1.4',
-                                                            marginBottom: '4px',
-                                                            textAlign: msg.sender === "You" ? 'right' : 'left'
-                                                        }}>
-                                                            {msg.text}
-                                                        </div>
-
-
-                                                        <div style={{
-                                                            fontSize: '11px',
-                                                            opacity: 0.7,
-                                                            textAlign: msg.sender === "You" ? 'right' : 'left',
-                                                            marginTop: '2px'
-                                                        }}>
-                                                            {msg.timestamp}
-                                                            {msg.sender === "You" && (
-                                                                <span style={{ marginLeft: '5px' }}>
-                                                                    {msg.delivered ? "Seen" : "Sent"}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-
-                                        {/* Chat Size Warning and Delete Option */}
-                                        {selectedUser && chatSizes[`${sessionUserId}_${selectedUser._id}`] &&
-                                         chatSizes[`${sessionUserId}_${selectedUser._id}`]?.exceedsLimit && (
-                                            <div className="mb-3">
-                                                <div className="d-flex justify-content-center">
-                                                    <div
-                                                        style={{
-                                                            backgroundColor: '#fff3cd',
-                                                            color: '#856404',
-                                                            padding: '12px 6px',
-                                                            borderRadius: '15px',
-                                                            border: '1px solid #ffeaa7',
-                                                            textAlign: 'center',
-                                                            maxWidth: '90%'
-                                                        }}
-                                                    >
-                                                        <button
-                                                            className="btn btn-sm btn-danger"
-                                                            style={{
-                                                                fontSize: '12px',
-                                                                padding: '6px 12px',
-                                                                borderRadius: '20px'
-                                                            }}
-                                                            onClick={() => {
-                                                                const chatData = chatSizes[`${sessionUserId}_${selectedUser._id}`];
-                                                                if (confirm('⚠️ This will permanently delete all messages in this chat. Are you sure?')) {
-                                                                    deleteChat(chatData.chatId, sessionUserId, selectedUser._id);
-                                                                }
-                                                            }}
-                                                        >
-                                                            🗑️ Delete Chat
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Typing Indicator - Left side with light green background */}
-                                        {typingUsers.has(selectedChat) && (
-                                            <div className="mb-2">
-                                                <div className="d-flex justify-content-start" style={{ width: '100%' }}>
-                                                    <div
-                                                        style={{
-                                                            backgroundColor: '#d4edda',
-                                                            color: '#155724',
-                                                            padding: '10px 14px',
-                                                            borderRadius: '18px 18px 18px 4px',
-                                                            maxWidth: '80%',
-                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                                            border: '1px solid #c3e6cb'
-                                                        }}
-                                                    >
-                                                        <div className="d-flex align-items-center">
-                                                            <span className="typing-indicator me-2">
-                                                                <span style={{ backgroundColor: '#28a745' }}></span>
-                                                                <span style={{ backgroundColor: '#28a745' }}></span>
-                                                                <span style={{ backgroundColor: '#28a745' }}></span>
-                                                            </span>
-                                                            <small style={{
-                                                                color: '#155724',
-                                                                fontSize: '12px',
-                                                                fontStyle: 'italic'
-                                                            }}>
-                                                                typing...
-                                                            </small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                       
-
-                                        <div ref={messagesEndRef} />
+                                        <div className="loading-spinner"></div>
+                                        Deleting...
                                     </>
                                 ) : (
-                                    <div className="text-center py-5">
-                                        <i className="bi bi-chat-dots" style={{ fontSize: '3rem', opacity: 0.5 }}></i>
-                                        <h4 className="mt-3">No messages yet</h4>
-                                        <p className="">Start the conversation by sending a message!</p>
-                                    </div>
+                                    <>
+                                        <i className="bi bi-trash3-fill"></i>
+                                        Delete Chat
+                                    </>
                                 )}
-                            </div>
-
-                            {/* Mobile Chat Input - Fixed Layout */}
-                            <div className="w-100" style={{
-                                padding: '16px',
-                                backgroundColor: '#fff',
-                                borderTop: '1px solid #e0e0e0',
-                                flexShrink: 0
-                            }}>
-                                {deletedChats.has(`${sessionUserId}_${selectedUser?._id}`) ? (
-                                    <div className="text-center py-3">
-                                        <p className="text-muted mb-2">This chat has been deleted</p>
-                                        <button
-                                            className="btn btn-sm btn-outline-primary"
-                                            onClick={() => {
-                                                const chatData = chatSizes[`${sessionUserId}_${selectedUser._id}`];
-                                                if (chatData) {
-                                                    restoreChat(chatData.chatId, sessionUserId, selectedUser._id);
-                                                }
-                                            }}
-                                        >
-                                            Restore Chat
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <form onSubmit={handleSendMessage}>
-                                        <div className="d-flex align-items-center" style={{ gap: '12px' }}>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                placeholder="Message..."
-                                                value={newMessage}
-                                                onChange={(e) => handleTyping(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                                        e.preventDefault();
-                                                        handleSendMessage(e);
-                                                    }
-                                                }}
-                                                style={{
-                                                    borderRadius: '25px',
-                                                    padding: '12px 16px',
-                                                    border: '1px solid #e0e0e0',
-                                                    fontSize: '16px',
-                                                    backgroundColor: '#f8f9fa',
-                                                    flex: '1',
-                                                    outline: 'none',
-                                                    boxShadow: 'none'
-                                                }}
-                                            />
-
-                                            <button
-                                                type="submit"
-                                                className="btn btn-primary"
-                                                disabled={!newMessage.trim()}
-                                                style={{
-                                                    borderRadius: '50%',
-                                                    width: '48px',
-                                                    height: '48px',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    padding: '0',
-                                                    backgroundColor: '#007bff',
-                                                    border: 'none',
-                                                    opacity: !newMessage.trim() ? 0.5 : 1,
-                                                    flexShrink: 0
-                                                }}
-                                            >
-                                                <i className="bi bi-send-fill" style={{ fontSize: '18px' }}></i>
-                                            </button>
-                                        </div>
-                                    </form>
-                                )}
-                            </div>
-
-                            {/* Mobile Scroll to Bottom Button - Fixed at bottom-right */}
-                            {showScrollToBottom && (
-                                <button
-                                    onClick={scrollToBottom}
-                                    style={{
-                                        position: 'absolute',
-                                        bottom: '80px',
-                                        right: '20px',
-                                        width: '50px',
-                                        height: '50px',
-                                        borderRadius: '50%',
-                                        backgroundColor: '#007bff',
-                                        border: 'none',
-                                        color: 'white',
-                                        boxShadow: '0 4px 16px rgba(0,123,255,0.4)',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        transition: 'all 0.3s ease',
-                                        fontSize: '20px',
-                                        fontWeight: 'bold',
-                                        zIndex: 1000
-                                    }}
-                                    onTouchStart={(e) => {
-                                        e.target.style.transform = 'scale(1.1)';
-                                        e.target.style.backgroundColor = '#0056b3';
-                                    }}
-                                    onTouchEnd={(e) => {
-                                        e.target.style.transform = 'scale(1)';
-                                        e.target.style.backgroundColor = '#007bff';
-                                    }}
-                                    title="Scroll to bottom"
-                                >
-                                    ↓
-                                </button>
-                            )}
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
+
+            {/* Restore Chat Confirmation Modal */}
+            {showRestoreConfirm && (
+                <div className="delete-modal-overlay">
+                    <div className="delete-modal-content">
+                        <div className="delete-modal-header">
+                            <div className="restore-icon">
+                                <i className="bi bi-arrow-clockwise"></i>
+                            </div>
+                            <h4>Restore Chat?</h4>
+                        </div>
+
+                        <div className="delete-modal-body">
+                            <p className="delete-message">
+                                Do you want to restore your chat with <strong>{chatToDelete?.userName}</strong>?
+                            </p>
+                            <p className="delete-warning">
+                                This will bring back your chat history if the other person hasn't deleted it yet.
+                            </p>
+                        </div>
+
+                        <div className="delete-modal-actions">
+                            <button
+                                onClick={handleCancelRestoreChat}
+                                className="btn-cancel-delete"
+                                disabled={isRestoring}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmRestoreChat}
+                                className="btn-confirm-restore"
+                                disabled={isRestoring}
+                            >
+                                {isRestoring ? (
+                                    <>
+                                        <div className="loading-spinner"></div>
+                                        Restoring...
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="bi bi-arrow-clockwise"></i>
+                                        Restore Chat
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+
+
 
 
             <style jsx>{`
@@ -1876,6 +1968,7 @@ export default function Messages() {
                 .mobile-chat-modal .modal-body {
                     padding: 0;
                     overflow: hidden;
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
                 }
 
                 /* Better mobile input styling */
@@ -1884,10 +1977,37 @@ export default function Messages() {
                         font-size: 16px !important;
                         -webkit-appearance: none;
                         border-radius: 25px;
+                        border: 1px solid #e0e0e0;
+                        padding: 12px 16px;
+                        background-color: #fff;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    }
+
+                    .mobile-chat-modal .form-control:focus {
+                        border-color: #007bff;
+                        box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
                     }
 
                     .mobile-chat-modal .btn {
                         -webkit-tap-highlight-color: transparent;
+                        border-radius: 50%;
+                        box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+                    }
+
+                    /* Message bubble animations */
+                    .mobile-chat-modal .mb-2 {
+                        animation: slideInMessage 0.3s ease-out;
+                    }
+                }
+
+                @keyframes slideInMessage {
+                    from {
+                        opacity: 0;
+                        transform: translateY(10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
                     }
                 }
 
@@ -1905,6 +2025,310 @@ export default function Messages() {
                     }
                     100% {
                         box-shadow: 0 0 0 0 rgba(15, 201, 83, 0);
+                    }
+                }
+
+                /* Delete Chat Modal Styles */
+                .delete-modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.6);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1060;
+                    animation: modalFadeIn 0.3s ease-out;
+                    backdrop-filter: blur(4px);
+                }
+
+                .delete-modal-content {
+                    background: rgb(22, 33, 62);
+                    border-radius: 16px;
+                    width: 90%;
+                    max-width: 420px;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+                    animation: modalSlideIn 0.3s ease-out;
+                    overflow: hidden;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                }
+
+                .delete-modal-header {
+                    padding: 24px 24px 16px;
+                    text-align: center;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                }
+
+                .delete-modal-header .warning-icon {
+                    font-size: 52px;
+                    color: #ff6b6b;
+                    margin-bottom: 12px;
+                    display: block;
+                    animation: warningPulse 2s infinite;
+                }
+
+                .delete-modal-header h4 {
+                    color: #ffffff;
+                    margin: 0;
+                    font-size: 20px;
+                    font-weight: 600;
+                }
+
+                .delete-modal-body {
+                    padding: 20px 24px;
+                    text-align: center;
+                }
+
+                .delete-message {
+                    color: #e2e8f0;
+                    font-size: 16px;
+                    margin: 0 0 16px 0;
+                    line-height: 1.5;
+                }
+
+                .delete-message strong {
+                    color: #ffffff;
+                    font-weight: 600;
+                }
+
+                .delete-warning {
+                    color: #94a3b8;
+                    font-size: 14px;
+                    margin: 0;
+                    line-height: 1.4;
+                }
+
+                .delete-modal-actions {
+                    padding: 16px 24px 24px;
+                    display: flex;
+                    gap: 12px;
+                    justify-content: center;
+                }
+
+                .btn-cancel-delete, .btn-confirm-delete {
+                    padding: 12px 24px;
+                    border-radius: 10px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    border: none;
+                    min-width: 120px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                }
+
+                .btn-cancel-delete {
+                    background: transparent;
+                    color: #94a3b8;
+                    border: 1px solid rgba(148, 163, 184, 0.3);
+                }
+
+                .btn-cancel-delete:hover:not(:disabled) {
+                    background: rgba(148, 163, 184, 0.1);
+                    color: #e2e8f0;
+                    border-color: rgba(148, 163, 184, 0.5);
+                    transform: translateY(-1px);
+                }
+
+                .btn-confirm-delete {
+                    background: linear-gradient(135deg, #ef4444, #dc2626);
+                    color: white;
+                    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+                }
+
+                .btn-confirm-delete:hover:not(:disabled) {
+                    background: linear-gradient(135deg, #dc2626, #b91c1c);
+                    transform: translateY(-1px);
+                    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+                }
+
+                .btn-cancel-delete:disabled,
+                .btn-confirm-delete:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    transform: none !important;
+                }
+
+                .loading-spinner {
+                    width: 16px;
+                    height: 16px;
+                    border: 2px solid rgba(255, 255, 255, 0.3);
+                    border-radius: 50%;
+                    border-top-color: #ffffff;
+                    animation: spin 0.8s linear infinite;
+                }
+
+                /* Modal Animations */
+                @keyframes modalFadeIn {
+                    from {
+                        opacity: 0;
+                    }
+                    to {
+                        opacity: 1;
+                    }
+                }
+
+                @keyframes modalSlideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-30px) scale(0.9);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+
+                @keyframes warningPulse {
+                    0%, 100% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                    50% {
+                        transform: scale(1.05);
+                        opacity: 0.8;
+                    }
+                }
+
+                @keyframes spin {
+                    to {
+                        transform: rotate(360deg);
+                    }
+                }
+
+                /* Desktop Action Buttons */
+                .desktop-action-section {
+                    text-align: center;
+                    padding: 20px;
+                    border-top: 1px solid rgba(255, 255, 255, 0.1);
+                    margin-top: 20px;
+                }
+
+                /* Desktop Restore Top Button */
+                .desktop-restore-top-section {
+                    text-align: center;
+                    padding: 16px 20px;
+                    margin-bottom: 20px;
+                    background: rgba(16, 185, 129, 0.1);
+                    border-radius: 12px;
+                    border: 1px solid rgba(16, 185, 129, 0.2);
+                }
+
+                .desktop-restore-top-btn {
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 12px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin: 0 auto;
+                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+                }
+
+                .desktop-restore-top-btn:hover {
+                    background: linear-gradient(135deg, #059669, #047857);
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+                }
+
+                .desktop-delete-btn, .desktop-restore-btn {
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 12px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin: 0 auto;
+                }
+
+                .desktop-delete-btn {
+                    background: linear-gradient(135deg, #ef4444, #dc2626);
+                    color: white;
+                    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+                }
+
+                .desktop-delete-btn:hover {
+                    background: linear-gradient(135deg, #dc2626, #b91c1c);
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+                }
+
+                .desktop-restore-btn {
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: white;
+                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+                }
+
+                .desktop-restore-btn:hover {
+                    background: linear-gradient(135deg, #059669, #047857);
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+                }
+
+                .desktop-delete-btn:active, .desktop-restore-btn:active {
+                    transform: translateY(0);
+                }
+
+                /* Restore Modal Styles */
+                .restore-icon {
+                    font-size: 52px;
+                    color: #10b981;
+                    margin-bottom: 12px;
+                    display: block;
+                    animation: restorePulse 2s infinite;
+                }
+
+                .btn-confirm-restore {
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: white;
+                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+                }
+
+                .btn-confirm-restore:hover:not(:disabled) {
+                    background: linear-gradient(135deg, #059669, #047857);
+                    transform: translateY(-1px);
+                    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+                }
+
+                @keyframes restorePulse {
+                    0%, 100% {
+                        transform: scale(1) rotate(0deg);
+                        opacity: 1;
+                    }
+                    50% {
+                        transform: scale(1.05) rotate(180deg);
+                        opacity: 0.8;
+                    }
+                }
+
+                /* Responsive Modal */
+                @media (max-width: 480px) {
+                    .delete-modal-content {
+                        width: 95%;
+                        margin: 20px;
+                    }
+
+                    .delete-modal-actions {
+                        flex-direction: column;
+                    }
+
+                    .btn-cancel-delete, .btn-confirm-delete {
+                        width: 100%;
                     }
                 }
             `}</style>
